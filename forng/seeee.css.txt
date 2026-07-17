@@ -1,0 +1,2127 @@
+ <style>
+      /* =================================================
+   Pixiv Interactive Novel Editor V5.6
+   UI Redesign CSS
+   Part 1 : Core / Header / Layout
+================================================= */
+
+
+/* ===== 核心容器 ===== */
+
+.pixiv-editor-container {
+
+    container-type:inline-size;
+
+    container-name:editorApp;
+
+    width:100%;
+
+    background:#e8e8e8;
+
+    color:#222;
+
+    font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+
+    box-sizing:border-box;
+
+}
+
+
+.pixiv-editor-container *,
+.pixiv-editor-container *::before,
+.pixiv-editor-container *::after {
+
+    box-sizing:border-box;
+
+}
+
+
+
+/* ===== APP 主體 ===== */
+
+
+.pixiv-editor-app {
+
+    width:100%;
+
+    min-height:600px;
+
+}
+
+
+
+/* ===== Header ===== */
+
+
+.pixiv-editor-container header {
+
+
+    background:
+
+    linear-gradient(
+        135deg,
+        #252525,
+        #111
+    );
+
+
+    color:white;
+
+
+    padding:12px 15px;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    gap:10px;
+
+
+    flex-wrap:wrap;
+
+
+    box-shadow:
+
+    0 2px 8px rgba(0,0,0,.3);
+
+
+    position:relative;
+
+
+    z-index:10;
+
+}
+
+
+
+.pixiv-editor-container header strong {
+
+
+    font-size:18px;
+
+
+    letter-spacing:.5px;
+
+}
+
+
+
+#currentProjectName {
+
+
+    color:#ffd54f!important;
+
+
+    font-weight:bold;
+
+}
+
+
+
+
+/* ===== 按鈕統一 ===== */
+
+
+.pixiv-editor-container button {
+
+
+    border:none;
+
+
+    border-radius:8px;
+
+
+    padding:
+
+    8px 14px;
+
+
+    background:#444;
+
+
+    color:white;
+
+
+    cursor:pointer;
+
+
+    transition:.15s;
+
+
+    font-size:14px;
+
+
+}
+
+
+.pixiv-editor-container button:hover {
+
+
+    background:#666;
+
+
+    transform:translateY(-1px);
+
+}
+
+
+
+.pixiv-editor-container button:active {
+
+
+    transform:scale(.97);
+
+}
+
+
+
+/* ===== 主要操作按鈕 ===== */
+
+
+#addPage {
+
+
+    background:#1976d2;
+
+}
+
+
+#addPage:hover {
+
+
+    background:#1565c0;
+
+}
+
+
+
+#exportPixiv {
+
+
+    background:#388e3c;
+
+}
+
+
+#exportPixiv:hover {
+
+
+    background:#2e7d32;
+
+}
+
+
+
+#saveProject {
+
+
+    background:#7b1fa2;
+
+}
+
+
+#saveProject:hover {
+
+
+    background:#6a1b9a;
+
+}
+
+
+
+/* ===== 語言選單 ===== */
+
+
+#langSelect {
+
+
+    margin-left:auto;
+
+
+    background:#333;
+
+
+    color:white;
+
+
+    border:
+
+    1px solid #777;
+
+
+    border-radius:6px;
+
+
+    padding:8px 12px;
+
+}
+
+
+
+/* =================================================
+   Layout
+================================================= */
+
+
+.pixiv-main-layout {
+
+
+    width:100%;
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+}
+
+
+
+/* 寬螢幕 */
+
+@container editorApp (min-width:1000px){
+
+
+    .pixiv-editor-app {
+
+
+        height:100vh;
+
+
+        display:grid;
+
+
+        grid-template-rows:auto 1fr;
+
+
+    }
+
+
+
+    .pixiv-main-layout {
+
+
+        display:grid;
+
+
+        grid-template-columns:
+
+        40% 35% 25%;
+
+
+        height:100%;
+
+
+    }
+
+
+}
+
+
+
+/* ===== 通用 Input ===== */
+
+
+.pixiv-editor-container input {
+
+
+    border:
+
+    1px solid #ccc;
+
+
+    border-radius:6px;
+
+
+    padding:9px;
+
+
+    font-size:15px;
+
+
+    background:white;
+
+
+}
+
+
+
+.pixiv-editor-container input:focus,
+
+
+.pixiv-editor-container textarea:focus {
+
+
+    outline:none;
+
+
+    border-color:#1976d2;
+
+
+    box-shadow:
+
+    0 0 0 2px rgba(25,118,210,.15);
+
+}
+
+
+
+/* ===== 分隔 ===== */
+
+
+.pixiv-editor-container h3 {
+
+
+    margin:
+
+    12px 0;
+
+
+    font-size:17px;
+
+
+    color:#333;
+
+}
+
+/* =================================================
+   Part 2 : Flow Canvas / Nodes / Lines
+================================================= */
+
+
+/* ===== 流程圖工作區 ===== */
+
+
+.pixiv-editor-container #flowPanel {
+
+    position:relative;
+
+    height:600px;
+
+    background-color:#d9d9d9;
+
+    overflow:auto;
+
+    overscroll-behavior:contain;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:auto;
+
+    border-bottom:2px solid #aaa;
+
+    cursor:grab;
+
+}
+
+
+
+/* ===== 無限畫布區 ===== */
+
+
+.pixiv-editor-container #flowCanvas {
+
+    position:absolute;
+
+    left:0;
+    top:0;
+
+    width:5000px;
+    height:5000px;
+
+    min-width:5000px;
+    min-height:5000px;
+
+    z-index:2;
+
+}
+
+
+
+/* ===== Canvas 連線層 ===== */
+
+
+.pixiv-editor-container #linesCanvas {
+
+
+    position:absolute;
+
+
+    left:0;
+
+
+    top:0;
+
+
+    z-index:1;
+
+
+    pointer-events:none;
+
+
+}
+
+
+
+
+
+/* ===== 背景格線 ===== */
+
+
+.pixiv-editor-container #flowPanel::before {
+
+
+    content:"";
+
+
+    position:absolute;
+
+
+    left:0;
+
+
+    top:0;
+
+
+    width:2000px;
+
+
+    height:2000px;
+
+
+
+    background-image:
+
+
+    linear-gradient(
+        rgba(0,0,0,.06) 1px,
+        transparent 1px
+    ),
+
+
+    linear-gradient(
+        90deg,
+        rgba(0,0,0,.06) 1px,
+        transparent 1px
+    );
+
+
+    background-size:
+
+    40px 40px;
+
+
+    pointer-events:none;
+
+
+    z-index:0;
+
+
+}
+
+
+
+/* =================================================
+   Node
+================================================= */
+
+
+.pixiv-editor-container .flowNode {
+
+
+    position:absolute;
+
+
+    width:180px;
+
+
+    min-height:70px;
+
+
+    padding:14px;
+
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:center;
+
+
+
+    background:
+
+    linear-gradient(
+        145deg,
+        #ffffff,
+        #f2f2f2
+    );
+
+
+
+    border:
+
+    2px solid #555;
+
+
+
+    border-radius:14px;
+
+
+
+    box-shadow:
+
+
+    0 5px 12px rgba(0,0,0,.25);
+
+
+
+    font-size:15px;
+
+
+    font-weight:bold;
+
+
+    line-height:1.4;
+
+
+    text-align:center;
+
+
+
+    cursor:grab;
+
+
+    user-select:none;
+
+
+    touch-action:none;
+
+
+
+    transition:
+
+
+    transform .15s ease,
+
+
+    box-shadow .15s ease,
+
+
+    border-color .15s ease;
+
+
+
+}
+
+
+
+/* 節點滑過 */
+
+
+.pixiv-editor-container .flowNode:hover {
+
+
+    border-color:#1976d2;
+
+
+    box-shadow:
+
+
+    0 8px 18px rgba(0,0,0,.35);
+
+
+
+    transform:
+
+    translateY(-3px);
+
+
+}
+
+/* ===== 節點頁碼徽章（左上角小圓圈）===== */
+
+.pixiv-editor-container .flowNode::before {
+
+    content: attr(data-pagenum);
+
+    position:absolute;
+
+    top:-10px;
+    left:-10px;
+
+    width:22px;
+    height:22px;
+
+    border-radius:50%;
+
+    background:#1976d2;
+    color:#fff;
+
+    font-size:12px;
+    font-weight:bold;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    box-shadow:0 2px 4px rgba(0,0,0,.35);
+
+    pointer-events:none;
+}
+
+/* ===== 有作者筆記時，右上角顯示提醒圖示 ===== */
+
+.pixiv-editor-container .flowNode[data-hasnote="1"]::after {
+
+    content: "📝";
+
+    position:absolute;
+
+    top:-12px;
+    right:-8px;
+
+    font-size:15px;
+
+    pointer-events:none;
+}
+
+
+
+/* 拖曳狀態 */
+
+
+.pixiv-editor-container .flowNode:active {
+
+
+    cursor:grabbing;
+
+
+    transform:
+
+    scale(1.05);
+
+
+}
+
+
+
+/* ===== 選取節點 ===== */
+
+/*
+JS 會直接改 borderColor
+所以這裡只是補動畫
+*/
+
+
+.pixiv-editor-container .flowNode {
+
+
+    transition:
+
+
+    border-color .2s,
+
+
+    box-shadow .2s,
+
+
+    transform .15s;
+
+}
+
+
+
+/* =================================================
+   Flow Line
+================================================= */
+
+
+.pixiv-editor-container .flowLine {
+
+
+    position:absolute;
+
+
+    height:4px;
+
+
+    background:
+
+
+    linear-gradient(
+        90deg,
+        #555,
+        #777
+    );
+
+
+    border-radius:4px;
+
+
+    transform-origin:left center;
+
+
+    pointer-events:none;
+
+
+
+    opacity:.8;
+
+
+}
+
+
+
+/* =================================================
+   Scrollbar
+================================================= */
+
+
+.pixiv-editor-container #flowPanel::-webkit-scrollbar {
+
+
+    width:14px;
+
+
+    height:14px;
+
+
+}
+
+
+
+.pixiv-editor-container #flowPanel::-webkit-scrollbar-track {
+
+
+    background:#cfcfcf;
+
+
+}
+
+
+
+.pixiv-editor-container #flowPanel::-webkit-scrollbar-thumb {
+
+
+    background:#777;
+
+
+    border-radius:8px;
+
+
+    border:
+
+    3px solid #cfcfcf;
+
+
+}
+
+
+
+.pixiv-editor-container #flowPanel::-webkit-scrollbar-thumb:hover {
+
+
+    background:#555;
+
+
+}
+
+/* =================================================
+   Part 3 : Editor / Toolbar / Options / Preview
+================================================= */
+
+
+/* =================================================
+   Editor Panel
+================================================= */
+
+
+.pixiv-editor-container #editorPanel {
+
+
+    background:#ffffff;
+
+
+    padding:18px;
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+
+    gap:10px;
+
+
+    overflow-y:auto;
+
+
+
+    border-right:
+
+    1px solid #ccc;
+
+
+
+}
+
+
+
+/* 標題輸入 */
+
+
+#pageTitle {
+
+
+    width:100%;
+
+
+    font-size:18px;
+
+
+    font-weight:bold;
+
+
+}
+
+
+
+/* =================================================
+   Pixiv Toolbar
+================================================= */
+
+
+.pixiv-editor-container .pixiv-toolbar {
+
+
+    display:flex;
+
+
+    flex-wrap:wrap;
+
+
+    gap:6px;
+
+
+    padding:8px;
+
+
+    background:#f5f5f5;
+
+
+    border:
+
+
+    1px solid #ddd;
+
+
+    border-radius:
+
+    8px 8px 0 0;
+
+
+}
+
+
+
+/* Toolbar 按鈕 */
+
+
+.pixiv-editor-container .pixiv-toolbar button {
+
+
+    background:white;
+
+
+    color:#333;
+
+
+    border:
+
+
+    1px solid #bbb;
+
+
+    padding:
+
+    6px 10px;
+
+
+    font-size:13px;
+
+
+}
+
+
+
+.pixiv-editor-container .pixiv-toolbar button:hover {
+
+
+    background:#e3f2fd;
+
+
+    border-color:#1976d2;
+
+
+}
+
+
+
+/* =================================================
+   Text Editor
+================================================= */
+
+
+.pixiv-editor-container textarea {
+
+
+    width:100%;
+
+
+    min-height:320px;
+
+
+    resize:vertical;
+
+
+
+    padding:14px;
+
+
+
+    font-size:16px;
+
+
+    line-height:1.8;
+
+
+
+    border:
+
+    1px solid #ccc;
+
+
+
+    border-radius:
+
+    0 0 8px 8px;
+
+
+
+    background:#fff;
+
+
+
+    font-family:
+
+    "Noto Sans TC",
+
+    system-ui,
+
+    sans-serif;
+
+
+}
+
+
+/* ===== 作者筆記（獨立於正文，僅供編輯參考）===== */
+
+.pixiv-editor-container #pageNote {
+
+    min-height:70px;
+
+    background:#fffce6;
+
+    border:1px solid #e0c675;
+
+    font-size:14px;
+
+    line-height:1.6;
+
+    border-radius:8px;
+
+    margin-bottom:12px;
+
+}
+
+
+/* =================================================
+   Options
+================================================= */
+
+
+.pixiv-editor-container #options {
+
+
+    margin-top:5px;
+
+
+    padding-top:10px;
+
+
+    border-top:
+
+
+    1px solid #ddd;
+
+
+}
+
+
+
+/* 單個選項 */
+
+
+.pixiv-editor-container .option {
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    gap:8px;
+
+
+
+    padding:10px;
+
+
+    margin-bottom:8px;
+
+
+
+    background:#f1f1f1;
+
+
+
+    border-radius:8px;
+
+
+
+    border:
+
+
+    1px solid #ddd;
+
+
+
+}
+
+
+
+/* 選項文字 */
+
+
+.pixiv-editor-container .optionName {
+
+
+    flex:1;
+
+
+}
+
+
+
+/* 目標頁 */
+
+.pixiv-editor-container .option .target {
+
+
+    width:120px;
+
+
+}
+
+
+/* 選項旁的頁碼提示（只給編輯器內看，不會輸出到正文） */
+
+.pixiv-editor-container .option-pagenum {
+
+    font-size:12px;
+
+    color:#1976d2;
+
+    white-space:nowrap;
+
+    margin:0 4px;
+
+}
+
+
+
+/* 建立頁面按鈕 */
+
+
+.create-target-btn {
+
+
+    background:#2196f3!important;
+
+
+}
+
+
+
+.create-target-btn:hover {
+
+
+    background:#1976d2!important;
+
+
+}
+
+
+
+/* 刪除選項 */
+
+
+.pixiv-editor-container .deleteOption {
+
+
+    background:#ffcdd2;
+
+
+    color:#b71c1c;
+
+
+}
+
+
+
+.pixiv-editor-container .deleteOption:hover {
+
+
+    background:#ef9a9a;
+
+
+}
+
+
+
+/* 新增選項 */
+
+
+#addOption {
+
+
+    margin-top:5px;
+
+
+    background:#388e3c;
+
+
+}
+
+
+
+#addOption:hover {
+
+
+    background:#2e7d32;
+
+
+}
+
+
+
+/* 刪除頁面 */
+
+
+#deletePage {
+
+
+    margin-top:auto;
+
+
+    background:#d32f2f;
+
+
+    color:white;
+
+
+    font-weight:bold;
+
+
+}
+
+
+
+#deletePage:hover {
+
+
+    background:#b71c1c;
+
+
+}
+
+
+
+/* =================================================
+   Preview Panel
+================================================= */
+
+
+.pixiv-editor-container #previewPanel {
+
+
+    background:
+
+
+    linear-gradient(
+        180deg,
+        #fafafa,
+        #eeeeee
+    );
+
+
+
+    padding:20px;
+
+
+
+    overflow-y:auto;
+
+
+
+}
+
+
+
+/* 預覽標題 */
+
+
+#previewPanel h3 {
+
+
+    margin-top:0;
+
+
+    padding-bottom:10px;
+
+
+    border-bottom:
+
+
+    1px solid #ddd;
+
+
+}
+
+
+
+/* 文章內容 */
+
+
+#previewText {
+
+
+    background:white;
+
+
+    padding:18px;
+
+
+
+    border-radius:10px;
+
+
+
+    box-shadow:
+
+
+    0 3px 10px rgba(0,0,0,.12);
+
+
+
+    white-space:pre-wrap;
+
+
+
+    line-height:1.8;
+
+
+
+    font-size:16px;
+
+
+}
+
+
+
+/* =================================================
+   小細節
+================================================= */
+
+
+.pixiv-editor-container label {
+
+
+    font-weight:bold;
+
+
+    color:#444;
+
+
+    margin-top:5px;
+
+
+}
+
+
+/* =================================================
+   Part 4 : Responsive / Blogger Fix / Final
+================================================= */
+
+
+/* =================================================
+   Tablet
+================================================= */
+
+
+@container editorApp (max-width:999px){
+
+
+    .pixiv-editor-app {
+
+
+        height:auto;
+
+
+    }
+
+
+
+    .pixiv-main-layout {
+
+
+        display:flex;
+
+
+        flex-direction:column;
+
+
+    }
+
+
+
+    #flowPanel {
+
+
+        order:1;
+
+
+        height:500px;
+
+
+    }
+
+
+
+    #editorPanel {
+
+
+        order:2;
+
+
+        min-height:600px;
+
+
+        border-right:none;
+
+
+        border-bottom:
+
+
+        1px solid #ccc;
+
+
+    }
+
+
+
+    #previewPanel {
+
+
+        order:3;
+
+
+        min-height:400px;
+
+
+    }
+
+
+
+}
+
+
+
+/* =================================================
+   Mobile
+================================================= */
+
+
+@media(max-width:700px){
+
+
+
+    .pixiv-editor-container {
+
+
+        font-size:14px;
+
+
+    }
+
+
+
+    /* Header */
+
+    .pixiv-editor-container header {
+
+
+        padding:10px;
+
+
+        gap:6px;
+
+
+    }
+
+
+
+    .pixiv-editor-container header strong {
+
+
+        width:100%;
+
+
+        font-size:16px;
+
+
+    }
+
+
+
+    #currentProjectName {
+
+
+        width:100%;
+
+
+        margin-left:0!important;
+
+
+    }
+
+
+
+    #langSelect {
+
+
+        margin-left:0;
+
+
+    }
+
+
+
+
+    .pixiv-editor-container button {
+
+
+        padding:
+
+        7px 10px;
+
+
+        font-size:13px;
+
+
+    }
+
+
+
+
+    /* Flow Canvas */
+
+
+    .pixiv-editor-container #flowPanel {
+
+
+        height:420px;
+
+
+    }
+
+
+
+    .pixiv-editor-container #flowCanvas {
+
+
+        min-width:1200px;
+
+
+        min-height:900px;
+
+
+    }
+
+
+
+    .pixiv-editor-container .flowNode {
+
+
+        width:160px;
+
+
+        min-height:60px;
+
+
+        font-size:14px;
+
+
+        padding:10px;
+
+
+    }
+
+
+
+
+
+    /* Editor */
+
+
+    .pixiv-editor-container #editorPanel {
+
+
+        padding:12px;
+
+
+    }
+
+
+
+    #pageTitle {
+
+
+        font-size:16px;
+
+
+    }
+
+
+
+    .pixiv-editor-container textarea {
+
+
+        min-height:250px;
+
+
+        font-size:15px;
+
+
+    }
+
+
+
+
+
+    /* Toolbar */
+
+
+    .pixiv-editor-container .pixiv-toolbar {
+
+
+        gap:4px;
+
+
+    }
+
+
+
+    .pixiv-editor-container .pixiv-toolbar button {
+
+
+        padding:
+
+        5px 8px;
+
+
+        font-size:12px;
+
+
+    }
+
+
+
+
+
+    /* Options */
+
+
+    .pixiv-editor-container .option {
+
+
+        flex-wrap:wrap;
+
+
+    }
+
+
+
+    .pixiv-editor-container .optionName {
+
+
+        flex-basis:100%;
+
+
+    }
+
+
+
+    .pixiv-editor-container .option .target {
+
+
+        flex:1;
+
+
+        width:auto;
+
+
+    }
+
+
+
+
+    /* Preview */
+
+
+    #previewPanel {
+
+
+        padding:12px!important;
+
+
+    }
+
+
+
+    #previewText {
+
+
+        padding:14px;
+
+
+        font-size:15px;
+
+
+    }
+
+
+
+}
+
+
+
+
+/* =================================================
+   Blogger 防污染修正
+================================================= */
+
+
+/*
+ 防止外層 Blogger 影響
+*/
+
+
+.pixiv-editor-container h1,
+.pixiv-editor-container h2,
+.pixiv-editor-container h3,
+.pixiv-editor-container p {
+
+
+    margin-left:0;
+
+
+    margin-right:0;
+
+
+}
+
+
+
+.pixiv-editor-container canvas {
+
+
+    max-width:none;
+
+
+}
+
+
+
+/*
+ 防止圖片或外部 CSS 破壞
+*/
+
+
+.pixiv-editor-container img {
+
+
+    max-width:100%;
+
+
+}
+
+
+
+/*
+ 防止 iframe / Blogger body margin 影響
+*/
+
+
+.pixiv-editor-container {
+
+
+    overflow:hidden;
+
+
+}
+
+
+
+
+/* =================================================
+   Final Visual Polish
+================================================= */
+
+
+/* 選取節點動畫 */
+
+@keyframes nodeSelect {
+
+
+    from {
+
+
+        box-shadow:
+
+        0 0 0 rgba(33,150,243,0);
+
+
+    }
+
+
+    to {
+
+
+        box-shadow:
+
+        0 0 15px rgba(33,150,243,.5);
+
+
+    }
+
+
+}
+
+
+
+.pixiv-editor-container .flowNode[style*="007bff"] {
+
+
+    animation:
+
+    nodeSelect .3s infinite alternate;
+
+
+}
+          
+  
+.pixiv-editor-container #flowPanel {
+    scrollbar-width:auto;
+    -webkit-overflow-scrolling:touch;
+}
+
+#node-context-menu div:hover{
+    background:#eeeeee;
+}
+
+
+@media(max-width:600px){
+
+#node-context-menu{
+    min-width:180px!important;
+}
+
+
+#node-context-menu div{
+    padding:14px!important;
+    font-size:17px;
+}
+
+}
+
+
+
+/* ================================
+   畫布區域
+================================ */
+
+#flowPanel {
+    position: relative;
+
+    width: 100%;
+    height: 600px;
+
+    overflow: auto;
+
+    touch-action: none;
+
+    cursor: grab;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,0,0,.04) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            rgba(0,0,0,.04) 1px,
+            transparent 1px
+        );
+
+    background-size: 40px 40px;
+
+}
+
+#flowPanel.panning {
+    cursor: grabbing;
+}
+
+
+/* ================================
+   實際流程圖空間
+================================ */
+
+#flowCanvas {
+
+    position: relative;
+
+    min-width:1200px;
+    min-height:1000px;
+
+}
+
+
+/* ================================
+   Node
+================================ */
+
+.flow-node {
+
+    position:absolute;
+
+    min-width:160px;
+
+    padding:12px;
+
+    border-radius:12px;
+
+    user-select:none;
+
+    touch-action:none;
+
+    cursor:grab;
+
+}
+
+
+.flow-node:active{
+
+    cursor:grabbing;
+
+}
+
+
+/* 手機 */
+@media(max-width:768px){
+
+    #flowPanel{
+
+        height:500px;
+
+    }
+
+
+    .flow-node{
+
+        min-width:140px;
+
+        font-size:14px;
+
+    }
+
+}
+
+
+
+@media(min-width:1000px){
+
+#flowPanel{
+
+height:700px;
+
+}
+
+}
+
+
+#pixivWordCounter{
+
+    background:white;
+
+    border:1px solid #aaa;
+
+    border-radius:8px;
+
+    padding:8px 12px;
+
+    font-size:14px;
+
+}
+
+
+.pixiv-editor-container header{
+
+display:flex;
+
+align-items:center;
+
+gap:8px;
+
+flex-wrap:wrap;
+
+}
+
+
+
+.header-main{
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+}
+
+
+
+.header-group{
+
+display:flex;
+
+align-items:center;
+
+gap:6px;
+
+padding-left:10px;
+
+border-left:1px solid #555;
+
+}
+
+
+
+#branch-order{
+
+width:80px;
+
+padding:6px;
+
+border-radius:5px;
+
+border:none;
+
+text-align:center;
+
+}
+
+
+
+#langSelect{
+
+margin-left:auto;
+
+}
+
+
+.flowNode.selected{
+border-color:#007bff;
+box-shadow:0 0 10px #007bff;
+}
+
+/* ===== 多選（框選 / Ctrl+點擊）節點樣式 ===== */
+.pixiv-editor-container .flowNode.multiSelected{
+    outline: 3px dashed #ff9800;
+    outline-offset: 3px;
+}
+
+/* ===== 群組節點：外框顏色由 JS 透過 --groupColor 設定 ===== */
+.pixiv-editor-container .flowNode[data-group-id]{
+    box-shadow: 0 0 0 3px var(--groupColor, #999) inset;
+}
+
+/* ===== 框選矩形（Shift + 拖曳畫布空白處）===== */
+.pixiv-editor-container .rubberBandBox{
+    position:absolute;
+    border:1px dashed #ff9800;
+    background:rgba(255,152,0,0.12);
+    pointer-events:none;
+    z-index:500;
+}
+
+/* ===== 多選工具列（複製/剪下/貼上/群組）===== */
+#multiSelectToolbar{
+    display:none;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    background:#fff3cd;
+    border:1px solid #e0c675;
+    border-radius:8px;
+    padding:8px 12px;
+    margin-bottom:8px;
+    font-size:14px;
+}
+#multiSelectToolbar button{
+    padding:5px 10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    background:#fff;
+    cursor:pointer;
+    font-size:13px;
+}
+#multiSelectToolbar button:hover{
+    background:#f0f0f0;
+}
+
+    </style>
