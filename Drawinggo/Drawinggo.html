@@ -1,0 +1,3508 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI筆壓模擬繪圖板</title>
+    <script src="https://unpkg.com/ag-psd/dist/bundle.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 10px;
+        }
+
+        .tool {
+            margin: 5px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+        }
+
+        .tool.active {
+            background-color: #d0f0d0;
+        }
+
+       /* 修改原本的 canvas 樣式 */
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* 移除這裡的 border，改由容器顯示 */
+    box-sizing: border-box;
+    /* 確保畫布內容不超出容器 */
+}
+
+#canvas-container {
+    position: relative;
+    /* 這裡加上邊框，讓它成為「實際畫布的邊框」 */
+    border: 2px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: none;
+    overflow: hidden;
+    /* 讓容器大小根據內容自動調整 */
+    width: auto; 
+    height: auto;
+    min-width: 800px;
+    min-height: 600px;
+/* 確保畫布不會因為超出容器而造成捲動條出現或偏移 */
+    overflow: hidden; 
+    /* 確保容器本身固定在父層的中間 */
+    margin: 0 auto;
+    /* 變形動畫可以更流暢 */
+    transition: transform 0.1s ease-out;
+}
+
+        #overlay {
+    background: transparent !important; /* 強制設定 overlay 為透明 */
+}
+
+        #layer-controls {
+            margin: 10px;
+        }
+
+        .layer-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .layer-option.active {
+            background-color: #d0f0d0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .layer-option button {
+            margin-left: 5px;
+        }
+
+        #pressure-slider {
+            width: 100px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #zoom-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+        }
+
+        #zoom-controls button {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #pan-controls {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            z-index: 2;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #pan-controls label {
+            margin-right: 5px;
+        }
+
+
+.hidden {
+    display: none;
+}
+
+
+#layer-background-controls {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#bg-type-select {
+    padding: 5px;
+}
+
+#layer-bg-color {
+    width: 40px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #ccc;
+}
+
+
+#undo-tool.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#undo-tool:not(.disabled) {
+    cursor: pointer;
+}
+
+#undo-tool:not(.disabled):hover {
+    background-color: #e0e0e0;
+}
+
+
+.layer-checkbox {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+#merge-layers {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#merge-layers:hover {
+    background-color: #e0e0e0;
+}
+
+.layer-option {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    margin: 2px 0;
+    border: 1px solid transparent;
+}
+
+.layer-option:hover {
+    background-color: #f5f5f5;
+}
+
+.layer-option.active {
+    border-color: #4CAF50;
+    background-color: #e8f5e9;
+}
+
+
+
+.layer-checkbox {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+#merge-layers {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#merge-layers:hover {
+    background-color: #e0e0e0;
+}
+
+.layer-option {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    margin: 2px 0;
+    border: 1px solid transparent;
+}
+
+.layer-option:hover {
+    background-color: #f5f5f5;
+}
+
+.layer-option.active {
+    border-color: #4CAF50;
+    background-color: #e8f5e9;
+}
+
+.layer-option button {
+    margin: 0 2px;
+    padding: 2px 5px;
+    cursor: pointer;
+}
+
+.layer-option button:hover {
+    background-color: #e0e0e0;
+}
+
+#save-psd {
+    margin: 5px;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#save-psd:hover {
+    background-color: #45a049;
+}
+
+
+
+#upload-psd {
+    margin: 5px;
+    padding: 5px;
+}
+
+.upload-container {
+    margin: 10px 0;
+}
+
+
+.icon-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.icon-button:hover {
+    background-color: #e0e0e0;
+}
+
+.icon-button .material-icons {
+    font-size: 20px;
+}
+
+.button-text {
+    font-size: 14px;
+}
+
+.file-upload {
+    display: inline-block;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+/* 美化其他現有按鈕 */
+#save-psd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#save-psd::before {
+    content: 'save';
+    font-family: 'Material Icons';
+    font-size: 20px;
+}
+
+/* 工具欄圖示 */
+.tool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#pencil-tool::before {
+    content: 'edit';
+    font-family: 'Material Icons';
+}
+
+#eraser-tool::before {
+    content: 'auto_fix_high';
+    font-family: 'Material Icons';
+}
+
+#select-tool::before {
+    content: 'select_all';
+    font-family: 'Material Icons';
+}
+
+#undo-tool::before {
+    content: 'undo';
+    font-family: 'Material Icons';
+}
+
+
+#selection-tools,
+.tool-group{
+
+display:flex;
+
+gap:5px;
+
+flex-wrap:wrap;
+
+}
+
+
+#selection-tools button,
+.tool-group button{
+
+padding:6px 10px;
+
+border-radius:5px;
+
+cursor:pointer;
+
+}
+
+
+/* 隱藏旋轉與鏡射按鈕 */
+#rotate-layer, #mirror-layer {
+    display: none !important;
+}
+
+
+.layer-option {
+    cursor: grab;
+    padding: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: white;
+}
+
+.layer-option.dragging {
+    background: #e0f7fa;
+    opacity: 0.6;
+}
+
+/* 確保畫布容器不會因為圖層更換而閃爍 */
+#canvas-container {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+    </style>
+</head>
+<body>
+    <h1>AI筆壓模擬繪圖板</h1>
+    <p>小提醒：請隨時儲存檔案以免檔案遺失，功能介紹看留言版</p>
+    <div id="zoom-controls">
+        <button id="zoom-in">放大</button>
+        <button id="zoom-out">縮小</button>
+        <button id="clear-layer">刪除圖層圖像</button>
+        <button id="rotate-layer">旋轉</button>
+        <button id="mirror-layer">鏡射</button>
+    </div>
+
+    <div id="pan-controls">
+        <label for="pan-horizontal">水平移動:</label>
+        <input id="pan-horizontal" type="range" min="-500" max="500" value="0">
+        <label for="pan-vertical">垂直移動:</label>
+        <input id="pan-vertical" type="range" min="-500" max="500" value="0">
+    </div>
+
+
+<div class="tool-group">
+
+<h4>Selection</h4>
+
+<button id="select-tool">
+⬚ 選取
+</button>
+
+<button id="copy-selection">
+⧉ 複製
+</button>
+
+<button id="cut-selection">
+✂ 剪下
+</button>
+
+<button id="paste-selection">
+📋 貼上
+</button>
+
+<button id="delete-selection">
+⌫ 清除
+</button>
+
+<button id="clear-selection">
+× 取消
+</button>
+
+</div>
+
+
+    <div id="toolbar">
+        <div id="pencil-tool" class="tool active">鉛筆</div>
+        <div id="eraser-tool" class="tool">橡皮擦</div>   
+ <div id="undo-tool" class="tool disabled">復原</div>
+
+        <input id="brush-size" type="number" value="5" min="1" max="50" style="width: 50px;">
+        <input id="brush-color" type="color" value="#000000">
+        <label>
+            模擬筆壓：
+            <input id="pressure-slider" type="range" min="0" max="1" step="0.01" value="0.5">
+        </label>
+    </div>
+
+    <div>
+        <label for="canvas-width">畫布寬度:</label>
+        <input id="canvas-width" type="number" value="800" min="100" max="2000">
+        <label for="canvas-height">畫布高度:</label>
+        <input id="canvas-height" type="number" value="600" min="100" max="2000">
+        <button id="resize-canvas">調整畫布大小</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="drawing-canvas" width="800" height="600"></canvas>
+        <canvas id="overlay" width="800" height="600"></canvas>
+    </div>
+
+    <div id="layer-controls">
+    <button id="add-layer">新增圖層</button>  
+ <button id="merge-layers">合併選中圖層</button> <
+   <div id="layer-background-controls">
+    <select id="bg-type-select">
+        <option value="color">純色</option>
+        <option value="transparent">透明</option>
+    </select>
+    <input type="color" id="layer-bg-color" value="#ffffff">
+    <button id="fill-layer-bg">填滿圖層背景</button>
+</div>
+    <div id="layer-list"></div>
+</div>
+
+      <label for="background-color">背景色:</label>
+        <select id="background-color">
+            <option value="white" selected>白色</option>
+            <option value="transparent">透明</option>
+            <option value="custom">自定義</option>
+        </select>
+        <input id="custom-bg-color" type="color" value="#ffffff" class="hidden">
+        <button id="export-image">導出圖片</button>
+    <button id="save-psd">另存為 PSD</button>
+
+<!-- 按鈕 HTML -->
+<button id="export-json" class="icon-button">
+    <span class="material-icons">save_alt</span>
+    <span class="button-text">導出 JSON</span>
+</button>
+
+<div class="file-upload">
+    <label for="upload-json" class="icon-button">
+        <span class="material-icons">upload_file</span>
+        <span class="button-text">導入 JSON</span>
+    </label>
+    <input type="file" id="upload-json" accept=".json" class="hidden">
+</div>    <div>
+        <label for="upload-image">導入圖片:</label>
+        <input type="file" id="upload-image">
+    </div>
+
+    <div>
+        <label for="filename">檔案名稱:</label>
+        <input id="filename" type="text" placeholder="輸入檔案名稱" value="drawing">
+    </div>
+
+
+    <div>
+        <button id="save-record">儲存紀錄</button>
+        <button id="load-record">讀取紀錄</button>
+    </div>
+
+<script>
+// DOM 元素獲取
+const canvasContainer = document.getElementById('canvas-container');
+const pencilTool = document.getElementById('pencil-tool');
+const eraserTool = document.getElementById('eraser-tool');
+const selectTool = document.getElementById('select-tool');
+const brushSizeInput = document.getElementById('brush-size');
+const brushColorInput = document.getElementById('brush-color');
+const pressureSlider = document.getElementById('pressure-slider');
+const addLayerButton = document.getElementById('add-layer');
+const clearLayerButton = document.getElementById('clear-layer');
+const layerList = document.getElementById('layer-list');
+const exportButton = document.getElementById('export-image');
+const bgColorSelect = document.getElementById('background-color');
+const customBgColorInput = document.getElementById('custom-bg-color');
+const zoomInButton = document.getElementById('zoom-in');
+const zoomOutButton = document.getElementById('zoom-out');
+const saveRecordButton = document.getElementById('save-record');
+const loadRecordButton = document.getElementById('load-record');
+const uploadImageInput = document.getElementById('upload-image');
+const canvasWidthInput = document.getElementById('canvas-width');
+const canvasHeightInput = document.getElementById('canvas-height');
+const resizeCanvasButton = document.getElementById('resize-canvas');
+const panHorizontalSlider = document.getElementById('pan-horizontal');
+const panVerticalSlider = document.getElementById('pan-vertical');
+//
+const layerBgColorInput = document.getElementById('layer-bg-color');
+const fillLayerBgButton = document.getElementById('fill-layer-bg');
+const bgTypeSelect = document.getElementById('bg-type-select');
+
+
+// 在你的程式碼全域區塊新增一個隱藏畫布
+const offscreenCanvas = document.createElement('canvas');
+const offCtx = offscreenCanvas.getContext('2d');
+
+function drawSelectionOutlineOnly() {
+    const overlayCanvas = document.getElementById('overlay');
+    const overlayCtx = overlayCanvas.getContext('2d');
+
+    // 1. 同步離屏畫布大小 (僅在改變時執行)
+    if (offscreenCanvas.width !== overlayCanvas.width || offscreenCanvas.height !== overlayCanvas.height) {
+        offscreenCanvas.width = overlayCanvas.width;
+        offscreenCanvas.height = overlayCanvas.height;
+    }
+
+    // 2. 在離屏畫布上繪製 (這裡可以盡情 clearRect，因為它不可見)
+    offCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    
+    if (selectionBox) {
+        offCtx.save();
+        offCtx.strokeStyle = '#0095ff';
+        offCtx.lineWidth = 2;
+        offCtx.setLineDash([5, 5]);
+        offCtx.strokeRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+        offCtx.setLineDash([]);
+
+        const s = 10;
+        const hs = s / 2;
+        offCtx.fillStyle = '#0095ff';
+        offCtx.beginPath();
+        offCtx.rect(selectionBox.x - hs, selectionBox.y - hs, s, s);
+        offCtx.rect(selectionBox.x + selectionBox.width - hs, selectionBox.y - hs, s, s);
+        offCtx.rect(selectionBox.x - hs, selectionBox.y + selectionBox.height - hs, s, s);
+        offCtx.rect(selectionBox.x + selectionBox.width - hs, selectionBox.y + selectionBox.height - hs, s, s);
+        offCtx.fill();
+        offCtx.restore();
+    }
+
+    // 3. 【核心修正】：不要清除整個 overlayCtx！
+    // 為了避免「白色閃爍」，我們使用 `globalCompositeOperation = 'copy'`
+    // 這樣可以直接將 offscreenCanvas 的內容直接覆蓋到 overlay 上，
+    // 而不需要先 clearRect 掉舊內容。
+    overlayCtx.save();
+    overlayCtx.globalCompositeOperation = 'copy'; 
+    overlayCtx.drawImage(offscreenCanvas, 0, 0);
+    overlayCtx.restore();
+}
+// 全域變數
+// 在全域變數區新增：
+let originalSelectionData = null; // 儲存選取區最原始的樣子
+let originalSelectionPos = { x: 0, y: 0 };
+let currentTool = 'pencil';
+let currentLayer = null;
+let isDrawing = false;
+let layers = [];
+let layerCounter = 0;
+let lastPosition = null;
+let backgroundColor = 'white';
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
+
+// 選取工具相關變數
+let selectionBox = null;
+let isSelecting = false;
+let isMovingSelection = false;
+let selectionOffset = { x: 0, y: 0 };
+let selectionData = null;
+let selectionStartPos = {
+    x:0,
+    y:0
+};
+
+let selectionClipboard = null;
+
+let selectionMovingStart = {
+    x:0,
+    y:0
+};
+
+
+
+
+let floatingSelection = {
+
+    canvas:null,
+
+    x:0,
+
+    y:0,
+
+    width:0,
+
+    height:0
+
+};
+
+
+
+
+
+// 繪圖相關的基本函數
+function getCoordinates(e) {
+    const rect = currentLayer.canvas.getBoundingClientRect();
+    if (e.touches) {
+        return {
+            x: (e.touches[0].clientX - rect.left) / scale,
+            y: (e.touches[0].clientY - rect.top) / scale
+        };
+    } else {
+        return {
+            x: (e.clientX - rect.left) / scale,
+            y: (e.clientY - rect.top) / scale
+        };
+    }
+}
+
+function createLayer(canvasData = null) {
+    const canvas = document.createElement('canvas');
+    canvas.width = parseInt(canvasWidthInput.value, 10);
+    canvas.height = parseInt(canvasHeightInput.value, 10);
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    
+    // 初始化 zIndex：後續透過 reorderLayers 更新
+    canvas.style.zIndex = layers.length + 1;
+    
+    const layer = {
+        id: layerCounter++,
+        canvas: canvas,
+        originalCanvas: document.createElement('canvas'), // 增加這行防止 undefined
+        opacity: 1,
+        visible: true,
+        rotation: 0,
+        mirrored: false,
+        scale: 1
+    };
+    
+    // 初始化 originalCanvas 大小
+    layer.originalCanvas.width = canvas.width;
+    layer.originalCanvas.height = canvas.height;
+    
+    canvasContainer.appendChild(canvas);
+    layers.push(layer);
+    currentLayer = layer;
+
+    if (canvasData) {
+        const img = new Image();
+        img.onload = () => {
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            syncOriginalCanvas(layer);
+        };
+        img.src = canvasData;
+    }
+
+    updateLayerList(); // 呼叫你更新後的拖曳列表
+    updateLayerHighlight();
+    return layer;
+}
+
+// 增強型同步函數：防止 originalCanvas 不存在
+function syncOriginalCanvas(layer) {
+    if (!layer.originalCanvas) {
+        layer.originalCanvas = document.createElement('canvas');
+        layer.originalCanvas.width = layer.canvas.width;
+        layer.originalCanvas.height = layer.canvas.height;
+    }
+    const origCtx = layer.originalCanvas.getContext('2d');
+    origCtx.clearRect(0, 0, layer.originalCanvas.width, layer.originalCanvas.height);
+    origCtx.drawImage(layer.canvas, 0, 0);
+}// 記得補上這一個同步函數，這樣邏輯才完整
+    function syncOriginalCanvas(layer) {
+        const origCtx = layer.originalCanvas.getContext('2d');
+        origCtx.clearRect(0, 0, layer.originalCanvas.width, layer.originalCanvas.height);
+        origCtx.drawImage(layer.canvas, 0, 0);
+    }
+
+function updateLayerHighlight() {
+    const layerOptions = document.querySelectorAll('.layer-option');
+    layerOptions.forEach(option => {
+        option.classList.remove('active');
+        if (parseInt(option.dataset.layerId) === currentLayer.id) {
+            option.classList.add('active');
+        }
+    });
+}
+
+function deleteLayer(layer) {
+    if (layers.length <= 1) return; // 保持至少一個圖層
+    
+    // 從 DOM 中移除 canvas
+    layer.canvas.remove();
+    
+    // 從數組中移除圖層
+    layers = layers.filter(l => l.id !== layer.id);
+    
+    // 如果刪除的是當前圖層，選擇最上面的圖層
+    if (currentLayer === layer) {
+        currentLayer = layers[layers.length - 1];
+    }
+    
+    // 移除圖層控制項
+    const layerOption = document.querySelector(`.layer-option[data-layer-id="${layer.id}"]`);
+    if (layerOption) {
+        layerOption.remove();
+    }
+    
+    updateLayerHighlight();
+}
+
+function toggleLayerVisibility(layer, button) {
+    layer.visible = !layer.visible;
+    layer.canvas.style.display = layer.visible ? 'block' : 'none';
+    button.textContent = layer.visible ? '隱藏' : '顯示';
+}
+
+function setLayerOpacity(layer, opacity) {
+    layer.opacity = opacity / 100;
+    layer.canvas.style.opacity = layer.opacity;
+}
+
+function selectLayer(layer) {
+    currentLayer = layer;
+    updateLayerHighlight();
+}
+
+
+function copySelection(){
+
+    if(!selectionData)
+        return;
+
+
+    const temp=document.createElement("canvas");
+
+    temp.width=selectionData.width;
+
+    temp.height=selectionData.height;
+
+
+    temp.getContext("2d")
+    .putImageData(
+        selectionData,
+        0,
+        0
+    );
+
+
+    floatingSelection.canvas=temp;
+
+}
+
+document.addEventListener(
+"keydown",
+e=>{
+
+
+if(
+e.ctrlKey &&
+e.key==="c"
+){
+
+copySelection();
+
+}
+
+
+if(
+e.ctrlKey &&
+e.key==="x"
+){
+
+cutSelection();
+
+}
+
+
+if(
+e.ctrlKey &&
+e.key==="v"
+){
+
+pasteSelection();
+
+}
+
+
+});
+
+function pasteSelection(){
+
+    if(!floatingSelection.canvas)
+        return;
+
+
+    const canvas=
+    floatingSelection.canvas;
+
+
+    selectionBox={
+
+        x:20,
+
+        y:20,
+
+        width:canvas.width,
+
+        height:canvas.height
+
+    };
+
+
+    selectionData=
+    canvas
+    .getContext("2d")
+    .getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    drawSelectionBox();
+
+}
+
+
+
+function cutSelection(){
+
+    if(!selectionData || !selectionBox)
+        return;
+
+
+    copySelection();
+
+
+    const ctx=
+    currentLayer.canvas.getContext("2d");
+
+    ctx.clearRect(
+        selectionBox.x,
+        selectionBox.y,
+        selectionBox.width,
+        selectionBox.height
+    );
+
+    selectionData = null;
+    selectionBox = null;
+    drawSelectionBox();
+
+}
+
+function mergeLayers() {
+    const selectedCheckboxes = document.querySelectorAll('.layer-checkbox:checked');
+    if (selectedCheckboxes.length < 2) {
+        alert('請選擇至少兩個圖層進行合併');
+        return;
+    }
+
+    // 取得選中的 ID
+    const selectedIds = Array.from(selectedCheckboxes).map(c => 
+        parseInt(c.closest('.layer-option').dataset.layerId)
+    );
+
+    // 建立新畫布
+    const mergeCanvas = document.createElement('canvas');
+    mergeCanvas.width = parseInt(canvasWidthInput.value, 10);
+    mergeCanvas.height = parseInt(canvasHeightInput.value, 10);
+    const ctx = mergeCanvas.getContext('2d');
+
+    // 依照 layers 陣列原本的順序繪製 (底層到頂層)
+    layers.filter(l => selectedIds.includes(l.id)).forEach(layer => {
+        if (layer.visible) {
+            ctx.globalAlpha = layer.opacity;
+            ctx.drawImage(layer.canvas, 0, 0);
+        }
+    });
+
+    // 移除舊圖層
+    selectedIds.forEach(id => {
+        const layer = layers.find(l => l.id === id);
+        if (layer) layer.canvas.remove();
+    });
+    layers = layers.filter(l => !selectedIds.includes(l.id));
+
+    // 建立新圖層
+    const newLayer = createLayer(mergeCanvas.toDataURL());
+    newLayer.name = '合併圖層';
+    updateLayerZIndex(); // 確保層級重整
+    updateLayerList();
+}  
+  function toggleLayerVisibility(layer, button) {
+    layer.visible = !layer.visible;
+    layer.canvas.style.display = layer.visible ? 'block' : 'none';
+    button.textContent = layer.visible ? '顯示' : '隱藏';
+}
+
+function setLayerOpacity(layer, opacity) {
+    layer.opacity = opacity / 100;
+    layer.canvas.style.opacity = layer.opacity;
+}
+
+function selectLayer(layer) {
+    currentLayer = layer;
+    updateLayerHighlight();
+}
+
+function updateLayerHighlight() {
+    const layerOptions = document.querySelectorAll('.layer-option');
+    layerOptions.forEach(option => {
+        option.classList.remove('active');
+        if (parseInt(option.dataset.layerId) === currentLayer.id) {
+            option.classList.add('active');
+        }
+    });
+}
+
+// 為新增圖層按鈕添加事件監聽
+document.getElementById('add-layer').addEventListener('click', () => {
+    createLayer();
+});
+
+// 為清除圖層按鈕添加事件監聽
+document.getElementById('clear-layer').addEventListener('click', () => {
+    if (currentLayer) {
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.clearRect(0, 0, currentLayer.canvas.width, currentLayer.canvas.height);
+    }
+});
+
+
+
+// 添加合併按鈕的事件監聽
+document.getElementById('merge-layers').addEventListener('click', mergeLayers);
+
+
+    
+
+
+function draw(e) {
+    if (!currentLayer) return;
+    
+    const ctx = currentLayer.canvas.getContext('2d');
+    const { x, y } = getCoordinates(e);
+
+    const pressure = e.pressure > 0 ? e.pressure : pressureSlider.value;
+    const brushSize = brushSizeInput.value * pressure;
+    const brushAlpha = pressure;
+
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = currentTool === 'pencil' ? brushColorInput.value : 'rgba(255,255,255,1)';
+    ctx.globalAlpha = brushAlpha;
+
+    if (lastPosition) {
+        ctx.beginPath();
+        ctx.moveTo(lastPosition.x, lastPosition.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    lastPosition = { x, y };
+}
+
+function erase(e) {
+    if (!currentLayer) return;
+
+    const ctx = currentLayer.canvas.getContext('2d');
+    const { x, y } = getCoordinates(e);
+
+    const pressure = e.pressure > 0 ? e.pressure : pressureSlider.value;
+    const brushSize = brushSizeInput.value * pressure;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (lastPosition) {
+        ctx.beginPath();
+        ctx.moveTo(lastPosition.x, lastPosition.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    } else {
+        // 單點點擊也要擦得掉
+        ctx.beginPath();
+        ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+    lastPosition = { x, y };
+}
+
+
+// 選取工具相關函數
+function startSelection(e){
+
+    const {x,y}=getCoordinates(e);
+
+
+    isSelecting=true;
+
+
+    selectionStartPos={
+        x:x,
+        y:y
+    };
+
+
+    selectionBox={
+
+        x:x,
+        y:y,
+
+        width:0,
+        height:0
+
+    };
+
+
+    selectionData=null;
+
+
+    drawSelectionBox();
+
+}
+function updateSelection(e){
+
+    if(!isSelecting)
+        return;
+
+
+    const {x,y}=getCoordinates(e);
+
+
+    selectionBox.width =
+        x-selectionStartPos.x;
+
+
+    selectionBox.height =
+        y-selectionStartPos.y;
+
+
+    drawSelectionBox();
+
+}
+
+
+
+function finishSelection() {
+    // 1. 檢查選取框是否存在且寬高是否大於 0
+    if (!selectionBox || selectionBox.width <= 0 || selectionBox.height <= 0) {
+        console.warn("選取範圍無效，寬度或高度為 0");
+        clearSelection(); // 直接取消無效的選取
+        return;
+    }
+
+    const ctx = currentLayer.canvas.getContext('2d');
+    try {
+        // 2. 執行 getImageData 前，確保座標在畫布範圍內
+        const x = Math.max(0, selectionBox.x);
+        const y = Math.max(0, selectionBox.y);
+        const w = Math.min(selectionBox.width, currentLayer.canvas.width - x);
+        const h = Math.min(selectionBox.height, currentLayer.canvas.height - y);
+
+        selectionData = ctx.getImageData(x, y, w, h);
+
+        // 3. 保存原始副本
+        originalSelectionData = new ImageData(
+            new Uint8ClampedArray(selectionData.data),
+            selectionData.width,
+            selectionData.height
+        );
+    } catch (e) {
+        console.error('無法獲取圖像數據:', e);
+        return;
+    }
+
+    isSelecting = false;
+    drawSelectionBox();
+}function drawSelectionBox() {
+    const overlayCanvas = document.getElementById('overlay');
+    const ctx = overlayCanvas.getContext('2d');
+    
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    if (!selectionBox) return;
+
+    // 1. 即時變形繪製
+    if (selectionData) {
+        // 更新緩衝區大小
+        if (bufferCanvas.width !== selectionData.width) {
+            bufferCanvas.width = selectionData.width;
+            bufferCanvas.height = selectionData.height;
+        }
+        bCtx.putImageData(selectionData, 0, 0);
+        
+        // 這是即時縮放的關鍵：確保繪製出來的是最新的 selectionBox 尺寸
+        ctx.drawImage(bufferCanvas, selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+    }
+    
+    // 2. 遮罩與外框 (與之前相同)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    ctx.clearRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+    
+    ctx.strokeStyle = '#0095ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+    ctx.setLineDash([]);
+
+    // 3. 繪製把手
+    const s = 10;
+    ctx.fillStyle = '#0095ff';
+    ctx.fillRect(selectionBox.x - s/2, selectionBox.y - s/2, s, s);
+    ctx.fillRect(selectionBox.x + selectionBox.width - s/2, selectionBox.y - s/2, s, s);
+    ctx.fillRect(selectionBox.x - s/2, selectionBox.y + selectionBox.height - s/2, s, s);
+    ctx.fillRect(selectionBox.x + selectionBox.width - s/2, selectionBox.y + selectionBox.height - s/2, s, s);
+}
+// 檢查滑鼠是否在選取區內 (但不在把手上)
+function isInsideSelection(x, y) {
+    if (!selectionBox) return false;
+    
+    // 檢查點擊處是否在選取框範圍內 (包含邊框)
+    const inBox = (x >= selectionBox.x && x <= selectionBox.x + selectionBox.width &&
+                   y >= selectionBox.y && y <= selectionBox.y + selectionBox.height);
+    
+    // 如果點到了把手，移動功能應該失效，所以這裡回傳 false 是正確的
+    // 但為了讓體驗更好，建議明確區分：
+    if (getActiveHandle(x, y)) {
+        return false; 
+    }
+    
+    return inBox;
+}
+// 輔助函式：判斷是否點中把手 (四個角)
+function getActiveHandle(x, y) {
+    if (!selectionBox) return null;
+    const s = 20; // 擴大感應範圍，比較好點中
+    const handles = {
+        tl: { x: selectionBox.x, y: selectionBox.y },
+        tr: { x: selectionBox.x + selectionBox.width, y: selectionBox.y },
+        bl: { x: selectionBox.x, y: selectionBox.y + selectionBox.height },
+        br: { x: selectionBox.x + selectionBox.width, y: selectionBox.y + selectionBox.height }
+    };
+
+    for (let key in handles) {
+        // 使用距離公式或簡易矩形判斷
+        if (Math.abs(x - handles[key].x) < s && Math.abs(y - handles[key].y) < s) {
+            return key;
+        }
+    }
+    return null;
+}function clearSelection(shouldRestore = false) {
+    // 1. 還原邏輯 (僅當明確需要時)
+    if (shouldRestore && selectionData && selectionBox) {
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+    }
+    
+    // 2. 徹底重置所有狀態標記
+    selectionBox = null;
+    selectionData = null;
+    isSelecting = false;
+    isMovingSelection = false;
+    
+    // 3. 強制性清除 overlay
+    const overlayCanvas = document.getElementById('overlay');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    
+    // 【新增】確保與其他工具的狀態對齊
+    if (typeof drawSelectionBox === 'function') {
+        // 這會確保下次繪製時不會再讀取到舊資料
+    }
+    
+    console.log("選取已完全重置");
+}
+// 新增：當按下 ESC 鍵時取消選取
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && selectionBox) {
+        clearSelection();
+    }
+});
+
+// 新增：當切換圖層時，確保選取內容被正確處理
+function selectLayer(layer) {
+    if (selectionBox) {
+        clearSelection();
+    }
+    currentLayer = layer;
+    updateLayerHighlight();
+}
+
+function handlePointerDown(e) {
+    e.preventDefault();
+    const { x, y } = getCoordinates(e);
+
+    if (currentTool === 'select') {
+        activeHandle = getActiveHandle(x, y);
+        
+        if (activeHandle || (selectionBox && isInsideSelection(x, y))) {
+            // 【核心修正】：開始變形或移動前，先清除圖層原位置的舊內容
+            const ctx = currentLayer.canvas.getContext('2d');
+            ctx.clearRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+            
+            // 標記狀態
+            if (activeHandle) isMovingSelection = false;
+            else isMovingSelection = true;
+            
+            // 記錄起始偏移量 (如果是移動的話)
+            selectionOffset = { x: x - selectionBox.x, y: y - selectionBox.y };
+            originalSelectionPos = { x: selectionBox.x, y: selectionBox.y };
+        } else {
+            startSelection(e);
+        }
+    } else {
+        // 原有的繪圖邏輯
+        isDrawing = true;
+        lastPosition = null;
+        if (currentTool === 'eraser') {
+            erase(e);
+        } else {
+            draw(e);
+        }
+    }
+}// 宣告一個變數來存放是否需要更新的標記
+let isPendingUpdate = false;
+
+
+
+// 全域變數，用於防抖動
+// 在全域宣告一個變數記錄上一次的位置
+let lastMovePos = { x: 0, y: 0 };
+
+function handlePointerMove(e) {
+    e.preventDefault();
+    const { x, y } = getCoordinates(e);
+
+    // 1. 防抖動檢查：若滑鼠位移極小，則不進行渲染，消除因連續觸發導致的閃爍
+    if (Math.abs(x - lastMovePos.x) < 1 && Math.abs(y - lastMovePos.y) < 1) return;
+    lastMovePos = { x, y };
+
+    if (currentTool === 'select') {
+        if (activeHandle) {
+            updateSelectionSize(x, y);
+            drawSelectionBox();
+        } 
+        else if (isMovingSelection && selectionBox) {
+            // 2. 移動時：先計算座標，再呼叫重繪
+            selectionBox.x = x - selectionOffset.x;
+            selectionBox.y = y - selectionOffset.y;
+            
+            // 【優化】這裡維持 drawSelectionOutlineOnly，但需確保它內部執行極快
+            drawSelectionOutlineOnly();
+        } 
+        else if (isSelecting) {
+            updateSelection(e);
+        }
+    } else if (isDrawing) {
+        currentTool === 'eraser' ? erase(e) : draw(e);
+    }
+}
+
+
+
+function handlePointerUp(e) {
+    e.preventDefault();
+    
+    if (!currentLayer || !currentLayer.canvas) {
+        isDrawing = false;
+        return;
+    }
+
+    const ctx = currentLayer.canvas.getContext('2d');
+
+    if (currentTool === 'select') {
+        // 1. 處理移動結束
+        if (isMovingSelection) {
+            // 清除移動前的原位置內容
+            ctx.clearRect(originalSelectionPos.x, originalSelectionPos.y, selectionData.width, selectionData.height);
+            // 寫入新位置
+            ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+            
+            isMovingSelection = false;
+        }
+        // 2. 處理縮放結束
+        else if (activeHandle) {
+            // 先清除變形前的原位置內容，防止殘影
+            ctx.clearRect(originalSelectionPos.x, originalSelectionPos.y, selectionData.width, selectionData.height);
+
+            // 進行縮放運算
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = selectionBox.width;
+            tempCanvas.height = selectionBox.height;
+            const tCtx = tempCanvas.getContext('2d');
+            
+            const source = document.createElement('canvas');
+            source.width = selectionData.width;
+            source.height = selectionData.height;
+            source.getContext('2d').putImageData(selectionData, 0, 0);
+            
+            tCtx.drawImage(source, 0, 0, selectionBox.width, selectionBox.height);
+            selectionData = tCtx.getImageData(0, 0, selectionBox.width, selectionBox.height);
+            
+            // 將變形後的結果寫入畫布
+            ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+            
+            activeHandle = null; 
+        }
+        else if (isSelecting) {
+            finishSelection();
+        }
+    }
+    
+    // 3. 通用重置與備份[cite: 1]
+    isDrawing = false;
+    lastPosition = null;
+    isMovingSelection = false;
+    activeHandle = null;
+
+    if (currentLayer && currentLayer.originalCanvas) {
+        const origCtx = currentLayer.originalCanvas.getContext('2d');
+        origCtx.clearRect(0, 0, currentLayer.originalCanvas.width, currentLayer.originalCanvas.height);
+        origCtx.drawImage(currentLayer.canvas, 0, 0);
+    }
+    
+    drawSelectionBox();
+}
+// 修改工具切換時的行為
+pencilTool.addEventListener('click', () => {
+    if (selectionBox) {
+        // 在切換工具前確保選取的內容被放回原圖層
+        clearSelection();
+    }
+    currentTool = 'pencil';
+    pencilTool.classList.add('active');
+    eraserTool.classList.remove('active');
+    selectTool.classList.remove('active');
+});
+
+eraserTool.addEventListener('click', () => {
+    if (selectionBox) {
+        clearSelection();
+    }
+    currentTool = 'eraser';
+    eraserTool.classList.add('active');
+    pencilTool.classList.remove('active');
+    selectTool.classList.remove('active');
+});
+
+selectTool.addEventListener('click', () => {
+    currentTool = 'select';
+    selectTool.classList.add('active');
+    pencilTool.classList.remove('active');
+    eraserTool.classList.remove('active');
+});
+
+// 鍵盤快捷鍵
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // ESC 鍵取消選取
+        if (currentTool === 'select' && (selectionBox || isSelecting)) {
+            clearSelection();
+        }
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Delete 或 Backspace 鍵刪除選取區域
+        if (currentTool === 'select' && selectionBox) {
+            const ctx = currentLayer.canvas.getContext('2d');
+            ctx.clearRect(
+
+Math.max(0,selectionBox.x),
+
+Math.max(0,selectionBox.y),
+
+Math.abs(selectionBox.width),
+
+Math.abs(selectionBox.height)
+
+);
+        }
+    }
+});
+
+// 畫布事件監聽
+canvasContainer.addEventListener('pointerdown', handlePointerDown);
+canvasContainer.addEventListener('pointermove', handlePointerMove);
+canvasContainer.addEventListener('pointerup', handlePointerUp);
+canvasContainer.addEventListener('pointerout', handlePointerUp);
+
+// 縮放和平移功能
+function updateCanvasTransform() {
+    const translateX = Math.min(500, Math.max(-500, offsetX));
+    const translateY = Math.min(500, Math.max(-500, offsetY));
+    
+    layers.forEach(layer => {
+        layer.canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    });
+}
+
+// 修改縮放邏輯
+function zoomIn() {
+    scale = Math.min(scale * 1.2, 5); // 限制最大縮放倍率，防止效能崩潰
+    applyTransform();
+}
+
+function zoomOut() {
+    scale = Math.max(scale / 1.2, 0.1); // 限制最小縮放
+    applyTransform();
+}
+
+// 1. 修改縮放邏輯，確保變形中心點正確
+function applyTransform() {
+    // 限制縮放倍率，防止過度放大導致畫布溢出視野
+    // 將 scale 限制在 0.5 到 3 倍之間（視需求調整）
+    scale = Math.min(Math.max(scale, 0.5), 3);
+    
+    // 將平移數值限制在容器的一定範圍內，避免畫布完全跑出畫面
+    // 這裡使用 clamp 的概念
+    const maxOffset = 300; 
+    offsetX = Math.min(Math.max(offsetX, -maxOffset), maxOffset);
+    offsetY = Math.min(Math.max(offsetY, -maxOffset), maxOffset);
+    
+    // 設定變形基準點為畫布中心
+    canvasContainer.style.transformOrigin = "center center";
+    
+    // 應用縮放與位移
+    canvasContainer.style.transform = `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)`;
+}
+
+// 2. 調整 zoomIn/zoomOut
+function zoomIn() {
+    scale *= 1.2;
+    applyTransform();
+}
+
+function zoomOut() {
+    scale /= 1.2;
+    applyTransform();
+}
+
+
+
+// 存檔和讀取功能
+// 修改 saveDrawingState 函數
+function saveDrawingState() {
+    try {
+        const state = {
+            canvasSize: {
+                width: parseInt(canvasWidthInput.value, 10),
+                height: parseInt(canvasHeightInput.value, 10)
+            },            layers: layers.map(layer => ({
+                id: layer.id,
+                name: layer.name || `圖層 ${layer.id + 1}`,
+                opacity: layer.opacity,
+                visible: layer.visible,
+                rotation: layer.rotation || 0,
+                mirrored: layer.mirrored || false,
+                zIndex: layer.canvas.style.zIndex,
+                isTransparent: layer.isTransparent || false,
+                canvasData: layer.canvas.toDataURL('image/png')
+            })),
+            currentLayerId: currentLayer ? currentLayer.id : null,
+            backgroundColor: backgroundColor,
+            backgroundType: bgColorSelect.value,
+            customBackgroundColor: customBgColorInput.value,
+            scale: scale,
+            offsetX: offsetX,
+            offsetY: offsetY,
+            brushSettings: {
+                size: brushSizeInput.value,
+                color: brushColorInput.value,
+                pressure: pressureSlider.value
+            }
+        };
+
+        localStorage.setItem('drawingState', JSON.stringify(state));
+        alert('儲存成功！');
+    } catch (error) {
+        console.error('儲存失敗:', error);
+        alert('儲存失敗，請查看控制台了解詳細信息。');
+    }
+}// 
+
+function loadDrawingState() {
+    try {
+        const savedState = JSON.parse(localStorage.getItem('drawingState'));
+        if (!savedState) {
+            alert('沒有找到保存的繪圖狀態！');
+            return;
+        }
+// 恢復畫布大小
+        if (savedState.canvasSize) {
+            canvasWidthInput.value = savedState.canvasSize.width;
+            canvasHeightInput.value = savedState.canvasSize.height;
+            resizeCanvas(); // 應用保存的畫布大小
+        }
+
+        // 清除現有圖層
+        while (layers.length > 0) {
+            const layer = layers.pop();
+            layer.canvas.remove();
+        }
+        layerList.innerHTML = '';
+        layerCounter = 0;
+
+        // 恢復基本設定
+        backgroundColor = savedState.backgroundColor || 'white';
+        scale = savedState.scale || 1;
+        offsetX = savedState.offsetX || 0;
+        offsetY = savedState.offsetY || 0;
+
+        // 恢復畫布大小
+        canvasWidthInput.value = savedState.canvasSize.width;
+        canvasHeightInput.value = savedState.canvasSize.height;
+        canvasContainer.style.width = `${savedState.canvasSize.width}px`;
+        canvasContainer.style.height = `${savedState.canvasSize.height}px`;
+
+        // 恢復背景設置
+        if (savedState.backgroundType) {
+            bgColorSelect.value = savedState.backgroundType;
+            customBgColorInput.value = savedState.customBackgroundColor || '#ffffff';
+            if (savedState.backgroundType === 'custom') {
+                customBgColorInput.classList.remove('hidden');
+            }
+        }
+
+        // 恢復筆刷設置
+        if (savedState.brushSettings) {
+            brushSizeInput.value = savedState.brushSettings.size;
+            brushColorInput.value = savedState.brushSettings.color;
+            pressureSlider.value = savedState.brushSettings.pressure;
+        }
+
+        // 恢復圖層
+        savedState.layers.forEach(layerData => {
+            const img = new Image();
+            img.onload = () => {
+                const layer = createLayer();
+                const ctx = layer.canvas.getContext('2d');
+                
+                // 恢復圖層屬性
+                layer.name = layerData.name;
+                layer.opacity = layerData.opacity;
+                layer.visible = layerData.visible;
+                layer.rotation = layerData.rotation;
+                layer.mirrored = layerData.mirrored;
+                layer.isTransparent = layerData.isTransparent;
+                
+                // 恢復圖層變換狀態
+                ctx.save();
+                ctx.translate(layer.canvas.width / 2, layer.canvas.height / 2);
+                ctx.scale(layer.mirrored ? -1 : 1, 1);
+                ctx.rotate(layer.rotation * Math.PI / 180);
+                ctx.drawImage(img, -layer.canvas.width / 2, -layer.canvas.height / 2);
+                ctx.restore();
+                
+                // 更新圖層顯示
+                layer.canvas.style.opacity = layerData.opacity;
+                layer.canvas.style.display = layerData.visible ? 'block' : 'none';
+                layer.canvas.style.zIndex = layerData.zIndex;
+
+                // 如果是透明圖層，更新顯示
+                if (layerData.isTransparent) {
+                    updateLayerDisplay(layer);
+                }
+            };
+            img.src = layerData.canvasData;
+        });
+
+        // 恢復當前選中的圖層
+        if (savedState.currentLayerId !== null) {
+            const currentLayerIndex = layers.findIndex(l => l.id === savedState.currentLayerId);
+            if (currentLayerIndex !== -1) {
+                currentLayer = layers[currentLayerIndex];
+            }
+        }
+
+        // 更新變換
+        updateCanvasTransform();
+        // 更新圖層列表
+        updateLayerList();
+        
+        alert('讀取成功！');
+    } catch (error) {
+        console.error('讀取失敗:', error);
+        alert('讀取失敗，請查看控制台了解詳細信息。');
+    }
+}
+
+// 創建初始圖層
+document.addEventListener('DOMContentLoaded', () => {
+    if (layers.length === 0) {
+        createLayer();
+    }
+});
+// 移除或注釋掉這段代碼
+/*
+
+
+
+
+*/function resizeCanvas() {
+    const newWidth = parseInt(canvasWidthInput.value, 10);
+    const newHeight = parseInt(canvasHeightInput.value, 10);
+
+    layers.forEach(layer => {
+        // 保存當前內容
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = layer.canvas.width;
+        tempCanvas.height = layer.canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(layer.canvas, 0, 0);
+
+        // 調整畫布大小
+        layer.canvas.width = newWidth;
+        layer.canvas.height = newHeight;
+        
+        // 恢復內容
+        const ctx = layer.canvas.getContext('2d');
+        ctx.drawImage(tempCanvas, 0, 0);
+    });
+
+    // 更新容器大小
+    canvasContainer.style.width = `${newWidth}px`;
+    canvasContainer.style.height = `${newHeight}px`;
+
+    // 更新 overlay 畫布的大小
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        overlay.width = newWidth;
+        overlay.height = newHeight;
+    }
+
+    // 清除選取狀態
+    clearSelection();
+}function exportImage() {
+    const filename = document.getElementById('filename').value || 'drawing';
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = parseInt(canvasWidthInput.value, 10);
+    exportCanvas.height = parseInt(canvasHeightInput.value, 10);
+    const exportCtx = exportCanvas.getContext('2d');
+
+    // 獲取背景色選擇器的值
+    const bgColorSelect = document.getElementById('background-color');
+    const customBgColorInput = document.getElementById('custom-bg-color');
+
+    // 設置背景
+    if (bgColorSelect.value === 'custom') {
+        exportCtx.fillStyle = customBgColorInput.value;
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    } else if (bgColorSelect.value !== 'transparent') {
+        // 預設白色或其他選擇的顏色
+        exportCtx.fillStyle = bgColorSelect.value;
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    }
+
+    // 繪製所有可見圖層，但排除棋盤格背景
+    layers.forEach(layer => {
+        if (layer.visible) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = layer.canvas.width;
+            tempCanvas.height = layer.canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 複製原始圖層內容，但不包括棋盤格背景
+            const imageData = layer.canvas.getContext('2d').getImageData(
+                0, 0, layer.canvas.width, layer.canvas.height
+            );
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            // 將圖層繪製到導出畫布
+            exportCtx.globalAlpha = layer.opacity;
+            exportCtx.drawImage(tempCanvas, 0, 0);
+        }
+    });
+
+    const dataURL = exportCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = `${filename}.png`;
+    a.click();
+}
+
+// 背景色相關事件監聽
+document.addEventListener('DOMContentLoaded', () => {
+    const bgColorSelect = document.getElementById('background-color');
+    const customBgColorInput = document.getElementById('custom-bg-color');
+
+    // 當選擇背景色類型時
+    bgColorSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customBgColorInput.classList.remove('hidden');
+        } else {
+            customBgColorInput.classList.add('hidden');
+        }
+    });
+
+    // 綁定導出按鈕事件
+    document.getElementById('export-image').addEventListener('click', exportImage);
+});
+
+
+// 事件監聽器設置
+zoomInButton.addEventListener('click', zoomIn);
+zoomOutButton.addEventListener('click', zoomOut);
+saveRecordButton.addEventListener('click', saveDrawingState);
+loadRecordButton.addEventListener('click', loadDrawingState);
+resizeCanvasButton.addEventListener('click', resizeCanvas);
+exportButton.addEventListener('click', exportImage);
+panHorizontalSlider.addEventListener('input', () => {
+    offsetX = parseInt(panHorizontalSlider.value, 10);
+    updateCanvasTransform();
+});
+panVerticalSlider.addEventListener('input', () => {
+    offsetY = parseInt(panVerticalSlider.value, 10);
+    updateCanvasTransform();
+});
+
+
+
+// 導入圖片相關功能
+document.getElementById('upload-image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 如果有選擇檔案，更新檔案名稱輸入框（不包含副檔名）
+    const filename = file.name.replace(/\.[^/.]+$/, "");
+    document.getElementById('filename').value = filename;
+
+    // 創建新圖層來放置導入的圖片
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            // 創建新圖層
+            const newLayer = createLayer();
+
+           // 將合併後的內容繪製上去
+const img = new Image();
+img.onload = () => {
+    newCtx.drawImage(img, 0, 0);
+    // 確保標記為透明，這會影響後續顯示棋盤格
+    newLayer.isTransparent = true;
+    updateLayerDisplay(newLayer);
+};
+img.src = mergedDataURL; // 這裡的 URL 應由 mergeCanvas.toDataURL() 產生
+            const ctx = newLayer.canvas.getContext('2d');
+
+            // 計算圖片應該縮放的大小，確保適應畫布
+            const scale = Math.min(
+                canvasWidthInput.value / img.width,
+                canvasHeightInput.value / img.height
+            );
+            
+            // 計算居中位置
+            const x = (canvasWidthInput.value - img.width * scale) / 2;
+            const y = (canvasHeightInput.value - img.height * scale) / 2;
+
+            // 繪製圖片
+            ctx.clearRect(0, 0, canvasWidthInput.value, canvasHeightInput.value);
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            ctx.restore();
+
+            // 更新圖層名稱
+            newLayer.name = `導入的圖片 - ${filename}`;
+            updateLayerList();
+            
+            // 選擇新圖層
+            selectLayer(newLayer);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// 檔案名稱輸入處理
+document.getElementById('filename').addEventListener('input', function(e) {
+    // 可以在這裡添加檔案名稱的驗證邏輯
+    const filename = e.target.value;
+    
+    // 移除不合法的檔案名稱字符
+    const sanitizedFilename = filename.replace(/[<>:"/\\|?*]/g, '');
+    
+    // 如果有不合法字符，更新輸入框的值
+    if (filename !== sanitizedFilename) {
+        this.value = sanitizedFilename;
+    }
+});
+
+
+
+function normalizeSelectionBox(){
+
+    if(selectionBox.width<0){
+
+        selectionBox.x += selectionBox.width;
+
+        selectionBox.width =
+        Math.abs(selectionBox.width);
+
+    }
+
+
+    if(selectionBox.height<0){
+
+        selectionBox.y += selectionBox.height;
+
+        selectionBox.height =
+        Math.abs(selectionBox.height);
+
+    }
+
+
+}
+
+
+// 修改填充背景的函數
+function fillLayerBackground() {
+    if (!currentLayer) {
+        alert('請先選擇一個圖層');
+        return;
+    }
+
+    const ctx = currentLayer.canvas.getContext('2d');
+    ctx.save();
+
+    // 清除當前內容
+    ctx.clearRect(0, 0, currentLayer.canvas.width, currentLayer.canvas.height);
+
+    if (bgTypeSelect.value === 'transparent') {
+        // 標記圖層為透明
+        currentLayer.isTransparent = true;
+    } else {
+        // 填充純色
+        currentLayer.isTransparent = false;
+        ctx.fillStyle = layerBgColorInput.value;
+        ctx.fillRect(0, 0, currentLayer.canvas.width, currentLayer.canvas.height);
+    }
+
+    ctx.restore();
+
+    // 更新圖層顯示
+    updateLayerDisplay(currentLayer);
+}
+// 繪製透明背景棋盤格的函數
+function drawCheckerboard(ctx, width, height) {
+    const tileSize = 10; // 棋盤格的大小
+    
+    // 清除畫布
+    ctx.clearRect(0, 0, width, height);
+    
+    // 繪製棋盤格
+    for (let x = 0; x < width; x += tileSize) {
+        for (let y = 0; y < height; y += tileSize) {
+            if ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0) {
+                ctx.fillStyle = "#ffffff"; // 白色格子
+            } else {
+                ctx.fillStyle = "#cccccc"; // 灰色格子
+            }
+            ctx.fillRect(x, y, tileSize, tileSize);
+        }
+    }
+}
+// 當背景類型改變時處理顏色選擇器的顯示/隱藏
+bgTypeSelect.addEventListener('change', function() {
+    layerBgColorInput.style.display = 
+        this.value === 'color' ? 'inline-block' : 'none';
+});
+
+// 填充按鈕事件監聽
+fillLayerBgButton.addEventListener('click', fillLayerBackground);
+
+
+function updateLayerDisplay(layer) {
+    // 獲取實際的畫布內容
+    const actualCanvas = layer.canvas;
+    
+    // 創建一個用於顯示的畫布（包括棋盤格背景）
+    const displayCanvas = document.createElement('canvas');
+    displayCanvas.width = actualCanvas.width;
+    displayCanvas.height = actualCanvas.height;
+    const displayCtx = displayCanvas.getContext('2d');
+    
+    // 如果這個圖層被設置為透明背景，繪製棋盤格
+    if (layer.isTransparent) {
+        drawCheckerboard(displayCtx, displayCanvas.width, displayCanvas.height);
+    }
+    
+    // 繪製實際內容
+    displayCtx.drawImage(actualCanvas, 0, 0);
+    
+    // 更新顯示
+    layer.displayCanvas = displayCanvas;
+    layer.canvas.style.backgroundImage = `url(${displayCanvas.toDataURL()})`;
+}
+
+
+// 復原功能管理器
+class UndoManager {
+    constructor() {
+        this.states = new Map();
+        this.maxStates = 99; // 增加最大狀態數量
+        this.isDrawing = false;
+        this.currentStateIndex = -1; // 追蹤當前狀態索引
+        this.stateHistory = []; // 使用陣列來更好地管理狀態順序
+        this.bindEvents();
+        this.saveState(); // 保存初始狀態
+    }
+
+    bindEvents() {
+        // 復原按鈕點擊事件
+        const undoButton = document.getElementById('undo-tool');
+        if (undoButton) {
+            undoButton.addEventListener('click', () => this.loadPreviousState());
+        }
+
+        // Ctrl+Z 快捷鍵
+        document.addEventListener('keydown', (e) => {
+    console.log('Key pressed:', e.key);
+    console.log('Ctrl key:', e.ctrlKey);
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        console.log('Shortcut triggered!');
+        e.preventDefault();
+        this.loadPreviousState();
+    }
+});
+
+        // 繪圖相關事件監聽
+        const canvasContainer = document.getElementById('canvas-container');
+        if (canvasContainer) {
+            // 開始繪圖時
+            canvasContainer.addEventListener('pointerdown', (e) => {
+                if (currentTool === 'pencil' || currentTool === 'eraser') {
+                    this.isDrawing = true;
+                    // 開始繪圖時保存當前狀態
+                    this.saveState();
+                }
+            });
+
+            // 結束繪圖時
+            canvasContainer.addEventListener('pointerup', (e) => {
+                if (this.isDrawing && (currentTool === 'pencil' || currentTool === 'eraser')) {
+                    this.isDrawing = false;
+                    // 結束繪圖時保存新狀態
+                    this.saveState();
+                }
+            });
+
+            // 滑鼠離開畫布時
+            canvasContainer.addEventListener('pointerout', (e) => {
+                if (this.isDrawing && (currentTool === 'pencil' || currentTool === 'eraser')) {
+                    this.isDrawing = false;
+                    this.saveState();
+                }
+            });
+
+            // 取消繪圖時
+            canvasContainer.addEventListener('pointercancel', (e) => {
+                if (this.isDrawing && (currentTool === 'pencil' || currentTool === 'eraser')) {
+                    this.isDrawing = false;
+                    this.saveState();
+                }
+            });
+        }
+
+        // 選取工具完成時保存狀態
+        document.addEventListener('selectionComplete', () => {
+            if (currentTool === 'select') {
+                this.saveState();
+            }
+        });
+
+        // 移動選取區域完成時保存狀態
+        document.addEventListener('selectionMoved', () => {
+            if (currentTool === 'select') {
+                this.saveState();
+            }
+        });
+    }
+
+    saveState() {
+        const currentTime = Date.now();
+        const state = {
+            timestamp: currentTime,
+            layers: layers.map(layer => ({
+                opacity: layer.opacity,
+                visible: layer.visible,
+                canvasData: layer.canvas.toDataURL()
+            })),
+            backgroundColor: backgroundColor,
+            brushSize: brushSizeInput.value,
+            brushColor: brushColorInput.value,
+            pressureSliderValue: pressureSlider.value,
+            canvasWidth: canvasWidthInput.value,
+            canvasHeight: canvasHeightInput.value,
+            selection: selectionBox ? {
+                box: selectionBox,
+                data: selectionData ? Array.from(selectionData.data) : null
+            } : null
+        };
+
+        // 如果不是在繪圖過程中，就建立新的狀態
+        if (!this.isDrawing) {
+            // 刪除當前狀態之後的所有狀態（處理復原後又畫新內容的情況）
+            if (this.currentStateIndex < this.stateHistory.length - 1) {
+                this.stateHistory = this.stateHistory.slice(0, this.currentStateIndex + 1);
+            }
+
+            // 添加新狀態
+            this.stateHistory.push({
+                timestamp: currentTime,
+                state: state
+            });
+
+            // 保持最大狀態數量
+            if (this.stateHistory.length > this.maxStates) {
+                this.stateHistory.shift();
+            }
+
+            // 更新當前狀態索引
+            this.currentStateIndex = this.stateHistory.length - 1;
+        }
+
+        this.updateUndoButtonState();
+    }
+
+    loadPreviousState() {
+        // 確保有前一個狀態可以復原
+        if (this.currentStateIndex <= 0) {
+            console.log('沒有更多可以復原的狀態');
+            return;
+        }
+
+        // 移動到前一個狀態
+        this.currentStateIndex--;
+        const savedState = this.stateHistory[this.currentStateIndex].state;
+
+        // 清除現有圖層
+        while (layers.length > 0) {
+            const layer = layers.pop();
+            layer.canvas.remove();
+        }
+        layerList.innerHTML = '';
+        layerCounter = 0;
+
+        // 恢復基本設定
+        backgroundColor = savedState.backgroundColor || 'white';
+        brushSizeInput.value = savedState.brushSize || 5;
+        brushColorInput.value = savedState.brushColor || '#000000';
+        pressureSlider.value = savedState.pressureSliderValue || 0.5;
+        canvasWidthInput.value = savedState.canvasWidth || 800;
+        canvasHeightInput.value = savedState.canvasHeight || 600;
+
+        // 恢復圖層
+        savedState.layers.forEach(layerData => {
+            createLayer(layerData.canvasData);
+            const layer = layers[layers.length - 1];
+            layer.opacity = layerData.opacity;
+            layer.visible = layerData.visible;
+            layer.canvas.style.opacity = layerData.opacity;
+            layer.canvas.style.display = layerData.visible ? 'block' : 'none';
+        });
+
+        // 恢復選取狀態
+        if (savedState.selection) {
+            selectionBox = savedState.selection.box;
+            if (savedState.selection.data) {
+                selectionData = new ImageData(
+                    new Uint8ClampedArray(savedState.selection.data),
+                    selectionBox.width,
+                    selectionBox.height
+                );
+            }
+            drawSelectionBox();
+        } else {
+            // 如果沒有選取狀態，清除現有的選取
+            selectionBox = null;
+            selectionData = null;
+            clearSelectionBox();
+        }
+
+        this.updateUndoButtonState();
+    }
+
+    updateUndoButtonState() {
+        const undoButton = document.getElementById('undo-tool');
+        if (!undoButton) return;
+
+        // 只有當有前一個狀態時才啟用復原按鈕
+        if (this.currentStateIndex > 0) {
+            undoButton.classList.remove('disabled');
+            undoButton.title = `復原到上一步 (剩餘 ${this.currentStateIndex} 步)`;
+        } else {
+            undoButton.classList.add('disabled');
+            undoButton.title = '沒有可以復原的動作';
+        }
+    }
+}
+// 初始化復原管理器
+const undoManager = new UndoManager();
+
+
+          
+       // 這樣寫：先判斷按鈕是否存在，才進行綁定
+const mirrorLayerButton = document.getElementById('mirror-layer');
+
+if (mirrorLayerButton) {
+    mirrorLayerButton.addEventListener('click', () => {
+        if (currentLayer) {
+            mirrorLayer(currentLayer);
+        }
+    });
+} else {
+    console.warn("未找到 mirror-layer 按鈕，已略過綁定");
+}
+// 修改旋轉和鏡射函數，保存當前透明度
+
+// 修改旋轉觸發邏輯，明確指定角度，而不是累加
+function rotateLayer(layer, angle) {
+    // 確保角度始終維持在 0, 45, 90, 135... 等精確整數，避免浮點數誤差
+    layer.rotation = (layer.rotation + angle) % 360;
+    
+    // 將角度強制取整數，這能解決畫布看起來「抖動」或「像素偏移」的問題
+    layer.rotation = Math.round(layer.rotation / 45) * 45; 
+    
+    updateLayerTransform(layer);
+}
+/**
+ * 徹底優化的圖層變換函數
+ */
+/**
+ * 徹底優化的圖層變換函數
+ * 確保每次變換都基於原始影像，解決畫質劣化問題
+/**
+ * 徹底優化的圖層變換函數
+ */
+function updateLayerTransform(layer) {
+    // 安全檢查：確保 layer 和 canvas 存在
+    if (!layer || !layer.canvas) return;
+
+    const ctx = layer.canvas.getContext('2d');
+    
+    // 確保原始備份存在。如果不存在，嘗試執行一次同步，
+    // 如果同步後仍然沒有內容，至少不要讓程式崩潰
+    if (!layer.originalCanvas) {
+        syncOriginalCanvas(layer);
+    }
+
+    // 1. 清空當前畫布
+    ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+    
+    ctx.save();
+    
+    // 2. 設置環境
+    ctx.imageSmoothingEnabled = false; 
+    ctx.globalAlpha = layer.opacity;
+    
+    const centerX = Math.floor(layer.canvas.width / 2);
+    const centerY = Math.floor(layer.canvas.height / 2);
+    
+    // 3. 執行變換
+    ctx.translate(centerX, centerY);
+    
+    // 計算縮放與鏡射因子
+    const scaleX = layer.scale * (layer.mirrored ? -1 : 1);
+    const scaleY = layer.scale;
+    ctx.scale(scaleX, scaleY);
+    
+    // 角度轉換 (保持你的整數化邏輯在外部函數處理)
+    ctx.rotate((layer.rotation || 0) * Math.PI / 180);
+    
+    // 4. 【關鍵保護】：確保 originalCanvas 有內容才繪製
+    // 這能防止在初始化異常時畫出空白畫面
+    if (layer.originalCanvas && layer.originalCanvas.width > 0) {
+        ctx.drawImage(layer.originalCanvas, -centerX, -centerY);
+    } else {
+        // 如果真的沒有內容，嘗試再次同步一次
+        syncOriginalCanvas(layer);
+        ctx.drawImage(layer.originalCanvas, -centerX, -centerY);
+    }
+    
+    ctx.restore();
+}function rotateLayer(layer, angle) {
+    // 確保每次旋轉都基於基礎角度進行修正，避免小數點位移
+    layer.rotation = Math.round((layer.rotation + angle) / 45) * 45;
+    layer.rotation %= 360;
+    
+    updateLayerTransform(layer);
+}
+// 為鏡射按鈕添加事件監聽
+mirrorLayerButton.addEventListener('click', () => {
+    if (currentLayer) {
+        mirrorLayer(currentLayer); // 鏡射圖層
+    }
+});    
+
+
+
+
+/**
+ * 更新圖層列表：使用 Drag and Drop API 實現拖曳排序
+ */
+function updateLayerList() {
+    layerList.innerHTML = '';
+    
+    // 反轉顯示，讓陣列最後一個 (最上方圖層) 顯示在列表最上方
+    [...layers].reverse().forEach(layer => {
+        const layerOption = document.createElement('div');
+        layerOption.className = 'layer-option';
+        layerOption.dataset.layerId = layer.id;
+        layerOption.draggable = true; // 啟用 HTML5 拖曳
+
+        // --- 拖曳事件處理 (提升穩定性與 UX) ---
+        layerOption.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', layer.id);
+            layerOption.classList.add('dragging');
+        });
+
+        layerOption.addEventListener('dragend', () => layerOption.classList.remove('dragging'));
+
+        layerOption.addEventListener('dragover', (e) => e.preventDefault());
+
+       // 在你的 updateLayerList 中，修改 drop 相關邏輯：
+layerOption.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    layerOption.style.borderTop = "2px solid #4CAF50"; // 視覺提示：顯示放置位置
+});
+
+layerOption.addEventListener('dragleave', (e) => {
+    layerOption.style.borderTop = "none"; // 清除視覺提示
+});
+
+layerOption.addEventListener('drop', (e) => {
+    e.preventDefault();
+    layerOption.style.borderTop = "none"; // 重置樣式
+    
+    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+    const targetId = layer.id;
+    
+    if (draggedId !== targetId) {
+        reorderLayers(draggedId, targetId);
+    }
+});
+
+        if (layer === currentLayer) layerOption.classList.add('active');
+
+        // 圖層內容 (CheckBox, 名稱, 隱藏, 透明度)
+        layerOption.innerHTML = `
+            <input type="checkbox" class="layer-checkbox">
+            <span>圖層 ${layer.id + 1}</span>
+            <button onclick="deleteLayer(layers.find(l=>l.id===${layer.id}))">刪除</button>
+            <button onclick="toggleLayerVisibility(layers.find(l=>l.id===${layer.id}), this)">${layer.visible ? '隱藏' : '顯示'}</button>
+            <input type="range" min="0" max="100" value="${layer.opacity * 100}" oninput="setLayerOpacity(layers.find(l=>l.id===${layer.id}), this.value)">
+        `;
+
+        layerOption.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && e.target.type !== 'checkbox') selectLayer(layer);
+        });
+
+        layerList.appendChild(layerOption);
+    });
+}
+
+/**
+ * 陣列排序邏輯，並同步更新顯示層級 (zIndex)
+ */
+function reorderLayers(draggedId, targetId) {
+    const draggedIdx = layers.findIndex(l => l.id === draggedId);
+    const targetIdx = layers.findIndex(l => l.id === targetId);
+    
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    // 從陣列中移除被拖曳的圖層
+    const [removed] = layers.splice(draggedIdx, 1);
+    
+    // 重新插入到目標位置
+    // 這裡我們直接插入到 targetIdx，這會使拖曳的圖層位於目標圖層「下方」
+    layers.splice(targetIdx, 0, removed);
+    
+    // 更新所有圖層的 zIndex
+    // 陣列 index 越小越底層，index 越大越頂層
+    layers.forEach((l, i) => {
+        l.canvas.style.zIndex = i + 1;
+    });
+    
+    // 重新繪製列表並儲存狀態
+    updateLayerList();
+    if (typeof undoManager !== 'undefined') undoManager.saveState();
+}
+async function saveToPsd() {
+    try {
+        // 創建 PSD 文件結構
+        const psd = {
+            width: parseInt(canvasWidthInput.value, 10),
+            height: parseInt(canvasHeightInput.value, 10),
+            children: []  // 圖層數組
+        };
+
+        // 處理每個圖層
+        for (const layer of layers.reverse()) {  // 反轉順序以匹配 Photoshop 的圖層順序
+            // 獲取圖層的 ImageData
+            const canvas = layer.canvas;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // 創建圖層數據
+            const psdLayer = {
+                name: layer.name || `圖層 ${layer.id + 1}`,
+                opacity: Math.round(layer.opacity * 255),  // PSD 使用 0-255 的透明度範圍
+                visible: layer.visible,
+                imageData: imageData,
+                closed: true  // 表示圖層是否折疊
+            };
+
+            psd.children.push(psdLayer);
+        }
+
+        // 使用 ag-psd 創建 PSD 文件
+        const buffer = await agPsd.writePsd(psd);
+        
+        // 創建 Blob 並下載
+        const blob = new Blob([buffer], { type: 'image/vnd.adobe.photoshop' });
+        const filename = document.getElementById('filename').value || 'drawing';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename}.psd`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+        alert('PSD 文件保存成功！');
+    } catch (error) {
+        console.error('保存 PSD 失敗:', error);
+        alert('保存 PSD 失敗，請查看控制台了解詳細信息。');
+    }
+}
+
+// 添加按鈕事件監聽
+document.getElementById('save-psd').addEventListener('click', saveToPsd);
+
+
+// 導出 JSON 功能
+async function exportToJSON() {
+    try {
+        const drawingData = {
+            version: "1.0",
+            timestamp: Date.now(),
+            canvasSize: {
+                width: parseInt(canvasWidthInput.value, 10),
+                height: parseInt(canvasHeightInput.value, 10)
+            },
+            layers: layers.map(layer => ({
+                id: layer.id,
+                name: layer.name || `圖層 ${layer.id + 1}`,
+                opacity: layer.opacity,
+                visible: layer.visible,
+                rotation: layer.rotation || 0,
+                mirrored: layer.mirrored || false,
+                zIndex: layer.canvas.style.zIndex,
+                isTransparent: layer.isTransparent || false,
+                canvasData: layer.canvas.toDataURL('image/png')
+            })),
+            settings: {
+                backgroundColor: backgroundColor,
+                backgroundType: bgColorSelect.value,
+                customBackgroundColor: customBgColorInput.value,
+                scale: scale,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                brush: {
+                    size: brushSizeInput.value,
+                    color: brushColorInput.value,
+                    pressure: pressureSlider.value
+                }
+            }
+        };
+
+        // 創建並下載 JSON 文件
+        const jsonString = JSON.stringify(drawingData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const filename = document.getElementById('filename').value || 'drawing';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+        alert('JSON 文件導出成功！');
+    } catch (error) {
+        console.error('導出 JSON 失敗:', error);
+        alert('導出 JSON 失敗，請查看控制台了解詳細信息。');
+    }
+}
+
+// 導入 JSON 功能
+async function importFromJSON(file) {
+    try {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const drawingData = JSON.parse(e.target.result);
+                
+                // 驗證 JSON 格式
+                if (!drawingData.canvasSize || !drawingData.layers) {
+                    throw new Error('無效的 JSON 格式');
+                }
+
+                // 更新畫布大小
+                canvasWidthInput.value = drawingData.canvasSize.width;
+                canvasHeightInput.value = drawingData.canvasSize.height;
+                resizeCanvas();
+
+                // 清除現有圖層
+                while (layers.length > 0) {
+                    const layer = layers.pop();
+                    layer.canvas.remove();
+                }
+                layerList.innerHTML = '';
+                layerCounter = 0;
+
+                // 恢復設定
+                if (drawingData.settings) {
+                    backgroundColor = drawingData.settings.backgroundColor;
+                    bgColorSelect.value = drawingData.settings.backgroundType;
+                    customBgColorInput.value = drawingData.settings.customBackgroundColor;
+                    scale = drawingData.settings.scale;
+                    offsetX = drawingData.settings.offsetX;
+                    offsetY = drawingData.settings.offsetY;
+
+                    if (drawingData.settings.brush) {
+                        brushSizeInput.value = drawingData.settings.brush.size;
+                        brushColorInput.value = drawingData.settings.brush.color;
+                        pressureSlider.value = drawingData.settings.brush.pressure;
+                    }
+                }
+
+                // 恢復圖層
+                for (const layerData of drawingData.layers) {
+                    const img = new Image();
+                    img.onload = () => {
+                        const layer = createLayer();
+                        const ctx = layer.canvas.getContext('2d');
+                        
+                        // 恢復圖層屬性
+                        layer.name = layerData.name;
+                        layer.opacity = layerData.opacity;
+                        layer.visible = layerData.visible;
+                        layer.rotation = layerData.rotation;
+                        layer.mirrored = layerData.mirrored;
+                        layer.isTransparent = layerData.isTransparent;
+                        
+                        // 應用變換並繪製
+                        ctx.save();
+                        ctx.translate(layer.canvas.width / 2, layer.canvas.height / 2);
+                        ctx.scale(layer.mirrored ? -1 : 1, 1);
+                        ctx.rotate(layer.rotation * Math.PI / 180);
+                        ctx.drawImage(img, -layer.canvas.width / 2, -layer.canvas.height / 2);
+                        ctx.restore();
+                        
+                        // 更新顯示
+                        layer.canvas.style.opacity = layerData.opacity;
+                        layer.canvas.style.display = layerData.visible ? 'block' : 'none';
+                        layer.canvas.style.zIndex = layerData.zIndex;
+
+                        if (layerData.isTransparent) {
+                            updateLayerDisplay(layer);
+                        }
+                    };
+                    img.src = layerData.canvasData;
+                }
+
+                // 更新介面
+                updateCanvasTransform();
+                updateLayerList();
+                
+                alert('JSON 文件導入成功！');
+            } catch (error) {
+                console.error('解析 JSON 失敗:', error);
+                alert('解析 JSON 失敗: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('導入 JSON 失敗:', error);
+        alert('導入 JSON 失敗: ' + error.message);
+    }
+}
+
+// 添加事件監聽器
+document.getElementById('export-json').addEventListener('click', exportToJSON);
+document.getElementById('upload-json').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // 更新檔案名稱（不包含副檔名）
+        const filename = file.name.replace(/\.json$/, '');
+        document.getElementById('filename').value = filename;
+        
+        importFromJSON(file);
+    }
+});
+
+// 添加狀態追蹤變量
+let isPasting = false;
+let lastRightClickTime = 0;
+
+
+
+// 1. 複製貼上相關變數
+let copyPasteCanvas = null;
+let copyBuffer = {
+    data: null,
+    width: 0,
+    height: 0
+};
+
+// 2. 建立右鍵選單 HTML，增加複製和剪下選項
+function createContextMenu() {
+    const menu = document.createElement('div');
+    menu.id = 'contextMenu';
+    menu.style.cssText = `
+        position: fixed;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px 0;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        display: none;
+        z-index: 1000;
+    `;
+    menu.innerHTML = `
+        <div class="menu-item" id="copyOption">複製</div>
+        <div class="menu-item" id="cutOption">剪下</div>
+        <div class="menu-item" id="pasteOption">貼上</div>
+        <div class="menu-item" id="cancelOption">取消</div>
+<div class="menu-item" id="rotateOption">旋轉選取區 (90°)</div>
+<div class="menu-item" id="mirrorOption">水平鏡射</div>
+
+<div class="menu-item" id="mirrorOptionV">垂直鏡射</div>
+    `;
+
+    const menuItems = menu.getElementsByClassName('menu-item');
+    for (let item of menuItems) {
+        item.style.cssText = `
+            padding: 8px 20px;
+            cursor: pointer;
+            user-select: none;
+        `;
+        item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f0f0f0');
+        item.addEventListener('mouseleave', () => item.style.backgroundColor = 'white');
+    }
+
+    document.body.appendChild(menu);
+    return menu;
+}
+
+// 3. 初始化選單
+const contextMenu = createContextMenu();
+
+function performCopy() {
+    if (selectionBox && selectionData) {
+        // 複製選區資料到緩衝區
+        copyBuffer = {
+            data: new ImageData(
+                new Uint8ClampedArray(selectionData.data),
+                selectionBox.width,
+                selectionBox.height
+            ),
+            width: selectionBox.width,
+            height: selectionBox.height
+        };
+
+        // 顯示已複製的訊息
+        showMessage('已複製');
+        
+        // 不清空選區，保持圖像顯示在畫布上
+
+        return true;
+    }
+    return false;
+}
+
+function performCut() {
+    if (performCopy()) {
+        // 先將選區複製到緩衝區
+        const ctx = currentLayer.canvas.getContext('2d');
+
+        // 剪下後，清除選區內的圖像
+        ctx.clearRect(
+            selectionBox.x,
+            selectionBox.y,
+            selectionBox.width,
+            selectionBox.height
+        );
+
+        // 重置選區資料（選區圖像已被清除）
+        selectionBox = null;
+        selectionData = null;
+        drawSelectionBox();
+
+        showMessage('已剪下');
+    }
+}
+function performPaste(x, y) {
+    if (!copyBuffer.data) return;
+    
+    const rect = currentLayer.canvas.getBoundingClientRect();
+    const pasteX = Math.floor((x - rect.left) / scale);
+    const pasteY = Math.floor((y - rect.top) / scale);
+    
+    selectionBox = {
+        x: pasteX,
+        y: pasteY,
+        width: copyBuffer.width,
+        height: copyBuffer.height
+    };
+    
+    const ctx = currentLayer.canvas.getContext('2d');
+    ctx.putImageData(copyBuffer.data, pasteX, pasteY);
+
+    selectionData = copyBuffer.data;
+    drawSelectionBox();
+    showMessage('已貼上');
+}
+
+// 5. 鍵盤事件處理
+document.addEventListener('keydown', (e) => {
+    if (currentTool !== 'select') return;
+    
+    const ctrlKey = e.ctrlKey || e.metaKey;
+    
+    if (ctrlKey) {
+        switch(e.key.toLowerCase()) {
+            case 'c':
+                e.preventDefault();
+                performCopy();
+                break;
+            case 'x':
+                e.preventDefault();
+                performCut();
+                break;
+            case 'v':
+                e.preventDefault();
+                if (copyBuffer.data) {
+                    performPaste(lastMouseX, lastMouseY);
+                }
+                break;
+        }
+    }
+});
+
+// 6. 右鍵選單處理
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+
+    // 更新選單項目狀態
+    const hasCopyData = currentTool === 'select' && selectionBox;
+    const hasPasteData = copyBuffer.data !== null; // 確保 copyBuffer 有資料
+
+    // 更新菜單項目的透明度，只有在有有效數據時才顯示選項
+    document.getElementById('copyOption').style.opacity = hasCopyData ? '1' : '0.5';
+    document.getElementById('cutOption').style.opacity = hasCopyData ? '1' : '0.5';
+    document.getElementById('pasteOption').style.opacity = hasPasteData ? '1' : '0.5'; // 當有貼上資料時顯示
+
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = e.clientX + 'px';
+    contextMenu.style.top = e.clientY + 'px';
+});
+// 7. 選單選項點擊處理
+document.getElementById('copyOption').addEventListener('click', () => {
+    if (currentTool === 'select' && selectionBox) {
+        performCopy();
+        contextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('cutOption').addEventListener('click', () => {
+    if (currentTool === 'select' && selectionBox) {
+        performCut();
+        contextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('pasteOption').addEventListener('click', () => {
+    if (copyBuffer.data) {
+        performPaste(lastMouseX, lastMouseY);
+        contextMenu.style.display = 'none';
+    }
+});
+// 7. 選單選項點擊處理
+document.getElementById('copyOption').addEventListener('click', () => {
+    if (currentTool === 'select' && selectionBox) {
+        performCopy();
+        contextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('cutOption').addEventListener('click', () => {
+    if (currentTool === 'select' && selectionBox) {
+        performCut();
+        contextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('pasteOption').addEventListener('click', () => {
+    if (copyBuffer.data) {
+        performPaste(lastMouseX, lastMouseY);
+        contextMenu.style.display = 'none';
+    }
+});
+
+// --- 已整合的取消邏輯 ---
+document.getElementById('cancelOption').addEventListener('click', () => {
+    // 呼叫整合後的 clearSelection(true) 來還原影像並清除狀態
+    // 傳入 true 表示「放棄本次操作並還原」，這會觸發還原邏輯
+    clearSelection(true); 
+    
+    // 隱藏選單
+    contextMenu.style.display = 'none';
+    
+    // 顯示提示
+    if (typeof showMessage === 'function') {
+        showMessage('已取消選取並還原');
+    }
+});// 9. 提示訊息函數
+function showMessage(text) {
+    const message = document.createElement('div');
+    message.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        z-index: 1000;
+    `;
+    message.textContent = text;
+    document.body.appendChild(message);
+    setTimeout(() => message.remove(), 2000);
+}
+
+
+
+// 手機觸控版複製貼上功能
+let touchStartTime = 0;
+let touchTimeout = null;
+let isTouchCopying = false;
+let touchCopyBuffer = {
+    data: null,
+    width: 0,
+    height: 0
+};
+
+// 觸控開始
+document.addEventListener('touchstart', (e) => {
+    if (currentTool !== 'select') return;
+
+    touchStartTime = Date.now();
+    const touch = e.touches[0];
+
+    // 開始計時，用於檢測長按
+    touchTimeout = setTimeout(() => {
+        if (selectionBox && selectionData) {
+            isTouchCopying = true;
+            touchCopyBuffer = {
+                data: new ImageData(
+                    new Uint8ClampedArray(selectionData.data),
+                    selectionBox.width,
+                    selectionBox.height
+                ),
+                width: selectionBox.width,
+                height: selectionBox.height
+            };
+            
+            // 震動反饋
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+            
+            showMessage('已複製，點擊要貼上的位置');
+        }
+    }, 500); // 長按 500ms 觸發複製
+});
+
+// 觸控移動時取消長按計時
+document.addEventListener('touchmove', () => {
+    clearTimeout(touchTimeout);
+});
+
+// 觸控結束
+document.addEventListener('touchend', (e) => {
+    clearTimeout(touchTimeout);
+    
+    // 如果已經複製且要貼上
+    if (isTouchCopying && touchCopyBuffer.data) {
+        const touch = e.changedTouches[0];
+        const rect = currentLayer.canvas.getBoundingClientRect();
+        
+        // 計算貼上位置
+        const pasteX = Math.floor((touch.clientX - rect.left) / scale);
+        const pasteY = Math.floor((touch.clientY - rect.top) / scale);
+        
+        // 貼上到畫布
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.putImageData(touchCopyBuffer.data, pasteX, pasteY);
+       // 確保範圍在畫布內
+const x = Math.max(0, Math.min(selectionBox.x, currentLayer.canvas.width));
+const y = Math.max(0, Math.min(selectionBox.y, currentLayer.canvas.height));
+        
+        // 更新選取框
+        selectionBox = {
+            x: pasteX,
+            y: pasteY,
+            width: touchCopyBuffer.width,
+            height: touchCopyBuffer.height
+        };
+        selectionData = touchCopyBuffer.data;
+        
+        // 重設狀態
+        isTouchCopying = false;
+        touchCopyBuffer = {
+            data: null,
+            width: 0,
+            height: 0
+        };
+        
+        showMessage('已貼上');
+    }
+});
+
+// 為手機版新增一個取消按鈕
+function createMobileCancelButton() {
+    const cancelButton = document.createElement('button');
+    cancelButton.id = 'mobileCancelButton';
+    cancelButton.textContent = '取消複製';
+    cancelButton.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        display: none;
+        z-index: 1000;
+    `;
+    
+    // 取消複製事件
+    cancelButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isTouchCopying = false;
+        touchCopyBuffer = {
+            data: null,
+            width: 0,
+            height: 0
+        };
+        cancelButton.style.display = 'none';
+        showMessage('已取消複製');
+    });
+    
+    document.body.appendChild(cancelButton);
+    return cancelButton;
+}
+
+// 初始化取消按鈕
+const mobileCancelButton = createMobileCancelButton();
+
+// 在複製時顯示取消按鈕
+function showMobileCancelButton() {
+    mobileCancelButton.style.display = 'block';
+}
+
+// 當進入複製模式時顯示取消按鈕
+document.addEventListener('touchstart', () => {
+    if (isTouchCopying) {
+        showMobileCancelButton();
+    }
+});
+
+// 修改訊息顯示函數使其在手機上更容易閱讀
+function showMessage(text) {
+    const message = document.createElement('div');
+    message.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        white-space: nowrap;
+        z-index: 1000;
+    `;
+    message.textContent = text;
+    document.body.appendChild(message);
+    setTimeout(() => message.remove(), 2000);
+}
+
+
+
+
+function getPressure(e) {
+    if (e.touches && e.touches[0]) {
+        return e.touches[0].force || 0.5; // 部分裝置可能使用 `force`
+    }
+    return e.pressure || 0.5; // 非觸控事件會回傳標準 pressure
+}
+
+// 工具列上的選取相關按鈕（複製/剪下/貼上/清除選取內容/取消選取）
+// 這幾顆按鈕原本完全沒有綁定事件，點擊沒有任何反應
+document.getElementById('copy-selection').addEventListener('click', () => {
+    if (!selectionBox) {
+        showMessage('請先框選一個區域');
+        return;
+    }
+    performCopy();
+});
+
+document.getElementById('cut-selection').addEventListener('click', () => {
+    if (!selectionBox) {
+        showMessage('請先框選一個區域');
+        return;
+    }
+    performCut();
+});
+
+document.getElementById('paste-selection').addEventListener('click', () => {
+    if (!copyBuffer.data) {
+        showMessage('剪貼簿是空的，請先複製或剪下');
+        return;
+    }
+    // 貼到畫布中央
+    const rect = currentLayer.canvas.getBoundingClientRect();
+    performPaste(rect.left + rect.width / 2, rect.top + rect.height / 2);
+});
+
+document.getElementById('delete-selection').addEventListener('click', () => {
+    if (!currentLayer || !selectionBox) {
+        showMessage('請先框選一個區域');
+        return;
+    }
+    const ctx = currentLayer.canvas.getContext('2d');
+    ctx.clearRect(
+        Math.max(0, selectionBox.x),
+        Math.max(0, selectionBox.y),
+        Math.abs(selectionBox.width),
+        Math.abs(selectionBox.height)
+    );
+    selectionBox = null;
+    selectionData = null;
+    drawSelectionBox();
+});
+
+document.getElementById('clear-selection').addEventListener('click', () => {
+    clearSelection();
+});
+
+
+// 統一處理變換前的清理邏輯
+function beforeTransformAction() {
+    if (selectionBox) {
+        // 如果有選區且有移動過，先將選區內容寫回圖層，避免殘留
+        if (selectionData) {
+            const ctx = currentLayer.canvas.getContext('2d');
+            ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+        }
+        // 清除選取狀態
+        clearSelection(false); 
+    }
+}
+
+
+// 強制清理選取殘影的函數
+function syncAndClear() {
+    const overlayCanvas = document.getElementById('overlay');
+    if (overlayCanvas) {
+        const ctx = overlayCanvas.getContext('2d');
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    }
+    // 如果還有選區框，重繪它（這行視需求決定是否保留）
+    if (selectionBox) {
+        drawSelectionBox();
+    }
+}
+/**
+ * 旋轉選取區的專用函數
+ */
+function rotateSelectionData() {
+    if (!selectionData || !selectionBox) return;
+
+    // 建立一個畫布來旋轉選取區
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = selectionBox.width;
+    tempCanvas.height = selectionBox.height;
+    tempCanvas.getContext('2d').putImageData(selectionData, 0, 0);
+
+    // 旋轉後新的選取區大小（如果是非 90 度倍數，選區寬高會變，這裡假設以 90 度為基準）
+    // 如果您需要任意角度，寬高需使用三角函數計算矩形邊界
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = selectionBox.height; // 互換寬高
+    rotatedCanvas.height = selectionBox.width;
+    const ctx = rotatedCanvas.getContext('2d');
+
+    ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    ctx.rotate(90 * Math.PI / 180); // 這裡以 90 度為例
+    ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
+
+    // 更新 selectionData
+    selectionData = ctx.getImageData(0, 0, rotatedCanvas.width, rotatedCanvas.height);
+    selectionBox.width = rotatedCanvas.width;
+    selectionBox.height = rotatedCanvas.height;
+
+    drawSelectionBox(); // 重新繪製虛線框
+}
+
+
+/**
+ * 實質旋轉選取區的內容
+ */
+/**
+ * 更新版：旋轉選取區並立即寫入畫布
+ */
+/**
+ * 整合型旋轉函數：同時支援全圖層與選取區的實質旋轉
+ */
+/**
+ * 修正後的實質旋轉選取區邏輯
+ */
+function rotateContent(sourceData, width, height, x, y, isSelection = false) {
+    // 1. 建立旋轉用的緩衝畫布
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    tempCanvas.getContext('2d').putImageData(sourceData, 0, 0);
+
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = height; // 寬高互換
+    rotatedCanvas.height = width;
+    const ctx = rotatedCanvas.getContext('2d');
+
+    // 2. 執行旋轉
+    ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    ctx.rotate(90 * Math.PI / 180);
+    ctx.drawImage(tempCanvas, -width / 2, -height / 2);
+
+    const resultData = ctx.getImageData(0, 0, rotatedCanvas.width, rotatedCanvas.height);
+
+    // 3. 【關鍵修正】：不要直接 putImageData，而是先將旋轉結果畫回圖層的 context
+    const layerCtx = currentLayer.canvas.getContext('2d');
+    
+    // 清除舊區域
+    layerCtx.clearRect(x, y, width, height); 
+    
+    // 為了確保畫質與圖層變換對齊，建議將結果直接繪製而非單純寫入像素
+    layerCtx.putImageData(resultData, x, y); 
+
+    // 4. 【重要】：旋轉完成後，必須再次呼叫 updateLayerTransform 
+    // 這樣才能確保圖層的整體變換矩陣重新計算
+    updateLayerTransform(currentLayer);
+
+    return { data: resultData, width: rotatedCanvas.width, height: rotatedCanvas.height };
+}
+document.getElementById('rotateOption').addEventListener('click', () => {
+    if (selectionBox && selectionData) {
+        // 先將目前的選區資料「存」進圖層 (否則會遺失)
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+        
+        // 執行實質旋轉
+        const result = rotateContent(selectionData, selectionBox.width, selectionBox.height, selectionBox.x, selectionBox.y, true);
+        
+        // 更新選區變數
+        selectionData = result.data;
+        selectionBox.width = result.width;
+        selectionBox.height = result.height;
+        
+        // 強制重繪虛線框
+        drawSelectionBox(); 
+        contextMenu.style.display = 'none';
+    }
+});
+
+
+
+/**
+ * 實質鏡射選取區的內容
+ */
+function mirrorSelectionData(sourceData, width, height) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.putImageData(sourceData, 0, 0);
+
+    // 建立一個新畫布來存放鏡射後的結果
+    const mirroredCanvas = document.createElement('canvas');
+    mirroredCanvas.width = width;
+    mirroredCanvas.height = height;
+    const mCtx = mirroredCanvas.getContext('2d');
+
+    // 進行水平鏡射
+    mCtx.save();
+    mCtx.scale(-1, 1);
+    mCtx.drawImage(tempCanvas, -width, 0);
+    mCtx.restore();
+
+    return mCtx.getImageData(0, 0, width, height);
+}
+
+document.getElementById('mirrorOption').addEventListener('click', () => {
+    if (selectionBox && selectionData) {
+        // 1. 執行實質鏡射
+        const mirroredData = mirrorSelectionData(selectionData, selectionBox.width, selectionBox.height);
+        
+        // 2. 更新全域變數
+        selectionData = mirroredData;
+        
+        // 3. 將鏡射後的資料寫回圖層
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.clearRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+        ctx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+        
+        // 4. 強制刷新介面
+        drawSelectionBox();
+        contextMenu.style.display = 'none';
+        showMessage('選取區已水平鏡射');
+    }
+});
+
+/**
+ * 切換圖層的鏡射狀態並重繪
+ */
+function toggleMirrorLayer(layer) {
+    if (!layer) return;
+    
+    // 1. 切換鏡射狀態布林值
+    layer.mirrored = !layer.mirrored;
+    
+    // 2. 直接呼叫變換函數，利用矩陣重新渲染圖層
+    updateLayerTransform(layer);
+    
+    // 3. (選擇性) 如果你有顯示圖層狀態的 UI，可以在此同步更新
+    console.log(`圖層 ${layer.id} 鏡射狀態: ${layer.mirrored}`);
+}
+
+
+
+function mirrorSelectionVertical() {
+    if (!selectionData || !selectionBox) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = selectionBox.width;
+    tempCanvas.height = selectionBox.height;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.putImageData(selectionData, 0, 0);
+
+    const mirroredCanvas = document.createElement('canvas');
+    mirroredCanvas.width = selectionBox.width;
+    mirroredCanvas.height = selectionBox.height;
+    const mCtx = mirroredCanvas.getContext('2d');
+
+    mCtx.save();
+    // 垂直鏡射關鍵：scale(1, -1) 且繪製到負高度
+    mCtx.scale(1, -1);
+    mCtx.drawImage(tempCanvas, 0, -selectionBox.height);
+    mCtx.restore();
+
+    selectionData = mCtx.getImageData(0, 0, selectionBox.width, selectionBox.height);
+    
+    // 更新畫布
+    const layerCtx = currentLayer.canvas.getContext('2d');
+    layerCtx.clearRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+    layerCtx.putImageData(selectionData, selectionBox.x, selectionBox.y);
+    
+    syncOriginalCanvas(currentLayer); // 同步備份
+    drawSelectionBox();
+    showMessage('已垂直鏡射');
+}
+
+
+// 綁定垂直鏡射
+document.getElementById('mirrorOptionV').addEventListener('click', () => {
+    mirrorSelectionVertical();
+    contextMenu.style.display = 'none';
+});
+
+
+
+function getActiveHandle(x, y) {
+    if (!selectionBox) return null;
+    const s = 10;
+    const handles = {
+        tl: { x: selectionBox.x, y: selectionBox.y },
+        tr: { x: selectionBox.x + selectionBox.width, y: selectionBox.y },
+        bl: { x: selectionBox.x, y: selectionBox.y + selectionBox.height },
+        br: { x: selectionBox.x + selectionBox.width, y: selectionBox.y + selectionBox.height }
+    };
+
+    for (let key in handles) {
+        if (Math.abs(x - handles[key].x) < s && Math.abs(y - handles[key].y) < s) {
+            return key;
+        }
+    }
+    return null;
+}
+
+
+let activeHandle = null; // 紀錄按下了哪個點 ('tl', 'tr', 'bl', 'br')
+
+// 檢查滑鼠是否在控制點上
+function getActiveHandle(x, y) {
+    if (!selectionBox) return null;
+    const size = 10;
+    const handles = {
+        tl: { x: selectionBox.x, y: selectionBox.y },
+        tr: { x: selectionBox.x + selectionBox.width, y: selectionBox.y },
+        bl: { x: selectionBox.x, y: selectionBox.y + selectionBox.height },
+        br: { x: selectionBox.x + selectionBox.width, y: selectionBox.y + selectionBox.height }
+    };
+
+    for (let key in handles) {
+        if (Math.abs(x - handles[key].x) < size && Math.abs(y - handles[key].y) < size) {
+            return key;
+        }
+    }
+    return null;
+}
+
+
+function updateSelectionSize(x, y) {
+    if (!selectionBox || !activeHandle) return;
+
+    // 取得變更後的寬高與座標
+    let { x: sx, y: sy, width: sw, height: sh } = selectionBox;
+
+    switch (activeHandle) {
+        case 'br': // 右下角：只需改變寬高
+            selectionBox.width = Math.max(10, x - sx);
+            selectionBox.height = Math.max(10, y - sy);
+            break;
+
+        case 'tl': // 左上角：改變寬高同時移動左上座標
+            selectionBox.width = Math.max(10, sw + (sx - x));
+            selectionBox.height = Math.max(10, sh + (sy - y));
+            selectionBox.x = sx + (sw - selectionBox.width);
+            selectionBox.y = sy + (sh - selectionBox.height);
+            break;
+
+        case 'tr': // 右上角：改變寬高同時移動 Y 座標
+            selectionBox.width = Math.max(10, x - sx);
+            selectionBox.height = Math.max(10, sh + (sy - y));
+            selectionBox.y = sy + (sh - selectionBox.height);
+            break;
+
+        case 'bl': // 左下角：改變寬高同時移動 X 座標
+            selectionBox.width = Math.max(10, sw + (sx - x));
+            selectionBox.height = Math.max(10, y - sy);
+            selectionBox.x = sx + (sw - selectionBox.width);
+            break;
+    }
+}
+
+
+const bufferCanvas = document.createElement('canvas');
+const bCtx = bufferCanvas.getContext('2d');
+
+
+let lastDrawRect = { x: 0, y: 0, w: 0, h: 0 };
+
+function drawSelectionOutlineOnly() {
+    const overlayCanvas = document.getElementById('overlay');
+    const ctx = overlayCanvas.getContext('2d');
+    
+    // 1. 定義一個足以覆蓋「線框」與「所有把手」的邊界
+    // 把手大小是 10，線寬是 2，所以 padding 至少要設為 6-10
+    const padding = 12; 
+
+    // 2. 清除上一次的區域
+    if (lastDrawRect.w > 0) {
+        ctx.clearRect(
+            lastDrawRect.x - padding, 
+            lastDrawRect.y - padding, 
+            lastDrawRect.w + padding * 2, 
+            lastDrawRect.h + padding * 2
+        );
+    }
+
+    if (!selectionBox) {
+        lastDrawRect = { x: 0, y: 0, w: 0, h: 0 };
+        return;
+    }
+
+    // 3. 繪製
+    ctx.save();
+    ctx.strokeStyle = '#0095ff';
+    ctx.lineWidth = 2;
+    
+    // 畫虛線框
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height);
+    ctx.setLineDash([]); 
+
+    // 畫把手
+    const s = 10;
+    const hs = s / 2;
+    ctx.fillStyle = '#0095ff';
+    
+    // 使用單次路徑繪製把手，效能更好且不會產生多餘圖層
+    ctx.beginPath();
+    ctx.rect(selectionBox.x - hs, selectionBox.y - hs, s, s);
+    ctx.rect(selectionBox.x + selectionBox.width - hs, selectionBox.y - hs, s, s);
+    ctx.rect(selectionBox.x - hs, selectionBox.y + selectionBox.height - hs, s, s);
+    ctx.rect(selectionBox.x + selectionBox.width - hs, selectionBox.y + selectionBox.height - hs, s, s);
+    ctx.fill();
+    
+    ctx.restore();
+
+    // 4. 更新 lastDrawRect 為本次位置 (必須與上面 clearRect 的計算邏輯一致)
+    lastDrawRect = { 
+        x: selectionBox.x, 
+        y: selectionBox.y, 
+        w: selectionBox.width, 
+        h: selectionBox.height 
+    };
+}
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedSize = localStorage.getItem('canvasSize');
+    if (savedSize) {
+        const size = JSON.parse(savedSize);
+        canvasWidthInput.value = size.width;
+        canvasHeightInput.value = size.height;
+        resizeCanvas();
+    }
+});
+
+
+
+function mirrorLayer(layer) {
+    if (!layer) return;
+    layer.mirrored = !layer.mirrored; // 切換狀態
+    updateLayerTransform(layer);      // 重新渲染
+}
+
+
+mirrorLayerButton.addEventListener('click', () => {
+    console.log("按鈕確實被點擊了！"); // 看看這行會不會印出來
+    if (currentLayer) {
+        mirrorLayer(currentLayer);
+    }
+});
+
+async function saveToPsd() {
+    try {
+        // 增加檢查：確保至少有一個圖層
+        if (layers.length === 0) {
+            alert("目前沒有圖層可以匯出");
+            return;
+        }
+
+        const psd = {
+            width: parseInt(canvasWidthInput.value, 10),
+            height: parseInt(canvasHeightInput.value, 10),
+            children: layers.map(layer => ({
+                name: layer.name || `圖層 ${layer.id + 1}`,
+                opacity: Math.round(layer.opacity * 255),
+                visible: layer.visible,
+                // 確保讀取資料時不會因為跨網域或空資料報錯
+                imageData: layer.canvas.getContext('2d').getImageData(0, 0, layer.canvas.width, layer.canvas.height),
+                closed: true
+            }))
+        };
+
+        const buffer = await agPsd.writePsd(psd);
+        const blob = new Blob([buffer], { type: 'image/vnd.adobe.photoshop' });
+        const filename = document.getElementById('filename').value || 'drawing';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename}.psd`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        
+        alert("PSD 匯出成功！");
+    } catch (err) {
+        console.error("PSD 匯出失敗", err);
+        alert("PSD 匯出失敗，請查看控制台詳細資訊");
+    }
+}
+
+
+function initExportButton() {
+    // 找到放置按鈕的容器，這裡假設你使用 layer-controls
+    const controls = document.getElementById('layer-controls');
+    
+    // 創建一個新的匯出按鈕
+    const exportPsdBtn = document.createElement('button');
+    exportPsdBtn.id = 'save-psd-auto';
+    exportPsdBtn.textContent = '💾 匯出為 PSD';
+    exportPsdBtn.style.marginLeft = '10px';
+    exportPsdBtn.style.padding = '5px 10px';
+    exportPsdBtn.style.cursor = 'pointer';
+
+    // 綁定你提供的 saveToPsd 函數
+    exportPsdBtn.addEventListener('click', saveToPsd);
+
+    // 插入到 layer-controls 內 (或是你指定的其他位置)
+    controls.appendChild(exportPsdBtn);
+}
+
+// 在網頁載入完成時呼叫
+document.addEventListener('DOMContentLoaded', () => {
+    initExportButton();
+});
+
+
+
+
+
+
+
+
+</script>
+<script src="https://unpkg.com/ag-psd@14.3.6/dist/bundle.js"></script>
+
+</body>
+</html>
