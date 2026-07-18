@@ -2129,202 +2129,363 @@ box-shadow:0 0 10px #007bff;
     background:#f0f0f0;
 }
 
+/* =========================================================
+   創作輔助工具：便利貼 / 素材庫 / 自由畫筆 / 骰子
+========================================================= */
 
-#boardLayer{
+/* ---- 便利貼 / 圖片釘選卡片 ---- */
+.corkboard-note {
+    position: absolute;
+    min-width: 160px;
+    max-width: 260px;
+    min-height: 90px;
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 2px 4px 10px rgba(0,0,0,.25);
+    font-size: 13px;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: grab;
+    touch-action: none;
+}
+.corkboard-note:active { cursor: grabbing; }
+.corkboard-note.dragging {
+    cursor: grabbing;
+    box-shadow: 0 10px 26px rgba(0,0,0,.4);
+    opacity: .92;
+    z-index: 6;
+}
+.corkboard-note textarea {
+    flex: 1;
+    resize: none;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: inherit;
+    min-height: 60px;
+    color: #222;
+}
+.corkboard-note textarea:focus { outline: none; }
+.corkboard-note img {
+    max-width: 100%;
+    border-radius: 4px;
+    pointer-events: none;
+}
+.corkboard-note .note-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+.corkboard-note .note-color-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,.3);
+    cursor: pointer;
+}
+.corkboard-note .note-delete-btn {
+    background: rgba(0,0,0,.15);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 6px;
+    color: #333;
+}
+.corkboard-note .note-delete-btn:hover { background: rgba(0,0,0,.3); }
 
-position:absolute;
-
-left:0;
-top:0;
-
-width:100%;
-height:100%;
-
-pointer-events:none;
-
+/* ---- 浮動主工具列（脫離 header 的疊層環境，確保不會被鎖定遮罩擋住） ---- */
+#gamebook-float-toolbar {
+    position: fixed;
+    top: 90px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000010;
+}
+#gamebook-float-toolbar button {
+    background: #37474f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 68px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    line-height: 1.3;
+}
+#gamebook-float-toolbar button:hover { background: #263238; }
+#gamebook-float-toolbar button.active-tool { background: #1976d2; }
+@media (max-width: 768px) {
+    #gamebook-float-toolbar {
+        top: auto;
+        bottom: 90px;
+        right: 8px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 150px;
+    }
+    #gamebook-float-toolbar button { width: 68px; }
 }
 
-
-
-.mini-board{
-
-position:absolute;
-
-width:300px;
-height:200px;
-
-min-width:150px;
-min-height:100px;
-
-resize:both;
-
-overflow:hidden;
-
-background:rgba(255,255,255,0.9);
-
-border:2px solid #777;
-
-border-radius:10px;
-
-box-shadow:0 3px 10px rgba(0,0,0,.2);
-
-pointer-events:auto;
-
+/* ---- 素材庫（資料夾）面板 ---- */
+#material-library-panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 280px;
+    height: 100%;
+    background: #fafafa;
+    border-left: 2px solid #ccc;
+    box-shadow: -4px 0 20px rgba(0,0,0,.25);
+    z-index: 1000011;
+    display: none;
+    flex-direction: column;
+    font-family: system-ui, sans-serif;
+}
+#material-library-panel.open { display: flex; }
+#material-library-panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #333;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: none;
+}
+#material-library-panel header button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 8px;
+}
+#material-drop-zone {
+    margin: 12px;
+    padding: 20px 10px;
+    border: 2px dashed #999;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    transition: .15s;
+}
+#material-drop-zone.dragover {
+    background: #e3f2fd;
+    border-color: #1976d2;
+    color: #1976d2;
+}
+#material-library-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-content: start;
+}
+.material-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: grab;
+    text-align: center;
+    font-size: 11px;
+    position: relative;
+    user-select: none;
+    color: #333;
+    touch-action: none;
+}
+.material-item.dragging-source {
+    opacity: .4;
+}
+.material-drag-ghost {
+    position: fixed;
+    left: 0; top: 0;
+    transform: translate(-50%, -50%) scale(1.06);
+    width: 90px;
+    pointer-events: none;
+    z-index: 1000020;
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    text-align: center;
+    font-size: 11px;
+    opacity: .95;
+}
+.material-drag-ghost img {
+    width: 100%;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+}
+.material-drag-ghost .ghost-doc-icon {
+    font-size: 26px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+.material-drag-ghost .ghost-name {
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #333;
+}
+.material-drag-ghost.drop-ready {
+    box-shadow: 0 0 0 3px #1976d2, 0 8px 24px rgba(0,0,0,.4);
+}
+#flowPanel.material-drop-hover {
+    outline: 3px dashed #1976d2;
+    outline-offset: -3px;
+}
+.material-item img {
+    width: 100%;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+    pointer-events: none;
+}
+.material-item .material-name {
+    margin-top: 4px;
+    word-break: break-all;
+    line-height: 1.3;
+    max-height: 2.6em;
+    overflow: hidden;
+}
+.material-item .material-remove {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(0,0,0,.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 18px; height: 18px;
+    font-size: 11px;
+    line-height: 18px;
+    cursor: pointer;
+    padding: 0;
 }
 
+/* ---- 自由畫筆工具列 ---- */
+#draw-toolbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30,30,30,.92);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 30px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000011;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    font-family: system-ui, sans-serif;
+    flex-wrap: wrap;
+    max-width: 90vw;
+}
+#draw-toolbar.open { display: flex; }
+#draw-toolbar .draw-color {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    display: inline-block;
+}
+#draw-toolbar .draw-color.active {
+    border-color: #fff;
+}
+#draw-toolbar button {
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+}
+#draw-toolbar button:hover { background: #666; }
+#draw-toolbar button.active-tool { background: #1976d2; }
 
-.mini-board-header{
-
-height:30px;
-
-background:#ddd;
-
-padding:5px 10px;
-
-box-sizing:border-box;
-
-cursor:move;
-
-font-weight:bold;
-
+#flowPanel.drawing-active { cursor: crosshair !important; }
+#flowPanel.drawing-active .flowNode,
+#flowPanel.drawing-active .flowLine,
+#flowPanel.drawing-active .corkboard-note {
+    pointer-events: none;
 }
 
-
-
-.mini-board-body{
-
-position:relative;
-
-padding:10px;
-
-height:calc(100% - 70px);
-
-overflow:auto;
-
+.pixiv-editor-container button.active-tool {
+    background: #1976d2 !important;
 }
 
-.note-card{
-
-position:absolute;
-
-width:150px;
-
-height:100px;
-
-background:#fff3a6;
-
-padding:10px;
-
-box-sizing:border-box;
-
-border-radius:5px;
-
-cursor:move;
-
-resize:both;
-
-overflow:hidden;
-
-box-shadow:0 2px 5px rgba(0,0,0,.2);
-
+/* ---- 擲骰工具 ---- */
+#dice-roller-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 220px;
+    background: #fff;
+    border: 2px solid #607d8b;
+    border-radius: 10px;
+    padding: 14px;
+    display: none;
+    z-index: 1000011;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    font-family: system-ui, sans-serif;
+    color: #222;
+}
+#dice-roller-panel.open { display: block; }
+#dice-roller-panel .dice-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+#dice-roller-panel .dice-grid button {
+    background: #607d8b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 0;
+    cursor: pointer;
+    font-size: 13px;
+}
+#dice-roller-panel .dice-grid button:hover { background: #455a64; }
+#dice-roller-result {
+    text-align: center;
+    font-size: 26px;
+    font-weight: bold;
+    color: #333;
+    margin: 8px 0;
+    min-height: 32px;
+}
+#dice-roller-history {
+    font-size: 11px;
+    color: #777;
+    max-height: 60px;
+    overflow-y: auto;
+    border-top: 1px solid #eee;
+    padding-top: 6px;
 }
 
-
-
-.note-card textarea{
-
-width:100%;
-
-height:100%;
-
-border:none;
-
-background:transparent;
-
-resize:none;
-
-outline:none;
-
-box-sizing:border-box;
-
+@media (max-width: 768px) {
+    #material-library-panel { width: 85%; }
+    #draw-toolbar { bottom: 10px; padding: 8px 10px; gap: 6px; }
+    #dice-roller-panel { right: 10px; width: 190px; }
 }
-
-
-.mini-board-header{
-
-display:flex;
-
-justify-content:space-between;
-
-align-items:center;
-
-height:30px;
-
-background:#ddd;
-
-padding:5px 10px;
-
-box-sizing:border-box;
-
-cursor:move;
-
-}
-
-
-
-.close-board{
-
-cursor:pointer;
-
-border:none;
-
-background:#c44;
-
-color:white;
-
-width:24px;
-
-height:24px;
-
-border-radius:4px;
-
-}
-
-
-.close-note{
-
-position:absolute;
-
-right:3px;
-
-top:3px;
-
-border:none;
-
-background:#c44;
-
-color:white;
-
-width:20px;
-
-height:20px;
-
-border-radius:50%;
-
-cursor:pointer;
-
-}
-
-
-
-.note-card textarea{
-
-margin-top:15px;
-
-}
-
-
-
 
     </style>
 </head>
@@ -2382,11 +2543,7 @@ data-i18n="saveProject">
 </div>
 
 
-<div id="boardLayer"></div>
 
-<button id="addBoard">
-新增小畫布
-</button>
 
 <!-- 匯入匯出 -->
 
@@ -2460,7 +2617,6 @@ data-i18n="generateBranch">
 
 
 
-
 <!-- 右側 -->
 
 <label data-i18n="language">
@@ -2501,11 +2657,6 @@ English
                     <canvas id="linesCanvas"></canvas>
                     <div id="flowCanvas"></div>
                 </section>
-
-
-<div id="assetLibrary"></div>
-
-<link rel="stylesheet" href="assetLibrary.css">
 
                 <section id="editorPanel">
                     <label data-i18n="pageTitleLabel">頁面標題</label>
@@ -2552,7 +2703,7 @@ English
     </div>
 
 
-<script src="assetLibrary.js"></script>
+
 <script>
 
 (function(){
@@ -4142,6 +4293,11 @@ let projectChanged = false;
         notes:
         (typeof window.allNotes !== 'undefined')
         ? window.allNotes
+        : [],
+
+        drawings:
+        (typeof window.allDrawings !== 'undefined')
+        ? window.allDrawings
         : []
 
     };
@@ -5507,7 +5663,16 @@ window.importProjectData=function(data){
                 if (typeof renderNotes === 'function') renderNotes();
             } else {
                 window.allNotes = []; // 若沒有資料，確保清空以免殘留
+                if (typeof renderNotes === 'function') renderNotes();
             }
+
+            // 3b. 處理畫筆筆劃 (projectData.drawings)
+            if (projectData.drawings) {
+                window.allDrawings = projectData.drawings;
+            } else {
+                window.allDrawings = [];
+            }
+            if (typeof renderDrawings === 'function') renderDrawings();
 
             // 4. 畫布重繪與選取
             if (pages.length) selectPage(pages[0]);
@@ -5883,6 +6048,10 @@ if (flowPanel) {
         if(e.button !== 0)
             return;
 
+        // 畫筆模式開啟時，畫布交給畫筆使用，不搶事件去平移
+        if(window.__drawModeActive)
+            return;
+
         // 點在節點上的話，交給節點自己的拖曳（dragNode）處理，這裡不搶事件
         if(e.target.closest(".flowNode"))
             return;
@@ -5995,6 +6164,7 @@ if (flowPanel) {
 
     panel.addEventListener("mousedown", (e) => {
         if(e.button !== 0) return;
+        if(window.__drawModeActive) return; // 畫筆模式時不觸發框選
         if(!e.shiftKey) return; // 沒按 Shift 就交給平移功能處理
         if(e.target.closest(".flowNode")) return;
 
@@ -8220,1063 +8390,604 @@ window.addEventListener('load', function() {
 });
 
 
-// =================================
-// Simple Asset Library V1.1
-// PC Drag + Mobile File Picker
-// =================================
-
-
+// =========================================================
+// 創作輔助工具套件
+// 模組一：便利貼 / 圖片釘選（沿用既有的 window.allNotes，已整合進存讀檔）
+// 模組二：素材庫（資料夾）－ 上傳圖片／文字檔，拖到畫布釘選，像虛擬桌布
+// 模組三：自由畫筆－ 直接在畫布上手繪標記，向量儲存，隨專案存讀
+// 模組四：擲骰工具－ 給 Gamebook / 互動小說作者測試隨機分歧、事件表用
+// =========================================================
 (function(){
 
-
-const DB_NAME = "SimpleAssetLibrary";
-
-const STORE_NAME = "files";
-
-
-let db;
-
-
-
-// ================================
-// IndexedDB
-// ================================
-
-
-function openDB(){
-
-
-return new Promise(resolve=>{
-
-
-const request =
-indexedDB.open(DB_NAME,1);
-
-
-
-request.onupgradeneeded = e=>{
-
-
-db=e.target.result;
-
-
-if(!db.objectStoreNames.contains(STORE_NAME)){
-
-
-db.createObjectStore(
-STORE_NAME,
-{
-keyPath:"id",
-autoIncrement:true
-}
-);
-
-
-}
-
-};
-
-
-
-request.onsuccess=e=>{
-
-db=e.target.result;
-
-resolve();
-
-};
-
-
-});
-
-
-}
-
-
-
-// ================================
-// 儲存檔案
-// ================================
-
-
-function saveFile(file){
-
-
-const reader=new FileReader();
-
-
-
-reader.onload=e=>{
-
-
-const data={
-
-name:file.name,
-
-type:file.type,
-
-data:e.target.result,
-
-time:Date.now()
-
-};
-
-
-
-const tx=
-db.transaction(
-STORE_NAME,
-"readwrite"
-);
-
-
-
-tx.objectStore(STORE_NAME)
-.add(data);
-
-
-
-tx.oncomplete=()=>{
-
-loadFiles();
-
-};
-
-
-};
-
-
-
-reader.readAsDataURL(file);
-
-
-}
-
-
-
-
-// ================================
-// 讀取
-// ================================
-
-
-function loadFiles(){
-
-
-const list =
-document.querySelector(".asset-list");
-
-
-if(!list)return;
-
-
-list.innerHTML="";
-
-
-
-const tx =
-db.transaction(
-STORE_NAME,
-"readonly"
-);
-
-
-
-tx.objectStore(STORE_NAME)
-.openCursor()
-.onsuccess=e=>{
-
-
-const cursor=e.target.result;
-
-
-if(cursor){
-
-
-createItem(
-cursor.value
-);
-
-
-cursor.continue();
-
-
-}
-
-
-};
-
-
-}
-
-
-
-
-// ================================
-// 建立素材卡
-// ================================
-
-
-function createItem(file){
-
-
-const box =
-document.createElement("div");
-
-
-box.className="asset-item";
-
-
-
-let preview="";
-
-
-
-if(file.type.startsWith("image")){
-
-
-preview=
-`
-<img src="${file.data}">
-`;
-
-}
-else{
-
-
-preview="📄";
-
-
-}
-
-
-
-box.innerHTML=
-
-preview+
-
-`
-<div class="asset-name">
-${file.name}
-</div>
-
-<button class="view">
-查看
-</button>
-
-<button class="delete">
-刪除
-</button>
-
-`;
-
-
-
-
-box.querySelector(".view")
-.onclick=()=>{
-
-
-showPreview(file);
-
-
-};
-
-
-
-box.querySelector(".delete")
-.onclick=()=>{
-
-
-deleteFile(file.id);
-
-
-};
-
-
-
-document
-.querySelector(".asset-list")
-.appendChild(box);
-
-
-}
-
-
-
-
-// ================================
-// 預覽
-// ================================
-
-function showPreview(file){
-
-
-const old =
-document.querySelector(".asset-preview");
-
-
-if(old){
-    old.remove();
-}
-
-
-
-const panel =
-document.createElement("div");
-
-
-panel.className="asset-preview";
-
-
-
-document.body.appendChild(panel);
-
-
-
-function closeButton(){
-
-    const btn =
-    panel.querySelector(".close");
-
-
-    if(btn){
-
-        btn.onclick=()=>{
-
-            panel.remove();
-
-        };
-
+    const flowCanvasEl = document.getElementById("flowCanvas");
+    const flowPanelEl = document.getElementById("flowPanel");
+    if(!flowCanvasEl || !flowPanelEl) return;
+
+    // ---------- 共用工具 ----------
+    function toLocalXY(clientX, clientY){
+        const rect = flowCanvasEl.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-}
-
-
-
-
-// 圖片
-
-if(file.type.startsWith("image")){
-
-
-panel.innerHTML=
-
-`
-<img src="${file.data}">
-
-
-<br>
-
-<button class="close">
-關閉
-</button>
-
-`;
-
-closeButton();
-
-
-}
-
-
-
-
-// TXT
-
-else if(file.type==="text/plain"){
-
-
-
-fetch(file.data)
-
-.then(res=>res.arrayBuffer())
-
-.then(buffer=>{
-
-
-const decoder =
-new TextDecoder("utf-8");
-
-
-const text =
-decoder.decode(buffer);
-
-
-
-panel.innerHTML=
-
-`
-<pre style="
-white-space:pre-wrap;
-font-family:monospace;
-">
-${text}
-</pre>
-
-
-<br>
-
-<button class="close">
-關閉
-</button>
-
-`;
-
-
-
-closeButton();
-
-
-
-});
-
-
-
-}
-
-
-
-
-// 其他文件
-
-else{
-
-
-panel.innerHTML=
-
-`
-<h3>${file.name}</h3>
-
-<p>
-目前只能保存此格式。
-</p>
-
-
-<a href="${file.data}"
-download="${file.name}">
-下載檔案
-</a>
-
-
-<br>
-
-<button class="close">
-關閉
-</button>
-
-`;
-
-
-
-closeButton();
-
-
-}
-
-
-}
-// ================================
-// 刪除
-// ================================
-
-
-function deleteFile(id){
-
-
-const tx=
-db.transaction(
-STORE_NAME,
-"readwrite"
-);
-
-
-
-tx.objectStore(STORE_NAME)
-.delete(id);
-
-
-
-tx.oncomplete=()=>{
-
-loadFiles();
-
-};
-
-
-}
-
-
-
-
-// ================================
-// 建立 UI
-// ================================
-
-
-function init(){
-
-
-const root =
-document.getElementById(
-"assetLibrary"
-);
-
-
-
-if(!root)return;
-
-
-
-root.innerHTML=
-
-`
-<div class="asset-drop">
-
-📂 拖曳圖片或文件到這裡
-
-</div>
-
-
-<button class="asset-select">
-
-選擇檔案
-
-</button>
-
-
-<input 
-class="asset-input"
-type="file"
-multiple
-style="display:none"
->
-
-
-<div class="asset-list"></div>
-
-`;
-
-
-
-
-// PC拖曳
-
-
-const drop =
-root.querySelector(".asset-drop");
-
-
-
-drop.ondragover=e=>{
-
-e.preventDefault();
-
-};
-
-
-
-drop.ondrop=e=>{
-
-
-e.preventDefault();
-
-
-[...e.dataTransfer.files]
-.forEach(saveFile);
-
-
-};
-
-
-
-
-// 手機選檔
-
-
-const btn =
-root.querySelector(".asset-select");
-
-
-const input =
-root.querySelector(".asset-input");
-
-
-
-btn.onclick=()=>{
-
-
-input.click();
-
-
-};
-
-
-
-input.onchange=e=>{
-
-
-[...e.target.files]
-.forEach(saveFile);
-
-
-
-input.value="";
-
-
-};
-
-
-
-
-openDB()
-.then(loadFiles);
-
-
-
-}
-
-
-
-// 啟動
-
-
-init();
-
-
-
-})();
-
-// =====================================
-// Mini Board Container V1
-// =====================================
-
-
-(function(){
-
-
-let boardCount = 0;
-
-
-
-const layer =
-document.getElementById(
-"boardLayer"
-);
-
-
-
-const button =
-document.getElementById(
-"addBoard"
-);
-
-
-
-if(!layer || !button)
-return;
-
-
-
-
-button.onclick=function(){
-
-
-createBoard();
-
-
-};
-
-
-
-
-
-function createBoard(){
-
-
-boardCount++;
-
-
-
-const board =
-document.createElement("div");
-
-
-board.className="mini-board";
-
-
-
-board.style.left =
-(100 + boardCount*30)+"px";
-
-
-board.style.top =
-(100 + boardCount*30)+"px";
-
-
-
-board.innerHTML =
-`
-<div class="mini-board-header">
-
-<span>
-小畫布 ${boardCount}
-</span>
-
-
-<button class="close-board">
-×
-</button>
-
-
-</div>
-
-
-<button class="add-note">
-
-新增便利貼
-
-</button>
-
-
-<div class="mini-board-body">
-
-</div>
-
-`;
-
-layer.appendChild(board);
-
-
-
-dragBoard(board);
-
-function setupNotes(board){
-
-
-const addBtn =
-board.querySelector(".add-note");
-
-
-const body =
-board.querySelector(".mini-board-body");
-
-
-
-let noteCount=0;
-
-
-
-addBtn.onclick=function(){
-
-
-noteCount++;
-
-
-const note =
-document.createElement("div");
-
-
-note.className="note-card";
-
-
-
-note.style.left =
-(20 + noteCount*20)+"px";
-
-
-note.style.top =
-(20 + noteCount*20)+"px";
-
-
-
-note.innerHTML=
-
-`
-<button class="close-note">
-×
-</button>
-
-
-<textarea>
-新便利貼
-</textarea>
-`;
-
-body.appendChild(note);
-
-
-
-dragNote(note);
-
-closeNote(note);
-
-
-};
-
-
-
-
-function dragNote(note){
-
-
-let dragging=false;
-
-let offsetX=0;
-
-let offsetY=0;
-
-
-
-note.onpointerdown=e=>{
-
-
-dragging=true;
-
-
-
-offsetX =
-e.clientX -
-note.offsetLeft;
-
-
-offsetY =
-e.clientY -
-note.offsetTop;
-
-
-
-note.setPointerCapture(
-e.pointerId
-);
-
-
-};
-
-
-
-note.onpointermove=e=>{
-
-
-if(!dragging)
-return;
-
-
-
-note.style.left =
-(
-e.clientX-offsetX
-)+"px";
-
-
-
-note.style.top =
-(
-e.clientY-offsetY
-)+"px";
-
-
-
-};
-
-
-
-note.onpointerup=()=>{
-
-
-dragging=false;
-
-
-};
-
-
-
-}
-
-
-
-}
-
-
-setupNotes(board);
-
-setupBoardClose(board);
-
-function setupBoardClose(board){
-
-
-const btn =
-board.querySelector(".close-board");
-
-
-
-btn.addEventListener(
-"pointerdown",
-e=>{
-
-e.stopPropagation();
-
-});
-
-
-
-btn.addEventListener(
-"click",
-e=>{
-
-e.stopPropagation();
-
-
-if(confirm("刪除此小畫布？")){
-
-board.remove();
-
-}
-
-});
-
-
-
-}
-
-
-}
-
-
-
-
-
-function dragBoard(board){
-
-
-const header =
-board.querySelector(
-".mini-board-header"
-);
-
-
-
-let dragging=false;
-
-let offsetX=0;
-
-let offsetY=0;
-
-
-
-
-header.onpointerdown=e=>{
-
-if(
-e.target.classList.contains("close-board")
-)
-return;
-
-
-// 點擊關閉按鈕不要啟動拖曳
-if(e.target.classList.contains("close-board")){
-    return;
-}
-
-
-
-dragging=true;
-
-
-header.setPointerCapture(
-e.pointerId
-);
-
-
-
-offsetX =
-e.clientX -
-board.offsetLeft;
-
-
-offsetY =
-e.clientY -
-board.offsetTop;
-
-
-
-};
-
-
-
-
-header.onpointermove=e=>{
-
-
-if(!dragging)
-return;
-
-
-
-board.style.left =
-(
-e.clientX-offsetX
-)+"px";
-
-
-
-board.style.top =
-(
-e.clientY-offsetY
-)+"px";
-
-
-
-};
-
-
-
-
-header.onpointerup=e=>{
-
-
-dragging=false;
-
-
-};
-
-
-
-}
-
-
+    function markProjectDirty(){
+        if (typeof projectChanged !== "undefined") projectChanged = true;
+        if (typeof window.markDirty === "function") window.markDirty();
+    }
+
+    // ---------- 浮動主工具列 ----------
+    // 這 4 個按鈕直接掛在 document.body 上（不放在 header 裡），
+    // 是因為 header 的 CSS 疊層環境（z-index:10）會把裡面所有子元素都困住，
+    // 一旦「尚未開啟專案」的全螢幕鎖定遮罩（z-index:999999）出現，
+    // header 裡任何按鈕不管自己 z-index 設多高都不可能蓋過遮罩、也點不到。
+    // 改成浮動在 body 上、z-index 拉高到遮罩之上，才能保證任何時候都點得到。
+    const floatToolbar = document.createElement("div");
+    floatToolbar.id = "gamebook-float-toolbar";
+    floatToolbar.innerHTML =
+        '<button type="button" id="folder-toggle-btn">📁 素材庫</button>' +
+        '<button type="button" id="sticky-note-add-btn">🗒️ 便利貼</button>' +
+        '<button type="button" id="draw-mode-toggle-btn">🖊️ 畫筆模式</button>' +
+        '<button type="button" id="dice-roller-btn">🎲 骰子</button>';
+    document.body.appendChild(floatToolbar);
+
+    // =====================================================
+    // 模組一：便利貼 / 圖片釘選
+    // =====================================================
+    window.allNotes = window.allNotes || [];
+
+    const NOTE_COLORS = ["#fff59d","#ffccbc","#c8e6c9","#bbdefb","#e1bee7","#f5f5f5"];
+
+    function createNoteElement(note){
+        const el = document.createElement("div");
+        el.className = "corkboard-note";
+        el.style.left = (note.x||40) + "px";
+        el.style.top = (note.y||40) + "px";
+        el.style.background = note.color || NOTE_COLORS[0];
+
+        const toolbar = document.createElement("div");
+        toolbar.className = "note-toolbar";
+
+        const dot = document.createElement("span");
+        dot.className = "note-color-dot";
+        dot.style.background = note.color || NOTE_COLORS[0];
+        dot.title = "點擊切換顏色";
+        dot.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            const idx = NOTE_COLORS.indexOf(note.color);
+            note.color = NOTE_COLORS[(idx+1) % NOTE_COLORS.length];
+            el.style.background = note.color;
+            dot.style.background = note.color;
+            markProjectDirty();
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "note-delete-btn";
+        delBtn.type = "button";
+        delBtn.textContent = "✕ 刪除";
+        delBtn.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            if(!confirm("確定要刪除這則便利貼／圖片嗎？")) return;
+            window.allNotes = window.allNotes.filter(n => n.id !== note.id);
+            el.remove();
+            markProjectDirty();
+        });
+
+        toolbar.appendChild(dot);
+        toolbar.appendChild(delBtn);
+        el.appendChild(toolbar);
+
+        if(note.type === "image" && note.image){
+            const img = document.createElement("img");
+            img.src = note.image;
+            el.appendChild(img);
+            if(note.name){
+                const cap = document.createElement("div");
+                cap.style.fontSize = "11px";
+                cap.style.opacity = "0.7";
+                cap.textContent = note.name;
+                el.appendChild(cap);
+            }
+        } else {
+            const ta = document.createElement("textarea");
+            ta.value = note.text || "";
+            ta.placeholder = "寫點什麼…（劇情靈感、待辦、設定備忘）";
+            ta.addEventListener("pointerdown", e => e.stopPropagation());
+            ta.addEventListener("input", ()=>{
+                note.text = ta.value;
+                markProjectDirty();
+            });
+            el.appendChild(ta);
+        }
+
+        // 拖曳移動（與節點拖曳邏輯一致：用 clientX/Y 位移量累加，不受捲動影響；
+        // 同時支援滑鼠與觸控，因為 Pointer Events 本來就統一了兩者）
+        // move/up 監聽掛在 document 上，不只掛在便利貼本身：
+        // 這樣手指滑得比較快、暫時滑出便利貼範圍時，也不會漏接後續移動事件，
+        // 拖曳體感才會跟拉節點一樣穩、一樣跟得上手指。
+        el.addEventListener("pointerdown", (e)=>{
+            if(e.target.tagName === "TEXTAREA") return;
+            if(e.target.closest(".note-toolbar")) return; // 點色點／刪除鈕不要誤觸拖曳
+            e.preventDefault();
+            try { el.setPointerCapture(e.pointerId); } catch(err) {}
+            el.classList.add("dragging");
+            const offsetX = e.clientX - note.x;
+            const offsetY = e.clientY - note.y;
+            function move(ev){
+                note.x = Math.max(0, ev.clientX - offsetX);
+                note.y = Math.max(0, ev.clientY - offsetY);
+                el.style.left = note.x + "px";
+                el.style.top = note.y + "px";
+                markProjectDirty();
+            }
+            function up(){
+                el.classList.remove("dragging");
+                document.removeEventListener("pointermove", move);
+                document.removeEventListener("pointerup", up);
+                document.removeEventListener("pointercancel", up);
+            }
+            document.addEventListener("pointermove", move);
+            document.addEventListener("pointerup", up);
+            document.addEventListener("pointercancel", up);
+        });
+
+        return el;
+    }
+
+    window.renderNotes = function(){
+        flowCanvasEl.querySelectorAll(".corkboard-note").forEach(n => n.remove());
+        (window.allNotes || []).forEach(note => {
+            flowCanvasEl.appendChild(createNoteElement(note));
+        });
+    };
+
+    window.addStickyNote = function(opts){
+        opts = opts || {};
+        const pos = (opts.x !== undefined && opts.y !== undefined)
+            ? { x: opts.x, y: opts.y }
+            : { x: flowPanelEl.scrollLeft + 60, y: flowPanelEl.scrollTop + 60 };
+        const note = {
+            id: (crypto.randomUUID ? crypto.randomUUID() : "note-" + Date.now() + Math.random()),
+            type: opts.type || "text",
+            text: opts.text || "",
+            image: opts.image || null,
+            name: opts.name || "",
+            color: opts.color || NOTE_COLORS[Math.floor(Math.random()*NOTE_COLORS.length)],
+            x: pos.x,
+            y: pos.y
+        };
+        window.allNotes.push(note);
+        flowCanvasEl.appendChild(createNoteElement(note));
+        markProjectDirty();
+        return note;
+    };
+
+    const stickyBtn = document.getElementById("sticky-note-add-btn");
+    if (stickyBtn) stickyBtn.addEventListener("click", ()=> window.addStickyNote({}));
+
+    // 頁面剛載入時先渲染一次（理論上此時 allNotes 應為空，等專案載入後 importProjectData 會再呼叫一次）
+    window.renderNotes();
+
+    // =====================================================
+    // 模組二：素材庫（資料夾）－ 像虛擬桌布一樣可以放檔案，再拖到畫布上釘選
+    // =====================================================
+    const MATERIAL_KEY = "PixivNovelMaterialLibrary_V1";
+
+    function loadMaterials(){
+        try { return JSON.parse(safeStorage.getItem(MATERIAL_KEY) || "[]"); }
+        catch(e){ return []; }
+    }
+    function saveMaterials(list){
+        safeStorage.setItem(MATERIAL_KEY, JSON.stringify(list));
+    }
+
+    const libPanel = document.createElement("div");
+    libPanel.id = "material-library-panel";
+    libPanel.innerHTML =
+        '<header>' +
+            '<span>📁 素材庫</span>' +
+            '<button type="button" id="material-close-btn">✕</button>' +
+        '</header>' +
+        '<div id="material-drop-zone">' +
+            '拖曳圖片／文字檔到這裡<br>或點擊選擇檔案<br>' +
+            '<small>（可再拖到畫布上釘選，就像貼在虛擬桌布上）</small>' +
+            '<input type="file" id="material-file-input" accept="image/*,.txt" multiple style="display:none;">' +
+        '</div>' +
+        '<div id="material-library-list"></div>';
+    document.body.appendChild(libPanel);
+
+    const dropZone = document.getElementById("material-drop-zone");
+    const materialFileInput = document.getElementById("material-file-input");
+    const materialListEl = document.getElementById("material-library-list");
+
+    function renderMaterialList(){
+        const items = loadMaterials();
+        materialListEl.innerHTML = "";
+        items.forEach((item, idx) => {
+            const card = document.createElement("div");
+            card.className = "material-item";
+            card.dataset.idx = idx;
+
+            if(item.type === "image"){
+                const img = document.createElement("img");
+                img.src = item.data;
+                card.appendChild(img);
+            } else {
+                const box = document.createElement("div");
+                box.style.cssText = "height:70px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:4px;font-size:22px;";
+                box.textContent = "📄";
+                card.appendChild(box);
+            }
+            const name = document.createElement("div");
+            name.className = "material-name";
+            name.textContent = item.name;
+            card.appendChild(name);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.className = "material-remove";
+            removeBtn.type = "button";
+            removeBtn.textContent = "✕";
+            removeBtn.addEventListener("click", (e)=>{
+                e.stopPropagation();
+                const cur = loadMaterials();
+                cur.splice(idx, 1);
+                saveMaterials(cur);
+                renderMaterialList();
+            });
+            card.appendChild(removeBtn);
+
+            // 用 Pointer Events 自己做拖曳，滑鼠／觸控／手寫筆統一支援，
+            // 跟拉節點（dragNode）同一套手感：按下就立刻跟著手指/游標走。
+            card.addEventListener("pointerdown", (e)=>{
+                if(e.target.closest(".material-remove")) return;
+                startMaterialDrag(e, item, card);
+            });
+
+            materialListEl.appendChild(card);
+        });
+    }
+
+    function startMaterialDrag(startEvent, item, card){
+        startEvent.preventDefault();
+        try { card.setPointerCapture(startEvent.pointerId); } catch(err) {}
+        card.classList.add("dragging-source");
+
+        const ghost = document.createElement("div");
+        ghost.className = "material-drag-ghost";
+        if(item.type === "image"){
+            ghost.innerHTML = '<img src="' + item.data + '" alt="">';
+        } else {
+            ghost.innerHTML =
+                '<div class="ghost-doc-icon">📄</div>' +
+                '<div class="ghost-name">' + escapeHtml(item.name) + '</div>';
+        }
+        document.body.appendChild(ghost);
+        positionGhost(startEvent.clientX, startEvent.clientY);
+
+        function positionGhost(x, y){
+            ghost.style.left = x + "px";
+            ghost.style.top = y + "px";
+        }
+
+        function isOverCanvas(x, y){
+            const rect = flowPanelEl.getBoundingClientRect();
+            return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        }
+
+        function move(ev){
+            positionGhost(ev.clientX, ev.clientY);
+            const over = isOverCanvas(ev.clientX, ev.clientY);
+            flowPanelEl.classList.toggle("material-drop-hover", over);
+            ghost.classList.toggle("drop-ready", over);
+        }
+
+        function finish(ev){
+            document.removeEventListener("pointermove", move);
+            document.removeEventListener("pointerup", finish);
+            document.removeEventListener("pointercancel", cancel);
+            card.classList.remove("dragging-source");
+            flowPanelEl.classList.remove("material-drop-hover");
+            ghost.remove();
+
+            if(isOverCanvas(ev.clientX, ev.clientY)){
+                const pos = toLocalXY(ev.clientX, ev.clientY);
+                if(item.type === "image"){
+                    window.addStickyNote({ type:"image", image:item.data, name:item.name, x:pos.x - 60, y:pos.y - 40, color:"#ffffff" });
+                } else {
+                    window.addStickyNote({ type:"text", text:item.data, name:item.name, x:pos.x - 60, y:pos.y - 40 });
+                }
+                // 拖成功後自動收合面板，手機上能立刻看到剛剛放上畫布的結果
+                libPanel.classList.remove("open");
+            }
+        }
+
+        function cancel(){
+            document.removeEventListener("pointermove", move);
+            document.removeEventListener("pointerup", finish);
+            document.removeEventListener("pointercancel", cancel);
+            card.classList.remove("dragging-source");
+            flowPanelEl.classList.remove("material-drop-hover");
+            ghost.remove();
+        }
+
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", finish);
+        document.addEventListener("pointercancel", cancel);
+    }
+
+    function escapeHtml(str){
+        return String(str).replace(/[&<>"']/g, c => ({
+            "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+        }[c]));
+    }
+
+    function handleMaterialFiles(files){
+        if(!files || !files.length) return;
+        const items = loadMaterials();
+        let remaining = files.length;
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                if(file.type.startsWith("image/")){
+                    items.push({ type:"image", name:file.name, data: reader.result });
+                } else {
+                    items.push({ type:"text", name:file.name, data: reader.result });
+                }
+                remaining--;
+                if(remaining === 0){
+                    saveMaterials(items);
+                    renderMaterialList();
+                }
+            };
+            if(file.type.startsWith("image/")) reader.readAsDataURL(file);
+            else reader.readAsText(file, "UTF-8");
+        });
+    }
+
+    dropZone.addEventListener("click", ()=> materialFileInput.click());
+    materialFileInput.addEventListener("change", (e)=>{
+        handleMaterialFiles(e.target.files);
+        materialFileInput.value = "";
+    });
+    ["dragover","dragenter"].forEach(evt => {
+        dropZone.addEventListener(evt, (e)=>{
+            e.preventDefault();
+            dropZone.classList.add("dragover");
+        });
+    });
+    ["dragleave","drop"].forEach(evt => {
+        dropZone.addEventListener(evt, ()=> dropZone.classList.remove("dragover"));
+    });
+    dropZone.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        if(e.dataTransfer.files && e.dataTransfer.files.length){
+            handleMaterialFiles(e.dataTransfer.files);
+        }
+    });
+
+    const folderBtn = document.getElementById("folder-toggle-btn");
+    if (folderBtn) folderBtn.addEventListener("click", ()=>{
+        libPanel.classList.toggle("open");
+        if(libPanel.classList.contains("open")) renderMaterialList();
+    });
+    const materialCloseBtn = document.getElementById("material-close-btn");
+    if (materialCloseBtn) materialCloseBtn.addEventListener("click", ()=> libPanel.classList.remove("open"));
+
+    renderMaterialList();
+
+    // =====================================================
+    // 模組三：自由畫筆
+    // =====================================================
+    window.allDrawings = window.allDrawings || [];
+    window.__drawModeActive = false;
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const drawLayer = document.createElementNS(svgNS, "svg");
+    drawLayer.id = "drawLayer";
+    drawLayer.style.position = "absolute";
+    drawLayer.style.left = "0";
+    drawLayer.style.top = "0";
+    drawLayer.style.zIndex = "50";
+    drawLayer.style.pointerEvents = "none";
+    flowCanvasEl.appendChild(drawLayer);
+
+    function resizeDrawLayer(){
+        const w = Math.max(flowPanelEl.scrollWidth, flowCanvasEl.offsetWidth, 1200);
+        const h = Math.max(flowPanelEl.scrollHeight, flowCanvasEl.offsetHeight, 1000);
+        drawLayer.setAttribute("width", w);
+        drawLayer.setAttribute("height", h);
+        drawLayer.style.width = w + "px";
+        drawLayer.style.height = h + "px";
+    }
+
+    window.renderDrawings = function(){
+        // 專案切換/匯入時 flowCanvas.innerHTML 會被整個清空，
+        // drawLayer 這個 SVG 節點也會跟著被移除，所以每次渲染都要重新插回去，
+        // 不然畫筆圖層就會憑空消失，畫了也看不到、點了也沒反應。
+        flowCanvasEl.appendChild(drawLayer);
+        drawLayer.innerHTML = "";
+        resizeDrawLayer();
+        (window.allDrawings || []).forEach(stroke => {
+            const path = document.createElementNS(svgNS, "path");
+            path.setAttribute("d", stroke.d);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", stroke.color || "#e53935");
+            path.setAttribute("stroke-width", stroke.width || 3);
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("stroke-linejoin", "round");
+            drawLayer.appendChild(path);
+        });
+    };
+    window.renderDrawings();
+
+    let drawColor = "#e53935";
+    let drawWidth = 3;
+    let eraserMode = false;
+    let currentPath = null;
+    let isErasing = false;
+
+    const drawToolbar = document.createElement("div");
+    drawToolbar.id = "draw-toolbar";
+    const DRAW_COLORS = ["#e53935","#1976d2","#43a047","#fbc02d","#212121","#ffffff"];
+    drawToolbar.innerHTML =
+        DRAW_COLORS.map(c => '<span class="draw-color" data-color="'+c+'" style="background:'+c+';"></span>').join("") +
+        '<button type="button" data-w="2">細</button>' +
+        '<button type="button" data-w="4">中</button>' +
+        '<button type="button" data-w="9">粗</button>' +
+        '<button type="button" id="draw-eraser-btn">🧹 橡皮擦</button>' +
+        '<button type="button" id="draw-undo-btn">↩ 復原</button>' +
+        '<button type="button" id="draw-clear-btn">🗑 清空</button>' +
+        '<button type="button" id="draw-done-btn">✅ 完成</button>';
+    document.body.appendChild(drawToolbar);
+
+    drawToolbar.querySelectorAll(".draw-color").forEach(dot => {
+        dot.addEventListener("click", ()=>{
+            drawColor = dot.dataset.color;
+            drawToolbar.querySelectorAll(".draw-color").forEach(d=>d.classList.remove("active"));
+            dot.classList.add("active");
+            eraserMode = false;
+            const eraserBtn = document.getElementById("draw-eraser-btn");
+            if (eraserBtn) eraserBtn.classList.remove("active-tool");
+        });
+    });
+    drawToolbar.querySelectorAll("button[data-w]").forEach(btn => {
+        btn.addEventListener("click", ()=>{ drawWidth = Number(btn.dataset.w); });
+    });
+    document.getElementById("draw-eraser-btn").addEventListener("click", (e)=>{
+        eraserMode = !eraserMode;
+        e.target.classList.toggle("active-tool", eraserMode);
+    });
+    document.getElementById("draw-undo-btn").addEventListener("click", ()=>{
+        window.allDrawings.pop();
+        window.renderDrawings();
+        markProjectDirty();
+    });
+    document.getElementById("draw-clear-btn").addEventListener("click", ()=>{
+        if(!window.allDrawings.length) return;
+        if(!confirm("確定要清空所有畫筆標記嗎？此動作無法復原。")) return;
+        window.allDrawings = [];
+        window.renderDrawings();
+        markProjectDirty();
+    });
+    document.getElementById("draw-done-btn").addEventListener("click", ()=> setDrawMode(false));
+
+    function setDrawMode(active){
+        window.__drawModeActive = active;
+        flowPanelEl.classList.toggle("drawing-active", active);
+        drawLayer.style.pointerEvents = active ? "auto" : "none";
+        drawToolbar.classList.toggle("open", active);
+        const toggleBtn = document.getElementById("draw-mode-toggle-btn");
+        if (toggleBtn) toggleBtn.classList.toggle("active-tool", active);
+        if(active) resizeDrawLayer();
+    }
+
+    const drawModeBtn = document.getElementById("draw-mode-toggle-btn");
+    if (drawModeBtn) drawModeBtn.addEventListener("click", ()=> setDrawMode(!window.__drawModeActive));
+
+    function eraseAt(clientX, clientY){
+        const el = document.elementFromPoint(clientX, clientY);
+        if(el && el.tagName === "path" && el.parentNode === drawLayer){
+            const idx = Array.prototype.indexOf.call(drawLayer.children, el);
+            el.remove();
+            if(idx > -1) window.allDrawings.splice(idx, 1);
+            markProjectDirty();
+        }
+    }
+
+    drawLayer.addEventListener("pointerdown", (e)=>{
+        if(!window.__drawModeActive) return;
+        e.preventDefault();
+        e.stopPropagation();
+        drawLayer.setPointerCapture(e.pointerId);
+
+        if(eraserMode){
+            isErasing = true;
+            eraseAt(e.clientX, e.clientY);
+            return;
+        }
+        const pos = toLocalXY(e.clientX, e.clientY);
+        currentPath = document.createElementNS(svgNS, "path");
+        currentPath.setAttribute("d", "M " + pos.x + " " + pos.y);
+        currentPath.setAttribute("fill", "none");
+        currentPath.setAttribute("stroke", drawColor);
+        currentPath.setAttribute("stroke-width", drawWidth);
+        currentPath.setAttribute("stroke-linecap", "round");
+        currentPath.setAttribute("stroke-linejoin", "round");
+        drawLayer.appendChild(currentPath);
+    });
+
+    drawLayer.addEventListener("pointermove", (e)=>{
+        if(!window.__drawModeActive) return;
+        if(eraserMode){
+            if(isErasing) eraseAt(e.clientX, e.clientY);
+            return;
+        }
+        if(!currentPath) return;
+        const pos = toLocalXY(e.clientX, e.clientY);
+        currentPath.setAttribute("d", currentPath.getAttribute("d") + " L " + pos.x + " " + pos.y);
+    });
+
+    function endStroke(){
+        if(currentPath){
+            window.allDrawings.push({
+                d: currentPath.getAttribute("d"),
+                color: drawColor,
+                width: drawWidth
+            });
+            currentPath = null;
+            markProjectDirty();
+        }
+        isErasing = false;
+    }
+    drawLayer.addEventListener("pointerup", endStroke);
+    drawLayer.addEventListener("pointercancel", endStroke);
+
+    window.addEventListener("resize", ()=>{
+        if(window.__drawModeActive) resizeDrawLayer();
+    });
+
+    // =====================================================
+    // 模組四：擲骰工具（給 Gamebook／互動小說作者測試隨機分歧、事件表用）
+    // =====================================================
+    const dicePanel = document.createElement("div");
+    dicePanel.id = "dice-roller-panel";
+    dicePanel.innerHTML =
+        '<div style="font-weight:bold;margin-bottom:8px;">🎲 擲骰工具</div>' +
+        '<div class="dice-grid">' +
+            '<button type="button" data-d="4">d4</button>' +
+            '<button type="button" data-d="6">d6</button>' +
+            '<button type="button" data-d="8">d8</button>' +
+            '<button type="button" data-d="10">d10</button>' +
+            '<button type="button" data-d="12">d12</button>' +
+            '<button type="button" data-d="20">d20</button>' +
+            '<button type="button" data-d="100">d100</button>' +
+            '<button type="button" id="dice-custom-btn">自訂</button>' +
+        '</div>' +
+        '<div id="dice-roller-result">—</div>' +
+        '<div id="dice-roller-history"></div>';
+    document.body.appendChild(dicePanel);
+
+    const diceHistory = [];
+    function rollDice(sides){
+        const result = 1 + Math.floor(Math.random() * sides);
+        document.getElementById("dice-roller-result").textContent = "d" + sides + " → " + result;
+        diceHistory.unshift("d" + sides + ": " + result);
+        diceHistory.length = Math.min(diceHistory.length, 8);
+        document.getElementById("dice-roller-history").innerHTML = diceHistory.join("<br>");
+    }
+    dicePanel.querySelectorAll("button[data-d]").forEach(btn => {
+        btn.addEventListener("click", ()=> rollDice(Number(btn.dataset.d)));
+    });
+    document.getElementById("dice-custom-btn").addEventListener("click", ()=>{
+        const val = prompt("輸入骰子面數（例如 3 代表 1~3）：", "6");
+        const n = parseInt(val, 10);
+        if(n && n > 1) rollDice(n);
+    });
+    const diceBtn = document.getElementById("dice-roller-btn");
+    if (diceBtn) diceBtn.addEventListener("click", ()=> dicePanel.classList.toggle("open"));
 
 })();
 
 
-function closeNote(note){
 
-
-const btn =
-note.querySelector(".close-note");
-
-
-btn.addEventListener(
-"pointerdown",
-e=>{
-
-e.stopPropagation();
-
-});
-
-
-btn.onclick=function(e){
-
-e.stopPropagation();
-
-note.remove();
-
-};
-
-
-}
-
-board.style.zIndex++;
 
 
 
