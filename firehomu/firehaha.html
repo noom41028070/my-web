@@ -2435,6 +2435,18 @@ box-shadow:0 0 10px #007bff;
 #draw-toolbar button.active-tool { background: #1976d2; }
 
 #flowPanel.drawing-active { cursor: crosshair !important; }
+
+/* 橡皮擦範圍預覽（跟著手指/滑鼠走的圓圈） */
+#eraser-cursor {
+    position: fixed;
+    border: 2px solid rgba(255,255,255,.9);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 0 6px rgba(0,0,0,.4);
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    pointer-events: none;
+    z-index: 1000012;
+    display: none;
+}
 #flowPanel.drawing-active .flowNode,
 #flowPanel.drawing-active .flowLine,
 #flowPanel.drawing-active .corkboard-note {
@@ -8825,6 +8837,25 @@ window.addEventListener('load', function() {
         drawLayer.style.height = h + "px";
     }
 
+    // 筆劃資料統一用座標點陣列（points）記錄，橡皮擦才有辦法「只擦局部」；
+    // d 字串用 pointsToD 隨時從 points 重新算出即可，不需要另外維護兩份。
+    function pointsToD(points){
+        if(!points || !points.length) return "";
+        return points.map((p, i) => (i === 0 ? "M " : "L ") + p[0] + " " + p[1]).join(" ");
+    }
+    // 讀舊專案時，可能還是舊格式（只有 d 字串、沒有 points），
+    // 這裡負責把 d 字串還原成座標點陣列，讓舊存檔一樣能被橡皮擦局部擦除。
+    function parseDToPoints(d){
+        const points = [];
+        if(!d) return points;
+        const re = /[ML]\s*(-?[0-9.]+)\s+(-?[0-9.]+)/g;
+        let m;
+        while((m = re.exec(d))){
+            points.push([parseFloat(m[1]), parseFloat(m[2])]);
+        }
+        return points;
+    }
+
     window.renderDrawings = function(){
         // 專案切換/匯入時 flowCanvas.innerHTML 會被整個清空，
         // drawLayer 這個 SVG 節點也會跟著被移除，所以每次渲染都要重新插回去，
@@ -8833,8 +8864,11 @@ window.addEventListener('load', function() {
         drawLayer.innerHTML = "";
         resizeDrawLayer();
         (window.allDrawings || []).forEach(stroke => {
+            if(!stroke.points || !stroke.points.length){
+                stroke.points = parseDToPoints(stroke.d || "");
+            }
             const path = document.createElementNS(svgNS, "path");
-            path.setAttribute("d", stroke.d);
+            path.setAttribute("d", pointsToD(stroke.points));
             path.setAttribute("fill", "none");
             path.setAttribute("stroke", stroke.color || "#e53935");
             path.setAttribute("stroke-width", stroke.width || 3);
@@ -8849,6 +8883,7 @@ window.addEventListener('load', function() {
     let drawWidth = 3;
     let eraserMode = false;
     let currentPath = null;
+    let currentPoints = null;
     let isErasing = false;
 
     const drawToolbar = document.createElement("div");
@@ -8865,12 +8900,33 @@ window.addEventListener('load', function() {
         '<button type="button" id="draw-done-btn">✅ 完成</button>';
     document.body.appendChild(drawToolbar);
 
+    // 橡皮擦的圓形預覽游標：跟著手指／滑鼠走，讓使用者知道目前會擦掉多大範圍
+    const eraserCursor = document.createElement("div");
+    eraserCursor.id = "eraser-cursor";
+    eraserCursor.style.display = "none";
+    document.body.appendChild(eraserCursor);
+
+    function currentEraserRadius(){
+        // 橡皮擦大小跟著目前選的筆刷粗細走（粗筆刷 → 橡皮擦也比較大），
+        // 不用另外多做一組「橡皮擦大小」的按鈕，操作起來比較直覺。
+        return Math.max(14, drawWidth * 5);
+    }
+
+    function updateEraserCursor(clientX, clientY){
+        const r = currentEraserRadius();
+        eraserCursor.style.width = (r * 2) + "px";
+        eraserCursor.style.height = (r * 2) + "px";
+        eraserCursor.style.left = (clientX - r) + "px";
+        eraserCursor.style.top = (clientY - r) + "px";
+    }
+
     drawToolbar.querySelectorAll(".draw-color").forEach(dot => {
         dot.addEventListener("click", ()=>{
             drawColor = dot.dataset.color;
             drawToolbar.querySelectorAll(".draw-color").forEach(d=>d.classList.remove("active"));
             dot.classList.add("active");
             eraserMode = false;
+            eraserCursor.style.display = "none";
             const eraserBtn = document.getElementById("draw-eraser-btn");
             if (eraserBtn) eraserBtn.classList.remove("active-tool");
         });
@@ -8881,6 +8937,7 @@ window.addEventListener('load', function() {
     document.getElementById("draw-eraser-btn").addEventListener("click", (e)=>{
         eraserMode = !eraserMode;
         e.target.classList.toggle("active-tool", eraserMode);
+        if(!eraserMode) eraserCursor.style.display = "none";
     });
     document.getElementById("draw-undo-btn").addEventListener("click", ()=>{
         window.allDrawings.pop();
@@ -8904,17 +8961,47 @@ window.addEventListener('load', function() {
         const toggleBtn = document.getElementById("draw-mode-toggle-btn");
         if (toggleBtn) toggleBtn.classList.toggle("active-tool", active);
         if(active) resizeDrawLayer();
+        else eraserCursor.style.display = "none";
     }
 
     const drawModeBtn = document.getElementById("draw-mode-toggle-btn");
     if (drawModeBtn) drawModeBtn.addEventListener("click", ()=> setDrawMode(!window.__drawModeActive));
 
-    function eraseAt(clientX, clientY){
-        const el = document.elementFromPoint(clientX, clientY);
-        if(el && el.tagName === "path" && el.parentNode === drawLayer){
-            const idx = Array.prototype.indexOf.call(drawLayer.children, el);
-            el.remove();
-            if(idx > -1) window.allDrawings.splice(idx, 1);
+    // 局部橡皮擦：只挖掉游標半徑內的那幾個點，同一條線被挖斷的話就自動拆成
+    // 兩段（或多段）獨立的線，不會像以前那樣一碰到線就整條消失。
+    function eraseNear(pos){
+        const r2 = currentEraserRadius() * currentEraserRadius();
+        let changed = false;
+        const rebuilt = [];
+
+        (window.allDrawings || []).forEach(stroke => {
+            const pts = stroke.points && stroke.points.length ? stroke.points : parseDToPoints(stroke.d || "");
+            let run = [];
+
+            function flushRun(){
+                if(run.length >= 2){
+                    rebuilt.push({ points: run, color: stroke.color, width: stroke.width });
+                } else if(run.length === 1){
+                    // 只剩單獨一個點連不成線，直接捨棄，不留下無意義的殘段
+                }
+                run = [];
+            }
+
+            pts.forEach(p => {
+                const dx = p[0] - pos.x, dy = p[1] - pos.y;
+                if(dx*dx + dy*dy <= r2){
+                    changed = true;
+                    flushRun();
+                } else {
+                    run.push(p);
+                }
+            });
+            flushRun();
+        });
+
+        if(changed){
+            window.allDrawings = rebuilt;
+            window.renderDrawings();
             markProjectDirty();
         }
     }
@@ -8927,12 +9014,15 @@ window.addEventListener('load', function() {
 
         if(eraserMode){
             isErasing = true;
-            eraseAt(e.clientX, e.clientY);
+            updateEraserCursor(e.clientX, e.clientY);
+            eraserCursor.style.display = "block";
+            eraseNear(toLocalXY(e.clientX, e.clientY));
             return;
         }
         const pos = toLocalXY(e.clientX, e.clientY);
+        currentPoints = [[pos.x, pos.y]];
         currentPath = document.createElementNS(svgNS, "path");
-        currentPath.setAttribute("d", "M " + pos.x + " " + pos.y);
+        currentPath.setAttribute("d", pointsToD(currentPoints));
         currentPath.setAttribute("fill", "none");
         currentPath.setAttribute("stroke", drawColor);
         currentPath.setAttribute("stroke-width", drawWidth);
@@ -8944,28 +9034,35 @@ window.addEventListener('load', function() {
     drawLayer.addEventListener("pointermove", (e)=>{
         if(!window.__drawModeActive) return;
         if(eraserMode){
-            if(isErasing) eraseAt(e.clientX, e.clientY);
+            updateEraserCursor(e.clientX, e.clientY);
+            eraserCursor.style.display = "block";
+            if(isErasing) eraseNear(toLocalXY(e.clientX, e.clientY));
             return;
         }
         if(!currentPath) return;
         const pos = toLocalXY(e.clientX, e.clientY);
-        currentPath.setAttribute("d", currentPath.getAttribute("d") + " L " + pos.x + " " + pos.y);
+        currentPoints.push([pos.x, pos.y]);
+        currentPath.setAttribute("d", pointsToD(currentPoints));
     });
 
     function endStroke(){
-        if(currentPath){
+        if(currentPath && currentPoints && currentPoints.length >= 2){
             window.allDrawings.push({
-                d: currentPath.getAttribute("d"),
+                points: currentPoints,
                 color: drawColor,
                 width: drawWidth
             });
-            currentPath = null;
             markProjectDirty();
         }
+        currentPath = null;
+        currentPoints = null;
         isErasing = false;
     }
     drawLayer.addEventListener("pointerup", endStroke);
     drawLayer.addEventListener("pointercancel", endStroke);
+    drawLayer.addEventListener("pointerleave", (e)=>{
+        if(eraserMode && !isErasing) eraserCursor.style.display = "none";
+    });
 
     window.addEventListener("resize", ()=>{
         if(window.__drawModeActive) resizeDrawLayer();
