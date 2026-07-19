@@ -311,21 +311,15 @@
 
 
 
-    .pixiv-main-layout {
+.pixiv-main-layout {
 
+    display:block;
 
-        display:grid;
+    width:100%;
 
+    height:100%;
 
-        grid-template-columns:
-
-        40% 35% 25%;
-
-
-        height:100%;
-
-
-    }
+}
 
 
 }
@@ -409,9 +403,9 @@
 
     position:relative;
 
-    height:600px;
+   height:calc(100vh - 100px);
 
-    background-color:#d9d9d9;
+    background-color:#f3f4f6;
 
     overflow:auto;
 
@@ -437,18 +431,23 @@
     position:absolute;
 
     left:0;
+
     top:0;
 
-    width:5000px;
-    height:5000px;
 
-    min-width:5000px;
-    min-height:5000px;
+    width:3000px;
 
-    z-index:2;
+    height:3000px;
+
+
+    min-width:3000px;
+
+    min-height:3000px;
+
+
+    z-index:1;
 
 }
-
 
 
 /* ===== Canvas 連線層 ===== */
@@ -1635,14 +1634,27 @@ JS 會直接改 borderColor
 
     .pixiv-editor-container textarea {
 
+    width:100%;
 
-        min-height:250px;
+    min-height:200px;
 
+    height:320px;
 
-        font-size:15px;
+    resize:both;
 
+    overflow:auto;
 
-    }
+    padding:14px;
+
+    font-size:16px;
+
+    line-height:1.8;
+
+    border:1px solid #ccc;
+
+    border-radius:8px;
+
+}
 
 
 
@@ -1891,32 +1903,25 @@ JS 會直接改 borderColor
 ================================ */
 
 #flowPanel {
-    position: relative;
 
-    width: 100%;
-    height: 600px;
+    background-color:#f5f5f5;
 
-    overflow: auto;
+    background-image:
 
-    touch-action: none;
+    linear-gradient(
+        rgba(0,0,0,.05) 1px,
+        transparent 1px
+    ),
 
-    cursor: grab;
+    linear-gradient(
+        90deg,
+        rgba(0,0,0,.05) 1px,
+        transparent 1px
+    );
 
-    background:
-        linear-gradient(
-            90deg,
-            rgba(0,0,0,.04) 1px,
-            transparent 1px
-        ),
-        linear-gradient(
-            rgba(0,0,0,.04) 1px,
-            transparent 1px
-        );
-
-    background-size: 40px 40px;
+    background-size:40px 40px;
 
 }
-
 #flowPanel.panning {
     cursor: grabbing;
 }
@@ -1928,15 +1933,18 @@ JS 會直接改 borderColor
 
 #flowCanvas {
 
-    position: relative;
+    position:absolute;
 
-    min-width:1200px;
-    min-height:1000px;
+    left:0;
+    top:0;
 
-}
+    width:5000px;
+    height:3000px;
 
+    min-width:5000px;
+    min-height:3000px;
 
-/* ================================
+}/* ================================
    Node
 ================================ */
 
@@ -2084,51 +2092,206 @@ border-color:#007bff;
 box-shadow:0 0 10px #007bff;
 }
 
-/* ===== 多選（框選 / Ctrl+點擊）節點樣式 ===== */
-.pixiv-editor-container .flowNode.multiSelected{
-    outline: 3px dashed #ff9800;
-    outline-offset: 3px;
+/* =================================
+   多選節點
+================================= */
+
+
+.pixiv-editor-container .flowNode.multiSelected {
+
+
+    outline:none;
+
+
+    border-color:#2196f3;
+
+
+    box-shadow:
+
+    0 0 0 3px rgba(33,150,243,.35),
+
+    0 6px 18px rgba(33,150,243,.25);
+
+
 }
 
-/* ===== 群組節點：外框顏色由 JS 透過 --groupColor 設定 ===== */
-.pixiv-editor-container .flowNode[data-group-id]{
-    box-shadow: 0 0 0 3px var(--groupColor, #999) inset;
+
+
+/* =================================
+   群組節點
+================================= */
+
+
+.pixiv-editor-container .flowNode[data-group-id] {
+
+
+    box-shadow:
+
+    0 0 0 3px var(--groupColor,#90caf9) inset,
+
+    0 5px 15px rgba(0,0,0,.12);
+
+
 }
 
-/* ===== 框選矩形（Shift + 拖曳畫布空白處）===== */
-.pixiv-editor-container .rubberBandBox{
+
+
+/* =================================
+   框選矩形
+================================= */
+
+
+.pixiv-editor-container .rubberBandBox {
+
+
     position:absolute;
-    border:1px dashed #ff9800;
-    background:rgba(255,152,0,0.12);
-    pointer-events:none;
-    z-index:500;
-}
 
-/* ===== 多選工具列（複製/剪下/貼上/群組）===== */
-#multiSelectToolbar{
-    display:none;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-    background:#fff3cd;
-    border:1px solid #e0c675;
-    border-radius:8px;
-    padding:8px 12px;
-    margin-bottom:8px;
-    font-size:14px;
-}
-#multiSelectToolbar button{
-    padding:5px 10px;
-    border:1px solid #ccc;
+
+    border:
+
+    1px solid rgba(33,150,243,.8);
+
+
+    background:
+
+    rgba(33,150,243,.12);
+
+
     border-radius:6px;
-    background:#fff;
-    cursor:pointer;
-    font-size:13px;
-}
-#multiSelectToolbar button:hover{
-    background:#f0f0f0;
+
+
+    pointer-events:none;
+
+
+    z-index:500;
+
+
 }
 
+
+
+/* =================================
+   多選工具列
+================================= */
+
+
+#multiSelectToolbar {
+
+
+    display:none;
+
+
+    align-items:center;
+
+
+    gap:8px;
+
+
+    flex-wrap:wrap;
+
+
+    background:white;
+
+
+    border:
+
+    1px solid #ddd;
+
+
+    border-radius:12px;
+
+
+    padding:10px 14px;
+
+
+    margin-bottom:10px;
+
+
+    font-size:14px;
+
+
+    box-shadow:
+
+    0 5px 18px rgba(0,0,0,.15);
+
+
+}
+
+
+
+/* 工具列按鈕 */
+
+
+#multiSelectToolbar button {
+
+
+    padding:
+
+    6px 12px;
+
+
+    border:
+
+    1px solid #ccc;
+
+
+    border-radius:8px;
+
+
+    background:#fafafa;
+
+
+    color:#333;
+
+
+    cursor:pointer;
+
+
+    transition:.15s;
+
+
+}
+
+
+
+#multiSelectToolbar button:hover {
+
+
+    background:#e3f2fd;
+
+
+    border-color:#2196f3;
+
+
+}
+
+
+
+/* 主要操作按鈕 */
+
+#multiSelectToolbar button:first-child {
+
+
+    background:#1976d2;
+
+
+    color:white;
+
+
+    border-color:#1976d2;
+
+
+}
+
+
+
+#multiSelectToolbar button:first-child:hover {
+
+
+    background:#1565c0;
+
+
+}
 /* =========================================================
    創作輔助工具：便利貼 / 素材庫 / 自由畫筆 / 骰子
 ========================================================= */
@@ -2520,6 +2683,452 @@ box-shadow:0 0 10px #007bff;
     #draw-toolbar { bottom: 10px; padding: 8px 10px; gap: 6px; }
     #dice-roller-panel { right: 10px; width: 190px; }
 }
+#target-page-editor{
+
+    margin:10px;
+    padding:10px;
+    border:1px solid #aaa;
+
+}
+
+
+#targetPageText{
+
+    width:300px;
+    height:150px;
+
+}
+
+
+/* 文字工具列 */
+
+.pixiv-toolbar{
+
+display:flex;
+
+gap:6px;
+
+margin:8px 0;
+
+flex-wrap:wrap;
+
+}
+
+
+
+.pixiv-toolbar button{
+
+height:32px;
+
+min-width:36px;
+
+padding:4px 8px;
+
+font-size:14px;
+
+cursor:pointer;
+
+}
+
+
+
+
+
+/* textarea */
+
+#pageText{
+
+    width:100%;
+
+    height:300px;
+
+    resize:vertical;
+
+    box-sizing:border-box;
+
+}
+
+
+
+
+/* 字數 */
+
+#pixivWordCounter{
+
+text-align:right;
+
+font-size:13px;
+
+color:#666;
+
+margin-top:5px;
+
+}
+
+
+/* =================================
+   摺疊區
+================================= */
+
+.editor-section,
+.danger-section {
+
+    margin-top:15px;
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    padding:8px;
+
+    background:#fafafa;
+
+}
+
+
+.editor-section summary,
+.danger-section summary {
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+    padding:6px;
+
+}
+
+
+/* =================================
+   刪除區
+================================= */
+
+.danger-section button {
+
+    margin-top:10px;
+
+    background:#d9534f;
+
+    color:white;
+
+}
+
+
+
+/* =================================
+   浮動編輯器
+================================= */
+
+
+#editorFloat {
+
+    position:fixed;
+
+    top:80px;
+
+    right:30px;
+
+    width:420px;
+
+    max-width:90vw;
+
+    background:white;
+
+    border-radius:12px;
+
+    box-shadow:
+    0 8px 25px rgba(0,0,0,.25);
+
+    z-index:9999;
+
+    overflow:hidden;
+
+}
+
+
+
+#editorPanel{
+
+    width:420px;
+
+    min-width:380px;
+
+    max-width:600px;
+
+    min-height:300px;
+
+    max-height:85vh;
+
+    padding:12px;
+
+    overflow:auto;
+
+}
+
+
+/* 標題列 */
+
+
+#editorHeader {
+
+
+    height:40px;
+
+
+    background:
+
+    linear-gradient(
+        135deg,
+        #1976d2,
+        #1565c0
+    );
+
+
+    color:white;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:space-between;
+
+
+    padding:0 12px;
+
+
+    cursor:move;
+
+
+    user-select:none;
+
+
+    border-radius:12px 12px 0 0;
+
+
+    font-weight:bold;
+
+
+}
+
+
+
+#toggleEditor {
+
+    cursor:pointer;
+
+    background:rgba(255,255,255,.2);
+
+}
+
+
+
+/* 編輯器收起 */
+
+#editorFloat.minimize #editorPanel {
+
+    display:none;
+
+}
+
+
+
+
+/* =================================
+   浮動預覽視窗
+================================= */
+
+
+#previewFloat {
+
+
+    position:fixed;
+
+
+    right:30px;
+
+
+    bottom:30px;
+
+
+    width:380px;
+
+
+    max-width:90vw;
+
+
+    background:white;
+
+
+    border-radius:12px;
+
+
+    box-shadow:
+
+    0 8px 25px rgba(0,0,0,.25);
+
+
+    z-index:9998;
+
+
+    overflow:hidden;
+
+
+}
+
+
+
+#previewHeader {
+
+
+    height:40px;
+
+
+    background:#555;
+
+
+    color:white;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:space-between;
+
+
+    padding:0 12px;
+
+
+    cursor:move;
+
+
+    user-select:none;
+
+
+    border-radius:12px 12px 0 0;
+
+
+    font-weight:bold;
+
+
+}
+
+
+
+#previewPanel {
+
+
+    padding:18px;
+
+
+    max-height:65vh;
+
+
+    overflow-y:auto;
+
+
+}
+
+
+
+#previewText {
+
+
+    white-space:pre-wrap;
+
+
+    line-height:1.8;
+
+
+    font-size:16px;
+
+
+}
+
+
+
+/* 預覽收起 */
+
+#previewFloat.minimize #previewPanel {
+
+    display:none;
+
+}
+
+
+
+/* =================================
+   小螢幕
+================================= */
+
+
+@media(max-width:700px){
+
+
+    #editorFloat {
+
+
+        right:5%;
+
+        width:90%;
+
+    }
+
+
+
+    #previewFloat {
+
+
+        right:5%;
+
+        width:90%;
+
+    }
+
+
+}
+
+#editorHeader,
+#previewHeader{
+
+    touch-action:none;
+
+    user-select:none;
+
+}
+
+
+.removeEmptyOption{
+
+    border:none;
+
+    background:#eee;
+
+    color:#777;
+
+    width:26px;
+
+    height:26px;
+
+    border-radius:50%;
+
+    cursor:pointer;
+
+}
+
+
+.removeEmptyOption:hover{
+
+    background:#ddd;
+
+    color:#d9534f;
+
+}
+
 
     </style>
 </head>
@@ -2587,14 +3196,14 @@ data-i18n="saveProject">
 <button 
 id="txtExportBtn"
 data-i18n="txtExport">
-📤 TXT
+📤<b>SAVE TXT</b>
 </button>
 
 
 <button 
 id="txtImportBtn"
 data-i18n="txtImport">
-📥 TXT
+📥<b>IMPORT TXT</b>
 </button>
 
 
@@ -2692,51 +3301,261 @@ English
                     <div id="flowCanvas"></div>
                 </section>
 
-                <section id="editorPanel">
-                    <label data-i18n="pageTitleLabel">頁面標題</label>
-                    <input id="pageTitle" type="text">
-
-                    <label data-i18n="pageNoteLabel">📝 作者筆記（僅供編輯參考，不會輸出到正文/預覽）</label>
-                    <textarea id="pageNote" rows="3" placeholder="寫給自己看的提醒、劇情備忘、待辦事項…"></textarea>
-
-                    <label data-i18n="pageTextLabel">正文內容</label>
-                    <span id="pageTextPageNum" style="font-weight:normal;color:#1976d2;font-size:13px;"></span>
-                    <div class="pixiv-toolbar">
-                        <button id="tagBold" title="Bold"><b data-i18n="tagBold">B (粗體)</b></button>
-                        <button id="tagItalic" title="Italic"><i data-i18n="tagItalic">I (斜體)</i></button>
-                        <button id="tagRuby" title="Ruby" data-i18n="tagRuby">Ruby (旁註)</button>
-                        <button id="tagEmphasis" title="Emphasis" data-i18n="tagEmphasis">強調點</button>
-                        <button id="tagImg" title="Image" data-i18n="tagImg">插圖</button>
-                        <button id="tagUri" title="Link" data-i18n="tagUri">外部連結</button>
-
-                   </div>
 
 
-                    <textarea id="pageText" data-i18n-placeholder="pageTextPlaceholder"></textarea>
 
 
-<div id="pixivWordCounter">
+    <div id="editorFloat">
 
-    Pixiv字數：0 / 300000
 
-</div>
+    <div id="editorHeader">
 
-                    <h3 data-i18n="optionsHeader">分歧選項</h3>
-                    <div id="options"></div>
-                    <button id="addOption" data-i18n="addOption">新增選項（自動生成新頁面）</button>
+        <span>
+            編輯器
+        </span>
 
-                    <button id="deletePage" data-i18n="deletePage">🗑️ 刪除此頁面</button>
-                </section>
 
-                <section id="previewPanel">
-                    <h3 data-i18n="previewHeader">Pixiv預覽</h3>
-                    <div id="previewText"></div>
-                </section>
-            </main>
-        </div>
+        <button id="toggleEditor">
+            ─
+        </button>
+
     </div>
 
 
+
+    <section id="editorPanel">
+
+
+        <label data-i18n="pageTitleLabel">
+            頁面標題
+        </label>
+
+        <input id="pageTitle" type="text">
+
+
+        <label data-i18n="pageNoteLabel">
+            📝 作者筆記（僅供編輯參考，不會輸出到正文/預覽）
+        </label>
+
+        <textarea id="pageNote"
+        rows="3"
+        placeholder="寫給自己看的提醒、劇情備忘、待辦事項…">
+        </textarea>
+
+
+
+
+
+        <!-- 指定 Page 編輯器 -->
+
+        <details id="target-page-editor">
+
+            <summary>
+                指定 Page 編輯器
+            </summary>
+
+
+            <div class="target-page-content">
+
+
+                <div>
+                    指定修改 Page：
+
+                    <select id="targetPageSelect">
+
+                        <option value="">
+                            請選擇 Page
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <textarea
+                id="targetPageText"
+                placeholder="選擇 Page 後編輯內容">
+                </textarea>
+
+
+
+                <button id="saveTargetPage">
+                    套用到指定 Page
+                </button>
+
+
+            </div>
+
+
+        </details>
+
+
+
+
+
+
+        <!-- 正文區 -->
+
+
+        <label data-i18n="pageTextLabel">
+            正文內容
+        </label>
+
+
+        <span id="pageTextPageNum"
+        style="
+        font-weight:normal;
+        color:#1976d2;
+        font-size:13px;
+        ">
+        </span>
+
+
+
+
+        <div class="pixiv-toolbar">
+
+
+            <button id="tagBold">
+                <b>B</b>
+            </button>
+
+
+            <button id="tagItalic">
+                <i>I</i>
+            </button>
+
+
+            <button id="tagRuby">
+                Ruby
+            </button>
+
+
+            <button id="tagEmphasis">
+                強調
+            </button>
+
+
+            <button id="tagImg">
+                圖片
+            </button>
+
+
+            <button id="tagUri">
+                連結
+            </button>
+
+
+        </div>
+
+
+
+
+        <textarea 
+        id="pageText"
+        data-i18n-placeholder="pageTextPlaceholder">
+        </textarea>
+
+
+
+
+        <div id="pixivWordCounter">
+
+            Pixiv字數：0 / 300000
+
+        </div>
+
+
+
+
+
+
+        <details class="editor-section">
+
+
+            <summary data-i18n="optionsHeader">
+                分歧選項
+            </summary>
+
+
+
+            <div id="options"></div>
+
+
+
+            <button id="addOption"
+            data-i18n="addOption">
+
+                新增選項（自動生成新頁面）
+
+            </button>
+
+
+        </details>
+
+
+
+
+
+
+        <details class="danger-section">
+
+
+            <summary>
+                進階操作
+            </summary>
+
+
+
+            <button id="deletePage"
+            data-i18n="deletePage">
+
+                🗑️ 刪除此頁面
+
+            </button>
+
+
+        </details>
+
+
+
+    </section>
+
+
+</div>
+
+
+
+
+<div id="previewFloat">
+
+
+    <div id="previewHeader">
+
+        <span data-i18n="previewHeader">
+            Pixiv預覽
+        </span>
+
+
+        <button id="togglePreview">
+            ─
+        </button>
+
+    </div>
+
+
+
+    <section id="previewPanel">
+
+
+        <div id="previewText"></div>
+
+
+    </section>
+
+
+</div>
 
 <script>
 
@@ -4154,23 +4973,65 @@ return str
                 box.className = "option";
 
                 // 如果 target 為 null，顯示「建立新頁面」按鈕，否則顯示正常的 select
-                const targetSection = option.target === null
-                    ? `<button class="create-target-btn" data-index="${index}">+ 建立新頁面</button>`
-                    : `<select class="target">
-                         <option value="">${t("notSet")}</option>
-                         ${pages.map(p => `<option value="${p.id}">第${pageNumMap.get(p.id)}頁｜${p.title}</option>`).join("")}
-                       </select>`;
+                const targetSection = `
+
+<select class="target">
+
+<option value="">
+${t("notSet")}
+</option>
+
+
+<option value="__NEW__">
+＋ 建立新頁面
+</option>
+
+
+${pages.map(p => 
+`
+<option value="${p.id}">
+第${pageNumMap.get(p.id)}頁｜${p.title}
+</option>
+`
+).join("")}
+
+
+</select>
+
+`;
 
                 // 目前連到第幾頁的小提示（僅編輯器內顯示，不會出現在正文/預覽/輸出裡）
                 const currentPageNum = option.target ? pageNumMap.get(option.target) : null;
                 const pageNumBadge = `<span class="option-pagenum">${currentPageNum ? "→ 第 " + currentPageNum + " 頁" : ""}</span>`;
 
-                box.innerHTML = `
-                    <input class="optionName">
-                    ${targetSection}
-                    ${pageNumBadge}
-                    <button class="deleteOption">${t("deleteBtn")}</button>
-                `;
+const removeEmptyButton =
+(option.target === null)
+?
+`
+<button class="removeEmptyOption">
+✕
+</button>
+`
+:
+"";
+                const removeButton =
+option.target === null
+?
+`
+<button class="removeOption">
+✕
+</button>
+`
+:
+"";
+
+               box.innerHTML = `
+    <input class="optionName">
+    ${targetSection}
+    ${pageNumBadge}
+    ${removeEmptyButton}
+    <button class="deleteOption">${t("deleteBtn")}</button>
+`;
 
                 // 綁定輸入文字事件
                 const input = box.querySelector(".optionName");
@@ -4182,46 +5043,116 @@ return str
 
                 // 如果顯示的是 select (已有目標)，則綁定變更事件
                 const select = box.querySelector(".target");
-                if (select) {
-                    select.value = option.target || "";
-                    select.addEventListener("change", () => {
-                        option.target = select.value;
-                        projectChanged = true;
 
-                        // 換了目標頁面之後，重新渲染讓「→ 第 N 頁」的提示同步更新
-                        renderOptions();
-                        drawLines();
-                        updatePreview();
-                    });
-                }
+if(select){
 
-                // 如果顯示的是「建立新頁面」按鈕，綁定觸發事件
-                const createBtn = box.querySelector(".create-target-btn");
-                if (createBtn) {
-                    createBtn.addEventListener("click", () => {
-                        // 1. 真正建立頁面
-                        const targetPage = handleAddNewPage();
-                        // 2. 自動連結上去
-                        option.target = targetPage.id;
-                        projectChanged = true;
 
-                        // 原本這裡的判斷寫反了：只有「使用者沒改過文字」時才會執行，
-                        // 導致使用者自訂的選項文字永遠不會變成新頁面標題。
-                        // 改成：只要使用者有自訂文字（不是空的、也不是預設的「新選項」），
-                        // 就把這段文字當作新頁面的標題；沒自訂的話才用預設標題反過來組選項文字。
-                        if (option.text && option.text !== t("newOption")) {
-                            targetPage.title = option.text;
-                            updateNodeTitle(targetPage);
-                        } else {
-                            option.text = t("optionPrefix") + targetPage.title;
-                        }
+    select.value =
+    option.target || "";
 
-                        // 3. 重新渲染介面
-                        renderOptions();
-                        drawLines();
-                        updatePreview();
-                    });
-                }
+
+    select.addEventListener(
+    "change",
+    ()=>{
+
+
+        // 建立新頁面
+        if(select.value==="__NEW__"){
+
+
+            const targetPage =
+            handleAddNewPage();
+
+
+            option.target =
+            targetPage.id;
+
+
+            projectChanged=true;
+
+
+
+            if(option.text &&
+               option.text!==t("newOption")){
+
+
+                targetPage.title =
+                option.text;
+
+
+                updateNodeTitle(targetPage);
+
+
+            }
+            else{
+
+
+                option.text =
+                t("optionPrefix")
+                +
+                targetPage.title;
+
+
+            }
+
+
+
+            renderOptions();
+
+            drawLines();
+
+            updatePreview();
+
+
+            return;
+
+        }
+
+
+
+        // 指向既有頁面
+
+        option.target =
+        select.value || null;
+
+
+        projectChanged=true;
+
+
+        renderOptions();
+
+        drawLines();
+
+        updatePreview();
+
+
+    });
+
+
+const removeEmptyBtn =
+box.querySelector(".removeEmptyOption");
+
+
+if(removeEmptyBtn){
+
+    removeEmptyBtn.addEventListener("click",()=>{
+
+        // 只移除這個空白選項欄
+        currentPage.options.splice(index,1);
+
+        projectChanged = true;
+
+        renderOptions();
+
+        updatePreview();
+
+    });
+
+}
+
+}
+
+
 
                 // 刪除按鈕邏輯保持不變
                 box.querySelector(".deleteOption").addEventListener("click", () => {
@@ -4508,32 +5439,219 @@ loadInput.addEventListener("change", event => {
             renderReader(win, page);
         }
 
-        function renderReader(windowObj, page) {
-            windowObj.document.body.innerHTML = "";
-            windowObj.document.body.style.fontFamily = "system-ui, sans-serif";
-            windowObj.document.body.style.padding = "20px";
-            const title = windowObj.document.createElement("h2");
-            title.textContent = page.title;
-            const text = windowObj.document.createElement("p");
-            text.style.whiteSpace = "pre-wrap";
-            text.textContent = page.text;
-            text.style.lineHeight = "1.6";
-            windowObj.document.body.appendChild(title);
-            windowObj.document.body.appendChild(text);
-            page.options.forEach(option => {
-                const button = windowObj.document.createElement("button");
-                button.textContent = option.text;
-                button.style.display = "block";
-                button.style.margin = "10px 0";
-                button.style.padding = "8px 16px";
-                button.style.cursor = "pointer";
-                button.onclick = () => {
-                    const next = pages.find(p => p.id === option.target);
-                    if (next) renderReader(windowObj, next);
-                };
-                windowObj.document.body.appendChild(button);
-            });
-        }
+       function renderReader(windowObj, page) {
+
+    // CSS樣式
+    windowObj.document.head.innerHTML = `
+
+<style>
+
+body{
+
+    font-family:
+    system-ui,
+    "Noto Sans TC",
+    sans-serif;
+
+    background:#f5f5f5;
+
+    margin:0;
+
+    padding:30px;
+
+}
+
+
+/* 閱讀區 */
+
+.reader-container{
+
+    max-width:720px;
+
+    margin:0 auto;
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:12px;
+
+    box-shadow:
+    0 4px 15px rgba(0,0,0,0.12);
+
+}
+
+
+/* 標題 */
+
+.reader-title{
+
+    font-size:28px;
+
+    margin-bottom:20px;
+
+}
+
+
+/* 內文 */
+
+.reader-text{
+
+    white-space:pre-wrap;
+
+    font-size:18px;
+
+    line-height:1.9;
+
+    color:#333;
+
+}
+
+
+
+/* 選項 */
+
+.reader-button{
+
+    display:block;
+
+    width:100%;
+
+    max-width:500px;
+
+    margin:12px auto;
+
+    padding:12px 16px;
+
+    border:none;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    font-size:16px;
+
+    background:#4CAF50;
+
+    color:white;
+
+}
+
+
+
+.reader-button:hover{
+
+    opacity:0.85;
+
+}
+
+
+</style>
+
+`;
+
+
+
+    // 清空內容
+
+    windowObj.document.body.innerHTML = "";
+
+
+
+    // 建立容器
+
+    const container =
+    windowObj.document.createElement("div");
+
+    container.className =
+    "reader-container";
+
+
+
+    windowObj.document.body.appendChild(container);
+
+
+
+    // 標題
+
+    const title =
+    windowObj.document.createElement("h2");
+
+    title.className =
+    "reader-title";
+
+    title.textContent =
+    page.title;
+
+
+    container.appendChild(title);
+
+
+
+    // 內文
+
+    const text =
+    windowObj.document.createElement("p");
+
+
+    text.className =
+    "reader-text";
+
+
+    text.textContent =
+    page.text;
+
+
+    container.appendChild(text);
+
+
+
+    // 選項
+
+    page.options.forEach(option=>{
+
+
+        const button =
+        windowObj.document.createElement("button");
+
+
+        button.className =
+        "reader-button";
+
+
+        button.textContent =
+        option.text;
+
+
+
+        button.onclick = ()=>{
+
+
+            const next =
+            pages.find(
+                p=>p.id===option.target
+            );
+
+
+            if(next){
+
+                renderReader(
+                    windowObj,
+                    next
+                );
+
+            }
+
+        };
+
+
+        container.appendChild(button);
+
+
+    });
+
+
+}
 
         const testButton = document.createElement("button");
         testButton.setAttribute("data-i18n", "testButton");
@@ -4971,131 +6089,380 @@ if(content){
             };
         })();
 
-      // --- 字母組合生成器 (外掛) 強化排版與一鍵複製版 ---
-(function() {
-    // 1. 注入專屬的 CSS 樣式 (負責漂亮的排版與 Hover 動畫)
-    const style = document.createElement("style");
-    style.textContent = `
-        #perms-result {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-            font-size: 13px;
-            max-height: 120px;
-            overflow-y: auto;
-            color: #333;
-        }
-        .perm-badge {
-            background: #fff;
-            border: 1px solid #ffb74d;
-            border-radius: 6px;
-            padding: 5px 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .perm-badge:hover {
-            background: #ffe0b2;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-        }
-        .perm-badge.copied {
-            background: #c8e6c9 !important;
-            border-color: #81c784 !important;
-            color: #2e7d32 !important;
-        }
-        .perm-index {
-            font-size: 11px;
-            color: #999;
-        }
-    `;
-    document.head.appendChild(style);
+    // =============================================
+// 字母排列工具（浮動視窗版）
+// =============================================
 
-    // 2. 建立主體介面
-    const container = document.createElement("div");
-    container.style = "margin: 15px; padding: 12px; background: #fff3e0; border: 1px solid #ffcc80; border-radius: 8px; color: #000;";
-    container.innerHTML = `
-        <div style="margin-bottom: 8px;">
-            <strong>✨ 組合生成器：</strong>
-            <input type="text" id="chars-input" value="ABCD" maxlength="6" style="width: 70px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px;">
-            <button id="btn-generate-perms" style="padding: 4px 8px; cursor: pointer; border-radius: 4px; border: 1px solid #999; background: #fff;">產生排列</button>
-            <span style="font-size: 12px; color: #666; margin-left: 5px;">(點擊標籤即可複製)</span>
-        </div>
-        <div id="perms-result"></div>
-    `;
-    document.querySelector("header").appendChild(container);
+(function(){
 
-    const display = document.getElementById("perms-result");
+//--------------------------------
+// CSS
+//--------------------------------
 
-    // 3. 綁定「點擊複製」的事件委派 (統一監聽，效能更好)
-    display.addEventListener("click", async (e) => {
-        const badge = e.target.closest(".perm-badge");
-        if (!badge) return; // 如果點到的不是標籤就退出
+const style=document.createElement("style");
 
-        const textToCopy = badge.dataset.val;
+style.textContent=`
 
-        try {
-            // 寫入剪貼簿
-            await navigator.clipboard.writeText(textToCopy);
-            
-            // 同時保留你原本填入分歧輸入框的功能 (如果輸入框存在的話)
-            const branchInput = document.getElementById('branch-order');
-            if (branchInput) branchInput.value = textToCopy;
+#permFloat{
 
-            // 視覺回饋：變成綠色並顯示已複製
-            const originalHtml = badge.innerHTML;
-            badge.classList.add("copied");
-            badge.innerHTML = `✔️ 已複製`;
-            
-            // 800毫秒後恢復原狀
-            setTimeout(() => {
-                badge.classList.remove("copied");
-                badge.innerHTML = originalHtml;
-            }, 800);
+position:fixed;
 
-        } catch (err) {
-            alert("瀏覽器阻擋了自動複製，請手動圈選複製。");
-        }
-    });
+left:20px;
 
-    // 4. 產生排列的邏輯
-    document.getElementById("btn-generate-perms").onclick = function() {
-        const str = document.getElementById("chars-input").value;
-        
-        if (str.length > 6) {
-            alert("字元太多了！\n為避免瀏覽器卡死當機，請將長度限制在 6 個字元以內。");
-            return; 
-        }
-        if (str.length === 0) return; 
+bottom:20px;
 
-        const result = permute(str.split(""));
-        
-        // 渲染成一塊一塊的漂亮標籤 (帶有 data-val 屬性供複製使用)
-        display.innerHTML = result.map((p, i) =>
-            `<div class="perm-badge" data-val="${p}">
-                <span class="perm-index">${i + 1}.</span> 
-                <strong>${p}</strong>
-            </div>`
-        ).join("");
-    };
+width:330px;
 
-    // 排列演算法 (Heap's Algorithm)
-    function permute(arr) {
-        let res = [];
-        const dfs = (curr, rest) => {
-            if (rest.length === 0) { res.push(curr); return; }
-            for (let i = 0; i < rest.length; i++) {
-                dfs(curr + rest[i], rest.slice(0, i).concat(rest.slice(i + 1)));
-            }
-        };
-        dfs("", arr);
-        return res;
-    }
+background:#ffffff;
+
+border-radius:10px;
+
+box-shadow:0 8px 20px rgba(0,0,0,.25);
+
+z-index:9999;
+
+overflow:hidden;
+
+}
+
+
+#permHeader{
+
+
+touch-action:none;
+
+height:38px;
+
+background:#ff9800;
+
+color:white;
+
+display:flex;
+
+align-items:center;
+
+justify-content:space-between;
+
+padding:0 10px;
+
+cursor:move;
+
+user-select:none;
+
+font-weight:bold;
+
+}
+
+
+#permBody{
+
+padding:12px;
+
+}
+
+
+#permFloat.minimize #permBody{
+
+display:none;
+
+}
+
+
+#chars-input{
+
+width:80px;
+
+padding:5px;
+
+border:1px solid #ccc;
+
+border-radius:6px;
+
+}
+
+
+#btn-generate-perms{
+
+margin-left:6px;
+
+padding:5px 10px;
+
+}
+
+
+#perms-result{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:8px;
+
+margin-top:12px;
+
+max-height:260px;
+
+overflow:auto;
+
+}
+
+
+.perm-badge{
+
+background:#fff;
+
+border:1px solid #ffb74d;
+
+border-radius:6px;
+
+padding:6px 10px;
+
+cursor:pointer;
+
+transition:.2s;
+
+display:flex;
+
+gap:6px;
+
+align-items:center;
+
+user-select:none;
+
+}
+
+
+.perm-badge:hover{
+
+background:#ffe0b2;
+
+transform:translateY(-1px);
+
+}
+
+
+.perm-badge.copied{
+
+background:#c8e6c9!important;
+
+border-color:#81c784!important;
+
+color:#2e7d32!important;
+
+}
+
+
+.perm-index{
+
+font-size:11px;
+
+color:#888;
+
+}
+
+`;
+
+document.head.appendChild(style);
+
+//--------------------------------
+// UI
+//--------------------------------
+
+const panel=document.createElement("div");
+
+panel.id="permFloat";
+
+panel.innerHTML=`
+
+<div id="permHeader">
+
+<span>✨ 字母組合</span>
+
+<button id="togglePerm">─</button>
+
+</div>
+
+<div id="permBody">
+
+<input
+id="chars-input"
+type="text"
+value="ABCD"
+maxlength="6">
+
+<button id="btn-generate-perms">
+
+產生排列
+
+</button>
+
+<div id="perms-result"></div>
+
+</div>
+
+`;
+
+document.body.appendChild(panel);
+
+const display=document.getElementById("perms-result");
+
+//--------------------------------
+// 收合
+//--------------------------------
+
+document
+.getElementById("togglePerm")
+.onclick=function(){
+
+panel.classList.toggle("minimize");
+
+};
+
+//--------------------------------
+// 點一下複製
+//--------------------------------
+
+display.addEventListener("click",async function(e){
+
+const badge=e.target.closest(".perm-badge");
+
+if(!badge) return;
+
+const value=badge.dataset.val;
+
+try{
+
+await navigator.clipboard.writeText(value);
+
+const input=document.getElementById("branch-order");
+
+if(input) input.value=value;
+
+const html=badge.innerHTML;
+
+badge.classList.add("copied");
+
+badge.innerHTML="✔ 已複製";
+
+setTimeout(function(){
+
+badge.classList.remove("copied");
+
+badge.innerHTML=html;
+
+},800);
+
+}catch{
+
+alert("無法存取剪貼簿");
+
+}
+
+});
+
+//--------------------------------
+// 產生排列
+//--------------------------------
+
+document
+.getElementById("btn-generate-perms")
+.onclick=function(){
+
+const str=document
+.getElementById("chars-input")
+.value
+.trim();
+
+if(!str.length) return;
+
+if(str.length>6){
+
+alert("最多只能6個字元");
+
+return;
+
+}
+
+const list=permute(str.split(""));
+
+display.innerHTML=list.map(function(v,i){
+
+return`
+
+<div
+class="perm-badge"
+data-val="${v}">
+
+<span class="perm-index">
+
+${i+1}.
+
+</span>
+
+<strong>${v}</strong>
+
+</div>
+
+`;
+
+}).join("");
+
+};
+
+//--------------------------------
+// 排列
+//--------------------------------
+
+function permute(arr){
+
+const result=[];
+
+(function dfs(curr,rest){
+
+if(rest.length===0){
+
+result.push(curr);
+
+return;
+
+}
+
+for(let i=0;i<rest.length;i++){
+
+dfs(
+
+curr+rest[i],
+
+rest
+.slice(0,i)
+.concat(rest.slice(i+1))
+
+);
+
+}
+
+})("",arr);
+
+return result;
+
+}
+
+//--------------------------------
+// 啟用拖曳
+//--------------------------------
+
+if(typeof makeDraggable==="function"){
+
+makeDraggable(
+
+"permFloat",
+
+"permHeader"
+
+);
+
+}
+
 })();
 
 
@@ -8165,7 +9532,7 @@ alert("Pixiv 原始碼已同步");
     exportBtn.style.cssText = btnStyle;
 
     const importBtn = document.createElement('button');
-    importBtn.textContent = '匯入 JSON/TXT';
+    importBtn.textContent = '匯入 JSON';
     importBtn.style.cssText = btnStyle;
 
     const fileInput = document.createElement('input');
@@ -9111,9 +10478,1014 @@ window.addEventListener('load', function() {
 })();
 
 
+// =====================================================
+// 指定 Page 遠端編輯器
+// =====================================================
+
+(function(){
+
+
+let targetPageId = null;
 
 
 
+function updateTargetPageList(){
+
+    let select =
+    document.getElementById(
+        "targetPageSelect"
+    );
+
+
+    if(!select)
+        return;
+
+
+    if(typeof pages==="undefined")
+        return;
+
+
+
+    let old =
+    select.value;
+
+
+
+    select.innerHTML =
+    `
+    <option value="">
+    請選擇 Page
+    </option>
+    `;
+
+
+
+    pages.forEach((page,index)=>{
+
+
+        let option =
+        document.createElement("option");
+
+
+        option.value =
+        page.id;
+
+
+        option.textContent =
+        `(${index+1}) ${page.title || "未命名"}`;
+
+
+        select.appendChild(option);
+
+
+    });
+
+
+
+    if(old)
+        select.value=old;
+
+}
+
+
+
+// 選擇 Page
+
+document
+.getElementById("targetPageSelect")
+.onchange=function(){
+
+
+    targetPageId =
+    this.value;
+
+
+
+    let page =
+    pages.find(
+        p=>p.id===targetPageId
+    );
+
+
+
+    if(!page)
+        return;
+
+
+
+    document
+    .getElementById("targetPageText")
+    .value =
+    page.text || "";
+
+
+
+};
+
+
+
+
+// 儲存修改
+
+document
+.getElementById("saveTargetPage")
+.onclick=function(){
+
+
+
+    if(!targetPageId){
+
+        alert("請先選擇 Page");
+        return;
+
+    }
+
+
+
+    let page =
+    pages.find(
+        p=>p.id===targetPageId
+    );
+
+
+
+    if(!page)
+        return;
+
+
+
+    page.text =
+    document
+    .getElementById("targetPageText")
+    .value;
+
+
+
+    projectChanged=true;
+
+
+
+    // 更新目前頁面顯示
+
+    if(
+        currentPage &&
+        currentPage.id===page.id
+    ){
+
+        if(textInput){
+
+            textInput.value =
+            page.text;
+
+        }
+
+    }
+
+
+
+    alert(
+        "Page 內容已更新"
+    );
+
+
+};
+
+
+
+// 定期同步清單
+
+setInterval(
+    updateTargetPageList,
+    1000
+);
+
+
+// =============================================
+// HTML Test Reader Export v1.1
+// 美化閱讀版
+// =============================================
+
+
+(function(){
+
+
+function exportTestHTML(){
+
+
+    if(typeof pages === "undefined"){
+
+        alert("找不到 pages");
+
+        return;
+
+    }
+
+
+
+    const exportData =
+    pages.map(page=>({
+
+        id:page.id,
+
+        title:page.title || "",
+
+        text:page.text || "",
+
+        options:page.options || []
+
+    }));
+
+
+
+    const json =
+    JSON.stringify(exportData);
+
+
+
+    const html = `
+
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+
+
+<head>
+
+
+<meta charset="UTF-8">
+
+
+<title>Gamebook Reader</title>
+
+
+<style>
+
+
+body{
+
+
+font-family:
+
+system-ui,
+
+"Noto Sans TC",
+
+sans-serif;
+
+
+background:#f5f5f5;
+
+
+margin:0;
+
+
+padding:30px;
+
+
+}
+
+
+
+#reader{
+
+
+max-width:720px;
+
+
+margin:auto;
+
+
+background:white;
+
+
+padding:30px;
+
+
+border-radius:12px;
+
+
+box-shadow:
+
+0 4px 15px rgba(0,0,0,0.12);
+
+
+}
+
+
+
+.reader-title{
+
+
+font-size:28px;
+
+
+margin-bottom:20px;
+
+
+}
+
+
+
+.reader-text{
+
+
+white-space:pre-wrap;
+
+
+font-size:18px;
+
+
+line-height:1.9;
+
+
+color:#333;
+
+
+}
+
+
+
+.reader-button{
+
+
+display:block;
+
+
+width:100%;
+
+
+max-width:500px;
+
+
+margin:12px auto;
+
+
+padding:12px 16px;
+
+
+border:none;
+
+
+border-radius:8px;
+
+
+cursor:pointer;
+
+
+font-size:16px;
+
+
+background:#4CAF50;
+
+
+color:white;
+
+
+}
+
+
+
+.reader-button:hover{
+
+
+opacity:.85;
+
+
+}
+
+
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+
+<div id="reader"></div>
+
+
+
+<script>
+
+
+const pages = ${json};
+
+
+
+function renderReader(page){
+
+
+
+const reader =
+
+document.getElementById("reader");
+
+
+
+reader.innerHTML="";
+
+
+
+
+const title =
+
+document.createElement("h2");
+
+
+
+title.className="reader-title";
+
+
+title.textContent=page.title;
+
+
+
+reader.appendChild(title);
+
+
+
+
+
+const text =
+
+document.createElement("div");
+
+
+
+text.className="reader-text";
+
+
+text.textContent=page.text;
+
+
+
+reader.appendChild(text);
+
+
+
+
+
+page.options.forEach(option=>{
+
+
+const button =
+
+document.createElement("button");
+
+
+
+button.className="reader-button";
+
+
+
+button.textContent=option.text;
+
+
+
+button.onclick=function(){
+
+
+
+const next =
+
+pages.find(
+
+p=>p.id===option.target
+
+);
+
+
+
+if(next){
+
+renderReader(next);
+
+}
+
+
+
+};
+
+
+
+reader.appendChild(button);
+
+
+
+});
+
+
+
+}
+
+
+
+
+if(pages.length){
+
+renderReader(pages[0]);
+
+}
+
+
+
+<\/script>
+
+
+
+</body>
+
+
+</html>
+
+`;
+
+
+
+    const blob =
+
+    new Blob(
+
+        [html],
+
+        {
+
+            type:"text/html;charset=utf-8"
+
+        }
+
+    );
+
+
+
+    const url =
+
+    URL.createObjectURL(blob);
+
+
+
+    const a =
+
+    document.createElement("a");
+
+
+    a.href=url;
+
+
+    a.download="Gamebook_Test.html";
+
+
+    a.click();
+
+
+
+    URL.revokeObjectURL(url);
+
+
+
+}
+
+
+
+window.exportTestHTML =
+exportTestHTML;
+
+
+
+// 建立輸出按鈕
+
+const header =
+document.querySelector("header");
+
+
+if(header){
+
+    const btn =
+    document.createElement("button");
+
+
+    btn.textContent =
+    "輸出HTML測試";
+
+
+    btn.addEventListener(
+        "click",
+        exportTestHTML
+    );
+
+
+    header.appendChild(btn);
+
+}
+
+})();
+
+
+})();
+
+
+document
+.getElementById("toggleEditor")
+.onclick=function(){
+
+document
+.getElementById("editorFloat")
+.classList.toggle("minimize");
+
+};
+
+
+// =============================================
+// 浮動視窗拖曳（PC + 手機完整版）
+// =============================================
+
+// =============================================
+// 浮動視窗拖曳（PC + 手機版）
+// =============================================
+
+function makeDraggable(panelId, headerId){
+
+    const panel = document.getElementById(panelId);
+    const header = document.getElementById(headerId);
+
+    if(!panel || !header) return;
+
+
+    let dragging = false;
+
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+
+    header.addEventListener(
+        "pointerdown",
+        function(e){
+
+
+            // 如果點到按鈕，不啟動拖曳
+            if(e.target.tagName === "BUTTON")
+                return;
+
+
+            dragging = true;
+
+
+            const rect =
+            panel.getBoundingClientRect();
+
+
+            offsetX =
+            e.clientX - rect.left;
+
+
+            offsetY =
+            e.clientY - rect.top;
+
+
+
+            // 解除定位限制
+
+            panel.style.right="auto";
+            panel.style.bottom="auto";
+
+
+
+            header.setPointerCapture(
+                e.pointerId
+            );
+
+
+            document.body.style.userSelect="none";
+
+
+        }
+    );
+
+
+
+
+
+    window.addEventListener(
+        "pointermove",
+        function(e){
+
+
+            if(!dragging)
+                return;
+
+
+            e.preventDefault();
+
+
+
+            panel.style.left =
+            (e.clientX - offsetX) + "px";
+
+
+            panel.style.top =
+            (e.clientY - offsetY) + "px";
+
+
+        },
+        {
+            passive:false
+        }
+    );
+
+
+
+
+
+    window.addEventListener(
+        "pointerup",
+        function(e){
+
+
+            if(!dragging)
+                return;
+
+
+            dragging=false;
+
+
+            document.body.style.userSelect="";
+
+
+            try{
+
+                header.releasePointerCapture(
+                    e.pointerId
+                );
+
+            }catch(err){}
+
+
+
+        }
+    );
+
+
+
+
+
+    window.addEventListener(
+        "pointercancel",
+        function(){
+
+            dragging=false;
+
+            document.body.style.userSelect="";
+
+        }
+    );
+
+}
+
+
+
+
+// =============================================
+// 啟動所有浮動視窗
+// =============================================
+
+
+makeDraggable(
+    "editorFloat",
+    "editorHeader"
+);
+
+
+
+makeDraggable(
+    "previewFloat",
+    "previewHeader"
+);
+
+
+
+makeDraggable(
+    "permFloat",
+    "permHeader"
+);
+
+// =============================================
+// 啟動收起功能
+// =============================================
+
+function setupToggle(buttonId, panelId){
+
+    const btn =
+    document.getElementById(buttonId);
+
+
+    const panel =
+    document.getElementById(panelId);
+
+
+    if(!btn || !panel)
+        return;
+
+
+    btn.onclick=function(e){
+
+        e.stopPropagation();
+
+        panel.classList.toggle("minimize");
+
+    };
+
+}
+
+
+
+setupToggle(
+    "toggleEditor",
+    "editorFloat"
+);
+
+
+
+setupToggle(
+    "togglePreview",
+    "previewFloat"
+);
+
+
+
+setupToggle(
+    "togglePerm",
+    "permFloat"
+);
+
+// =================================
+// 手機長按多選
+// =================================
+
+let pressTimer = null;
+
+
+canvas.addEventListener(
+"pointerdown",
+(e)=>{
+
+
+const nodeEl = e.target.closest(".flowNode");
+
+if(!nodeEl) return;
+
+
+
+const page =
+pages.find(p=>p.element===nodeEl);
+
+
+if(!page) return;
+
+
+
+// 只處理觸控
+
+if(e.pointerType !== "touch")
+return;
+
+
+
+pressTimer=setTimeout(()=>{
+
+
+toggleSelection(page);
+
+updateToolbar();
+
+
+},500);
+
+
+
+});
+
+
+
+canvas.addEventListener(
+"pointerup",
+()=>{
+
+clearTimeout(pressTimer);
+
+});
+
+
+
+canvas.addEventListener(
+"pointercancel",
+()=>{
+
+clearTimeout(pressTimer);
+
+});
+
+
+document.body.appendChild(container);
+
+// =============================================
+// Pixiv預覽 收起 / 展開
+// =============================================
+
+const togglePreview =
+document.getElementById("togglePreview");
+
+const previewFloat =
+document.getElementById("previewFloat");
+
+
+if(togglePreview && previewFloat){
+
+    togglePreview.onclick = function(){
+
+        previewFloat.classList.toggle("minimize");
+
+    };
+
+}
+
+select.addEventListener("change",()=>{
+
+
+    // 建立新頁面
+    if(select.value==="__NEW__"){
+
+
+        const targetPage =
+        handleAddNewPage();
+
+
+        option.target =
+        targetPage.id;
+
+
+        projectChanged=true;
+
+
+
+        if(option.text &&
+           option.text!==t("newOption")){
+
+
+            targetPage.title =
+            option.text;
+
+
+            updateNodeTitle(targetPage);
+
+
+        }
+        else{
+
+
+            option.text =
+            t("optionPrefix")
+            +
+            targetPage.title;
+
+
+        }
+
+
+        renderOptions();
+
+        drawLines();
+
+        updatePreview();
+
+
+        return;
+
+    }
+
+
+
+    // 連結已有頁面
+
+    option.target =
+    select.value || null;
+
+
+    projectChanged=true;
+
+
+    renderOptions();
+
+    drawLines();
+
+    updatePreview();
+
+
+});
 
 </script>
 </body>
