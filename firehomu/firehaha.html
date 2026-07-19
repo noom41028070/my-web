@@ -403,24 +403,23 @@
 
     position:relative;
 
-   height:calc(100vh - 100px);
+    height:calc(100vh - 100px);
 
     background-color:#f3f4f6;
 
-    overflow:auto;
+    overflow:hidden;
 
-    overscroll-behavior:contain;
+    overscroll-behavior:none;
 
     -webkit-overflow-scrolling:touch;
 
-    touch-action:auto;
+    touch-action:none;
 
     border-bottom:2px solid #aaa;
 
     cursor:grab;
 
 }
-
 
 
 /* ===== 無限畫布區 ===== */
@@ -3128,6 +3127,7 @@ margin-top:5px;
     color:#d9534f;
 
 }
+
 
 
     </style>
@@ -6121,7 +6121,7 @@ box-shadow:0 8px 20px rgba(0,0,0,.25);
 
 z-index:9999;
 
-overflow:hidden;
+overflow:auto;
 
 }
 
@@ -11169,36 +11169,71 @@ function makeDraggable(panelId, headerId){
 
 
 
+window.addEventListener(
+    "pointermove",
+    function(e){
 
-    window.addEventListener(
-        "pointermove",
-        function(e){
+        if(!dragging)
+            return;
 
-
-            if(!dragging)
-                return;
-
-
-            e.preventDefault();
+        e.preventDefault();
 
 
-
-            panel.style.left =
-            (e.clientX - offsetX) + "px";
-
-
-            panel.style.top =
-            (e.clientY - offsetY) + "px";
+        let left = e.clientX - offsetX;
+        let top  = e.clientY - offsetY;
 
 
-        },
-        {
-            passive:false
-        }
-    );
+        // ===== 邊緣安全距離 =====
+        const edgeSafe = 30;
 
 
+        // ===== 左右限制 =====
+        const minLeft = edgeSafe;
 
+        const maxLeft = Math.max(
+            minLeft,
+            window.innerWidth -
+            panel.offsetWidth -
+            edgeSafe
+        );
+
+
+        // ===== 上下限制 =====
+        const minTop = edgeSafe;
+
+        const maxTop = Math.max(
+            minTop,
+            window.innerHeight -
+            panel.offsetHeight -
+            edgeSafe
+        );
+
+
+        // ===== 套用限制 =====
+        left = Math.max(
+            minLeft,
+            Math.min(left, maxLeft)
+        );
+
+
+        top = Math.max(
+            minTop,
+            Math.min(top, maxTop)
+        );
+
+
+        panel.style.left =
+            left + "px";
+
+
+        panel.style.top =
+            top + "px";
+
+    },
+    {
+        passive:false
+    }
+);
 
 
     window.addEventListener(
