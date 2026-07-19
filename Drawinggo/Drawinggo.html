@@ -400,6 +400,14 @@ cursor:pointer;
     backface-visibility: hidden;
 }
 
+#canvas-container {
+    touch-action: none; /* 這是關鍵：禁止瀏覽器對畫布進行捲動或縮放，優先處理 JS 事件 */
+}
+
+#canvas-container {
+    touch-action: none; /* 禁止觸控手勢預設行為，強制交給 JavaScript 處理 */
+}
+
     </style>
 </head>
 <body>
@@ -609,6 +617,7 @@ function drawSelectionOutlineOnly() {
 }
 // 全域變數
 // 在全域變數區新增：
+const canvas = document.getElementById('drawing-canvas'); // 加入這行
 let originalSelectionData = null; // 儲存選取區最原始的樣子
 let originalSelectionPos = { x: 0, y: 0 };
 let currentTool = 'pencil';
@@ -664,17 +673,13 @@ let floatingSelection = {
 // 繪圖相關的基本函數
 function getCoordinates(e) {
     const rect = currentLayer.canvas.getBoundingClientRect();
-    if (e.touches) {
-        return {
-            x: (e.touches[0].clientX - rect.left) / scale,
-            y: (e.touches[0].clientY - rect.top) / scale
-        };
-    } else {
-        return {
-            x: (e.clientX - rect.left) / scale,
-            y: (e.clientY - rect.top) / scale
-        };
-    }
+    
+    // PointerEvent 直接讀取 clientX/Y 即可，不需要再透過 e.touches
+    // 這樣在手機與滑鼠上都能運作
+    return {
+        x: (e.clientX - rect.left) / scale,
+        y: (e.clientY - rect.top) / scale
+    };
 }
 
 function createLayer(canvasData = null) {
@@ -1008,7 +1013,13 @@ function draw(e) {
     const ctx = currentLayer.canvas.getContext('2d');
     const { x, y } = getCoordinates(e);
 
-    const pressure = e.pressure > 0 ? e.pressure : pressureSlider.value;
+    // 【修正點】：將 slider 的值正規化為 0-1 的區間，確保與 e.pressure 對齊
+    const sliderPressure = parseFloat(pressureSlider.value) / 100;
+    
+    // 檢查 e.pressure：若為 0 或 undefined，則強制使用滑桿設定
+    const pressure = (e.pressure && e.pressure > 0) ? e.pressure : sliderPressure;
+    
+    // 筆刷大小與透明度邏輯
     const brushSize = brushSizeInput.value * pressure;
     const brushAlpha = pressure;
 
@@ -1026,7 +1037,6 @@ function draw(e) {
     }
     lastPosition = { x, y };
 }
-
 function erase(e) {
     if (!currentLayer) return;
 
@@ -2980,12 +2990,16 @@ function showMessage(text) {
 
 
 function getPressure(e) {
-    if (e.touches && e.touches[0]) {
-        return e.touches[0].force || 0.5; // 部分裝置可能使用 `force`
+    // 檢查 e.pressure 是否存在且大於 0
+    // 注意：有些設備在輕觸時壓力會很小但大於 0
+    if (e.pressure !== undefined && e.pressure > 0) {
+        return e.pressure;
     }
-    return e.pressure || 0.5; // 非觸控事件會回傳標準 pressure
+    
+    // 如果系統無法回傳壓力，則根據目前的工具類型進行模擬
+    // 如果是筆或觸控，給予基礎值；如果是滑鼠，給予 0.5
+    return (e.pointerType === 'mouse') ? 0.5 : 0.8; 
 }
-
 // 工具列上的選取相關按鈕（複製/剪下/貼上/清除選取內容/取消選取）
 // 這幾顆按鈕原本完全沒有綁定事件，點擊沒有任何反應
 document.getElementById('copy-selection').addEventListener('click', () => {
@@ -3496,13 +3510,598 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+// 確保這些綁定在 DOM 載入後執行
+canvas.addEventListener('pointerdown', (e) => {
+    // 確保只處理左鍵或觸控
+    if (e.button !== 0) return; 
+    
+    e.preventDefault(); 
+    // 你的開始繪圖邏輯 (例如：設定 lastPosition, 開始繪圖標記)
+    lastPosition = getCoordinates(e); // 初始化位置
+    isDrawing = true; 
+});
+
+canvas.addEventListener('pointermove', (e) => {
+    // 只有在繪圖狀態下才執行
+    if (!isDrawing) return;
+    
+    e.preventDefault(); 
+    draw(e);
+});
+
+// 別忘了 pointerup，否則無法停止繪圖
+canvas.addEventListener('pointerup', (e) => {
+    isDrawing = false;
+    lastPosition = null;
+});
+
+// 防止手指離開畫布範圍後繪圖停不下來
+canvas.addEventListener('pointerleave', (e) => {
+    isDrawing = false;
+    lastPosition = null;
+});
 
 
+document.addEventListener('DOMContentLoaded', () => {
+    const canvasContainer = document.getElementById('canvas-container');
+    const canvas = document.getElementById('drawing-canvas');
+
+    // 統一使用 canvasContainer 綁定，這是最穩定的做法
+    canvasContainer.addEventListener('pointerdown', handlePointerDown);
+    canvasContainer.addEventListener('pointermove', handlePointerMove);
+    canvasContainer.addEventListener('pointerup', handlePointerUp);
+    canvasContainer.addEventListener('pointerleave', handlePointerUp); // 離開畫布時停止
+});
 
 
+/**
+ * 觸控補丁外掛 (Mobile Touch Stability Patch)
+ * 用於強制矯正手機端的感壓數據與繪圖事件行為
+ */
+(function() {
+    const canvasContainer = document.getElementById('canvas-container');
+    
+    // 1. 強制 CSS 行為 (即使 CSS 漏寫了，這裡補上)
+    canvasContainer.style.touchAction = 'none';
+    canvasContainer.style.userSelect = 'none';
+
+    // 2. 攔截捕獲階段的事件，確保預設手勢被移除
+    // 這裡我們不衝突原本的處理函數，只負責 "防禦" 瀏覽器行為
+    const preventDefaultEvents = ['touchstart', 'touchmove', 'touchend', 'touchcancel'];
+    
+    preventDefaultEvents.forEach(evt => {
+        canvasContainer.addEventListener(evt, (e) => {
+            // 如果這是一個多點觸控，我們允許縮放（如果你的程式支援多點），
+            // 否則強制 preventDefault 防止螢幕滾動
+            if (e.touches.length === 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    });
+
+    // 3. 筆壓模擬補丁 (如果你原本的 getPressure 邏輯在手機上依然讀不到 pressure)
+    // 我們直接覆蓋一個全域補丁，確保 draw() 函數呼叫時永遠有值
+    const originalDraw = window.draw;
+    window.draw = function(e) {
+        // 如果偵測到觸控且壓力無效，強制注入一個模擬的壓力值
+        if (e.pointerType === 'touch' && (!e.pressure || e.pressure === 0)) {
+            // 這裡我們偽造一個 PointerEvent 的屬性，讓原本的 draw 函數誤以為有壓力
+            Object.defineProperty(e, 'pressure', { value: parseFloat(pressureSlider.value) || 0.5 });
+        }
+        originalDraw.call(this, e);
+    };
+
+    console.log("觸控補丁已載入：強制修正感壓與手勢攔截");
+})();
+  
+  // 在你的外掛 js 中加入這行，這能搶先抓到觸控事件
+canvasContainer.addEventListener('pointermove', handlePointerMove, { capture: true, passive: false });
 
 </script>
 <script src="https://unpkg.com/ag-psd@14.3.6/dist/bundle.js"></script>
 
+<script id="pro-drawing-controls">
+/* 統一輸入控制：避免舊版重複事件處理互相覆蓋。 */
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('overlay');
+    const overlayCtx = overlay.getContext('2d');
+    const pointers = new Map();
+    const selection = { box: null, selecting: false, mode: null, handle: null, start: null, offset: null, origin: null, floating: null, grid: null, gridIndex: -1 };
+    let spaceDown = false, panning = false, panStart = null, previousPoint = null, previousPressure = 0.5, gesture = null;
+
+    canvasContainer.style.touchAction = 'none';
+    canvasContainer.style.userSelect = 'none';
+    canvasContainer.style.transformOrigin = '0 0';
+
+    // 移除可辨識的舊監聽；下方的 capture 監聽也會阻止剩餘舊邏輯執行。
+    ['pointerdown', 'pointermove', 'pointerup', 'pointerout', 'pointerleave'].forEach(type => {
+        canvasContainer.removeEventListener(type, handlePointerDown);
+        canvasContainer.removeEventListener(type, handlePointerMove);
+        canvasContainer.removeEventListener(type, handlePointerUp);
+        canvasContainer.removeEventListener(type, handlePointerMove, true);
+    });
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const point = event => {
+        const rect = canvasContainer.getBoundingClientRect();
+        return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
+    };
+    const normalizeBox = box => {
+        if (box.width < 0) { box.x += box.width; box.width = -box.width; }
+        if (box.height < 0) { box.y += box.height; box.height = -box.height; }
+        box.x = clamp(box.x, 0, currentLayer.canvas.width);
+        box.y = clamp(box.y, 0, currentLayer.canvas.height);
+        box.width = clamp(box.width, 0, currentLayer.canvas.width - box.x);
+        box.height = clamp(box.height, 0, currentLayer.canvas.height - box.y);
+        return box;
+    };
+    const inside = (p, b) => b && p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height;
+    const handleAt = (p, b) => {
+        if (!b) return null;
+        const size = Math.max(8, 12 / scale);
+        const handles = { nw: [b.x, b.y], ne: [b.x + b.width, b.y], sw: [b.x, b.y + b.height], se: [b.x + b.width, b.y + b.height] };
+        return Object.entries(handles).find(([, h]) => Math.abs(p.x - h[0]) <= size && Math.abs(p.y - h[1]) <= size)?.[0] || null;
+    };
+    const floatingCanvas = (box) => {
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(box.width)); c.height = Math.max(1, Math.round(box.height));
+        c.getContext('2d').drawImage(currentLayer.canvas, box.x, box.y, box.width, box.height, 0, 0, c.width, c.height);
+        return c;
+    };
+    const detachSelection = () => {
+        if (!selection.box || selection.floating) return;
+        selection.origin = { x: selection.box.x, y: selection.box.y, width: selection.box.width, height: selection.box.height };
+        selection.floating = floatingCanvas(selection.box);
+        currentLayer.canvas.getContext('2d').clearRect(selection.box.x, selection.box.y, selection.box.width, selection.box.height);
+    };
+    const buildGrid = box => {
+        const points = [];
+        for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) points.push({ x: box.x + box.width * col / 2, y: box.y + box.height * row / 2 });
+        return points;
+    };
+    const warpedSelection = () => {
+        if (!selection.floating || !selection.grid) return { canvas: selection.floating, box: selection.box };
+        const points = selection.grid, source = selection.floating;
+        const minX = Math.floor(Math.min(...points.map(p => p.x))), minY = Math.floor(Math.min(...points.map(p => p.y)));
+        const maxX = Math.ceil(Math.max(...points.map(p => p.x))), maxY = Math.ceil(Math.max(...points.map(p => p.y)));
+        const out = document.createElement('canvas'); out.width = Math.max(1, maxX - minX); out.height = Math.max(1, maxY - minY);
+        const ctx = out.getContext('2d'), cellW = source.width / 2, cellH = source.height / 2;
+        for (let row = 0; row < 2; row++) for (let col = 0; col < 2; col++) {
+            const p00 = points[row * 3 + col], p10 = points[row * 3 + col + 1], p01 = points[(row + 1) * 3 + col], p11 = points[(row + 1) * 3 + col + 1];
+            ctx.save(); ctx.beginPath(); ctx.moveTo(p00.x - minX, p00.y - minY); ctx.lineTo(p10.x - minX, p10.y - minY); ctx.lineTo(p11.x - minX, p11.y - minY); ctx.lineTo(p01.x - minX, p01.y - minY); ctx.closePath(); ctx.clip();
+            ctx.transform((p10.x - p00.x) / cellW, (p10.y - p00.y) / cellW, (p01.x - p00.x) / cellH, (p01.y - p00.y) / cellH, p00.x - minX, p00.y - minY);
+            ctx.drawImage(source, col * cellW, row * cellH, cellW, cellH, 0, 0, cellW, cellH); ctx.restore();
+        }
+        return { canvas: out, box: { x: minX, y: minY, width: out.width, height: out.height } };
+    };
+    const flattenGrid = () => {
+        if (!selection.grid) return;
+        const rendered = warpedSelection();
+        selection.floating = rendered.canvas; selection.box = rendered.box; selection.grid = null;
+    };
+    const commitSelection = () => {
+        if (!selection.floating || !selection.box) return;
+        // source-over 讓透明像素保持透明，且可與同圖層既有像素自然交疊。
+        const rendered = warpedSelection();
+        currentLayer.canvas.getContext('2d').drawImage(rendered.canvas, rendered.box.x, rendered.box.y, rendered.box.width, rendered.box.height);
+        selection.box = rendered.box; selection.floating = null; selection.origin = null; selection.grid = null;
+        syncOriginalCanvas(currentLayer);
+    };
+    const cancelSelection = () => {
+        if (selection.floating && selection.origin) currentLayer.canvas.getContext('2d').drawImage(selection.floating, selection.origin.x, selection.origin.y, selection.origin.width, selection.origin.height);
+        selection.box = null; selection.selecting = false; selection.mode = null; selection.handle = null; selection.floating = null; selection.origin = null; selection.grid = null;
+        syncOriginalCanvas(currentLayer); renderSelection();
+    };
+    const renderSelection = () => {
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+        const rendered = warpedSelection();
+        const box = rendered.box;
+        if (!box) return;
+        // 遮罩只覆蓋選取區外；選取區與浮動像素本身保持透明，不遮蔽交疊內容。
+        overlayCtx.save();
+        overlayCtx.fillStyle = 'rgba(18, 24, 38, 0.28)';
+        overlayCtx.beginPath(); overlayCtx.rect(0, 0, overlay.width, overlay.height); overlayCtx.rect(box.x, box.y, box.width, box.height); overlayCtx.fill('evenodd');
+        if (rendered.canvas) overlayCtx.drawImage(rendered.canvas, box.x, box.y, box.width, box.height);
+        overlayCtx.strokeStyle = '#61dafb'; overlayCtx.lineWidth = Math.max(1, 1 / scale); overlayCtx.setLineDash([6 / scale, 4 / scale]); overlayCtx.strokeRect(box.x, box.y, box.width, box.height); overlayCtx.setLineDash([]);
+        const size = Math.max(7, 8 / scale), half = size / 2;
+        overlayCtx.fillStyle = '#ffffff'; overlayCtx.strokeStyle = '#1684c0'; overlayCtx.lineWidth = Math.max(1, 1 / scale);
+        [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].forEach(([x, y]) => { overlayCtx.fillRect(x - half, y - half, size, size); overlayCtx.strokeRect(x - half, y - half, size, size); });
+        if (selection.grid) {
+            overlayCtx.strokeStyle = 'rgba(255, 201, 61, .95)'; overlayCtx.lineWidth = Math.max(1, 1 / scale);
+            for (let row = 0; row < 3; row++) { overlayCtx.beginPath(); overlayCtx.moveTo(selection.grid[row * 3].x, selection.grid[row * 3].y); overlayCtx.lineTo(selection.grid[row * 3 + 1].x, selection.grid[row * 3 + 1].y); overlayCtx.lineTo(selection.grid[row * 3 + 2].x, selection.grid[row * 3 + 2].y); overlayCtx.stroke(); }
+            for (let col = 0; col < 3; col++) { overlayCtx.beginPath(); overlayCtx.moveTo(selection.grid[col].x, selection.grid[col].y); overlayCtx.lineTo(selection.grid[col + 3].x, selection.grid[col + 3].y); overlayCtx.lineTo(selection.grid[col + 6].x, selection.grid[col + 6].y); overlayCtx.stroke(); }
+            selection.grid.forEach(node => { overlayCtx.fillStyle = '#ffc93d'; overlayCtx.fillRect(node.x - half, node.y - half, size, size); });
+        }
+        overlayCtx.restore();
+    };
+    const brushPressure = event => {
+        const simulated = clamp(parseFloat(pressureSlider.value) || 0.5, 0.05, 1);
+        const raw = event.pointerType === 'pen' && event.pressure > 0 ? event.pressure : simulated;
+        previousPressure += (raw - previousPressure) * 0.35;
+        return clamp(previousPressure, 0.05, 1);
+    };
+    const paint = (event, eraseMode) => {
+        const now = point(event), pressure = brushPressure(event), base = Math.max(1, Number(brushSizeInput.value));
+        const ctx = currentLayer.canvas.getContext('2d');
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = base * (0.2 + pressure * 0.8);
+        ctx.globalAlpha = eraseMode ? 1 : 0.2 + pressure * 0.8;
+        if (eraseMode) ctx.globalCompositeOperation = 'destination-out'; else ctx.strokeStyle = brushColorInput.value;
+        ctx.beginPath();
+        if (previousPoint) { ctx.moveTo(previousPoint.x, previousPoint.y); ctx.lineTo(now.x, now.y); ctx.stroke(); }
+        else { ctx.arc(now.x, now.y, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fillStyle = eraseMode ? '#000' : brushColorInput.value; ctx.fill(); }
+        ctx.restore(); previousPoint = now;
+    };
+    const applyView = () => {
+        scale = clamp(scale, 0.1, 8);
+        canvasContainer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    };
+    const beginGesture = () => {
+        const [a, b] = [...pointers.values()];
+        const dx = b.clientX - a.clientX, dy = b.clientY - a.clientY;
+        gesture = { distance: Math.hypot(dx, dy), scale, offsetX, offsetY, center: { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 } };
+        previousPoint = null; selection.mode = null;
+    };
+    const updateGesture = () => {
+        if (!gesture || pointers.size < 2) return;
+        const [a, b] = [...pointers.values()]; const distance = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+        const center = { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+        scale = clamp(gesture.scale * distance / gesture.distance, 0.1, 8);
+        offsetX = gesture.offsetX + center.x - gesture.center.x; offsetY = gesture.offsetY + center.y - gesture.center.y;
+        applyView();
+    };
+    const updateSelectionTransform = p => {
+        const b = selection.box;
+        if (selection.mode === 'grid' && selection.gridIndex >= 0) { selection.grid[selection.gridIndex] = { x: clamp(p.x, 0, currentLayer.canvas.width), y: clamp(p.y, 0, currentLayer.canvas.height) }; }
+        else if (selection.mode === 'move') { b.x = p.x - selection.offset.x; b.y = p.y - selection.offset.y; }
+        else if (selection.mode === 'resize') {
+            const o = selection.origin;
+            if (selection.handle.includes('w')) { b.x = p.x; b.width = o.x + o.width - p.x; } else b.width = p.x - b.x;
+            if (selection.handle.includes('n')) { b.y = p.y; b.height = o.y + o.height - p.y; } else b.height = p.y - b.y;
+            normalizeBox(b);
+        } else if (selection.mode === 'new') { b.width = p.x - selection.start.x; b.height = p.y - selection.start.y; normalizeBox(b); }
+        renderSelection();
+    };
+    const onPointerDown = event => {
+        if (event.button !== undefined && event.button !== 0 && event.pointerType !== 'touch') return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        pointers.set(event.pointerId, event); canvasContainer.setPointerCapture?.(event.pointerId);
+        if (event.pointerType === 'touch' && pointers.size >= 2) { beginGesture(); return; }
+        if (spaceDown || event.button === 1) { panning = true; panStart = { x: event.clientX, y: event.clientY, offsetX, offsetY }; return; }
+        const p = point(event);
+        if (currentTool === 'select') {
+            const gridHit = selection.grid ? selection.grid.findIndex(node => Math.hypot(node.x - p.x, node.y - p.y) <= Math.max(10, 14 / scale)) : -1;
+            const hit = handleAt(p, selection.box);
+            if (gridHit >= 0) { selection.mode = 'grid'; selection.gridIndex = gridHit; renderSelection(); return; }
+            if (hit || inside(p, selection.box)) { detachSelection(); selection.mode = hit ? 'resize' : 'move'; selection.handle = hit; selection.origin = { x: selection.box.x, y: selection.box.y, width: selection.box.width, height: selection.box.height }; selection.offset = { x: p.x - selection.box.x, y: p.y - selection.box.y }; }
+            else { commitSelection(); selection.grid = null; selection.box = { x: p.x, y: p.y, width: 0, height: 0 }; selection.start = p; selection.mode = 'new'; selection.selecting = true; }
+            renderSelection(); return;
+        }
+        commitSelection(); renderSelection(); previousPoint = null; previousPressure = clamp(parseFloat(pressureSlider.value) || 0.5, 0.05, 1); paint(event, currentTool === 'eraser');
+    };
+    const onPointerMove = event => {
+        if (!pointers.has(event.pointerId)) return;
+        event.preventDefault(); event.stopImmediatePropagation(); pointers.set(event.pointerId, event);
+        if (gesture || (event.pointerType === 'touch' && pointers.size >= 2)) { if (!gesture) beginGesture(); updateGesture(); return; }
+        if (panning) { offsetX = panStart.offsetX + event.clientX - panStart.x; offsetY = panStart.offsetY + event.clientY - panStart.y; applyView(); return; }
+        if (currentTool === 'select' && selection.mode) updateSelectionTransform(point(event));
+        else if (currentTool === 'pencil' || currentTool === 'eraser') paint(event, currentTool === 'eraser');
+    };
+    const onPointerUp = event => {
+        if (!pointers.has(event.pointerId)) return;
+        event.preventDefault(); event.stopImmediatePropagation(); pointers.delete(event.pointerId);
+        if (gesture) { if (pointers.size < 2) gesture = null; return; }
+        if (panning) { panning = false; return; }
+        if (currentTool === 'select' && selection.mode) {
+            if (selection.mode === 'new' && (selection.box.width < 2 || selection.box.height < 2)) selection.box = null;
+            selection.mode = null; selection.selecting = false; selection.handle = null; selection.gridIndex = -1; renderSelection();
+        } else if (currentLayer) { previousPoint = null; syncOriginalCanvas(currentLayer); }
+    };
+    canvasContainer.addEventListener('pointerdown', onPointerDown, { capture: true, passive: false });
+    canvasContainer.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
+    canvasContainer.addEventListener('pointerup', onPointerUp, { capture: true, passive: false });
+    canvasContainer.addEventListener('pointercancel', onPointerUp, { capture: true, passive: false });
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(type => canvasContainer.addEventListener(type, e => e.preventDefault(), { capture: true, passive: false }));
+    canvasContainer.addEventListener('wheel', event => {
+        event.preventDefault(); event.stopImmediatePropagation();
+        const rect = canvasContainer.getBoundingClientRect(), baseX = rect.left - offsetX, baseY = rect.top - offsetY;
+        const localX = (event.clientX - rect.left) / scale, localY = (event.clientY - rect.top) / scale;
+        const nextScale = clamp(scale * Math.exp(-event.deltaY * 0.0015), 0.1, 8);
+        offsetX = event.clientX - baseX - localX * nextScale; offsetY = event.clientY - baseY - localY * nextScale; scale = nextScale; applyView();
+    }, { capture: true, passive: false });
+    document.addEventListener('keydown', event => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+        if (event.code === 'Space') { spaceDown = true; canvasContainer.style.cursor = 'grab'; event.preventDefault(); event.stopImmediatePropagation(); }
+        if (event.key === 'Escape') { cancelSelection(); event.preventDefault(); event.stopImmediatePropagation(); }
+        if ((event.key === 'Delete' || event.key === 'Backspace') && selection.box) { detachSelection(); selection.floating = null; selection.box = null; syncOriginalCanvas(currentLayer); renderSelection(); event.preventDefault(); event.stopImmediatePropagation(); }
+    }, true);
+    document.addEventListener('keyup', event => { if (event.code === 'Space') { spaceDown = false; canvasContainer.style.cursor = ''; event.preventDefault(); } }, true);
+    let selectionClipboardCanvas = null;
+    const copyCanvas = source => {
+        const copy = document.createElement('canvas'); copy.width = source.width; copy.height = source.height;
+        copy.getContext('2d').drawImage(source, 0, 0); return copy;
+    };
+    window.proDrawingSelection = {
+        hasSelection: () => Boolean(selection.box),
+        hasClipboard: () => Boolean(selectionClipboardCanvas),
+        copy: () => {
+            if (!selection.box) return false;
+            selectionClipboardCanvas = copyCanvas(selection.grid ? warpedSelection().canvas : (selection.floating || floatingCanvas(selection.box)));
+            return true;
+        },
+        cut: () => {
+            if (!window.proDrawingSelection.copy()) return false;
+            if (!selection.floating) currentLayer.canvas.getContext('2d').clearRect(selection.box.x, selection.box.y, selection.box.width, selection.box.height);
+            selection.box = null; selection.floating = null; selection.origin = null; selection.mode = null;
+            syncOriginalCanvas(currentLayer); renderSelection(); return true;
+        },
+        paste: localPoint => {
+            if (!selectionClipboardCanvas || !currentLayer) return false;
+            commitSelection();
+            const x = clamp(Math.round(localPoint.x), 0, Math.max(0, currentLayer.canvas.width - selectionClipboardCanvas.width));
+            const y = clamp(Math.round(localPoint.y), 0, Math.max(0, currentLayer.canvas.height - selectionClipboardCanvas.height));
+            selection.box = { x, y, width: selectionClipboardCanvas.width, height: selectionClipboardCanvas.height };
+            selection.floating = copyCanvas(selectionClipboardCanvas); selection.origin = null; selection.mode = null;
+            renderSelection(); return true;
+        },
+        rotate: degrees => {
+            if (!selection.box) return false;
+            detachSelection();
+            flattenGrid();
+            const box = selection.box, source = document.createElement('canvas');
+            source.width = Math.max(1, Math.round(box.width)); source.height = Math.max(1, Math.round(box.height));
+            source.getContext('2d').drawImage(selection.floating, 0, 0, source.width, source.height);
+            const radians = degrees * Math.PI / 180, sin = Math.abs(Math.sin(radians)), cos = Math.abs(Math.cos(radians));
+            const out = document.createElement('canvas'); out.width = Math.ceil(source.width * cos + source.height * sin); out.height = Math.ceil(source.width * sin + source.height * cos);
+            const ctx = out.getContext('2d'); ctx.translate(out.width / 2, out.height / 2); ctx.rotate(radians); ctx.drawImage(source, -source.width / 2, -source.height / 2);
+            const centerX = box.x + box.width / 2, centerY = box.y + box.height / 2;
+            selection.floating = out; selection.box = { x: Math.round(centerX - out.width / 2), y: Math.round(centerY - out.height / 2), width: out.width, height: out.height }; selection.grid = null;
+            renderSelection(); return true;
+        },
+        mirror: horizontal => {
+            if (!selection.box) return false;
+            detachSelection();
+            flattenGrid();
+            const box = selection.box, out = document.createElement('canvas'); out.width = Math.max(1, Math.round(box.width)); out.height = Math.max(1, Math.round(box.height));
+            const ctx = out.getContext('2d');
+            if (horizontal) { ctx.translate(out.width, 0); ctx.scale(-1, 1); } else { ctx.translate(0, out.height); ctx.scale(1, -1); }
+            ctx.drawImage(selection.floating, 0, 0, out.width, out.height); selection.floating = out; selection.grid = null;
+            renderSelection(); return true;
+        },
+        toggleGrid: () => {
+            if (!selection.box) return false;
+            detachSelection();
+            if (selection.grid) flattenGrid(); else selection.grid = buildGrid(selection.box);
+            renderSelection(); return true;
+        },
+        cancel: cancelSelection,
+        delete: () => {
+            if (!selection.box) return false;
+            if (!selection.floating) currentLayer.canvas.getContext('2d').clearRect(selection.box.x, selection.box.y, selection.box.width, selection.box.height);
+            selection.box = null; selection.floating = null; selection.origin = null; selection.mode = null;
+            syncOriginalCanvas(currentLayer); renderSelection(); return true;
+        },
+        pointFromClient: clientPoint => point({ clientX: clientPoint.x, clientY: clientPoint.y })
+    };
+    applyView();
+});
+</script>
+<script id="clipboard-context-menu-bridge">
+/* 讓工具列、鍵盤與右鍵選單共用同一個浮動選取剪貼簿。 */
+document.addEventListener('DOMContentLoaded', () => {
+    const api = window.proDrawingSelection;
+    const menu = document.getElementById('contextMenu');
+    if (!api || !menu) return;
+    menu.innerHTML = `
+        <button type="button" data-action="copy">複製 <kbd>Ctrl+C</kbd></button>
+        <button type="button" data-action="cut">剪下 <kbd>Ctrl+X</kbd></button>
+        <button type="button" data-action="paste">貼上 <kbd>Ctrl+V</kbd></button>
+        <hr>
+        <button type="button" data-action="rotate-left">向左旋轉 <kbd>−90°</kbd></button>
+        <button type="button" data-action="rotate-right">向右旋轉 <kbd>+90°</kbd></button>
+        <button type="button" data-action="mirror-x">水平鏡射</button>
+        <button type="button" data-action="mirror-y">垂直鏡射</button>
+        <button type="button" data-action="grid">網格變形</button>
+        <hr><button type="button" data-action="cancel">取消選取 <kbd>Esc</kbd></button>`;
+    menu.style.cssText += ';min-width:180px;padding:6px;z-index:2147483647;';
+    menu.querySelectorAll('button').forEach(button => {
+        button.style.cssText = 'display:flex;width:100%;justify-content:space-between;gap:16px;padding:8px 10px;border:0;background:transparent;text-align:left;cursor:pointer;color:#222;';
+        button.addEventListener('mouseenter', () => button.style.background = '#e8f1ff');
+        button.addEventListener('mouseleave', () => button.style.background = 'transparent');
+    });
+    menu.querySelector('hr').style.cssText = 'border:0;border-top:1px solid #ddd;margin:5px 0;';
+    let menuPoint = { x: 0, y: 0 };
+    const message = text => typeof showMessage === 'function' && showMessage(text);
+    const run = action => {
+        let ok = false;
+        if (action === 'copy') ok = api.copy();
+        if (action === 'cut') ok = api.cut();
+        if (action === 'paste') ok = api.paste(api.pointFromClient(menuPoint));
+        if (action === 'rotate-left') ok = api.rotate(-90);
+        if (action === 'rotate-right') ok = api.rotate(90);
+        if (action === 'mirror-x') ok = api.mirror(true);
+        if (action === 'mirror-y') ok = api.mirror(false);
+        if (action === 'grid') ok = api.toggleGrid();
+        if (action === 'cancel') { api.cancel(); ok = true; }
+        menu.style.display = 'none';
+        if (!ok && action !== 'cancel') message(action === 'paste' ? '剪貼簿是空的' : '請先框選一個區域');
+        else if (ok && action !== 'cancel') message({ copy: '已複製', cut: '已剪下', paste: '已貼上', 'rotate-left': '已向左旋轉', 'rotate-right': '已向右旋轉', 'mirror-x': '已水平鏡射', 'mirror-y': '已垂直鏡射', grid: '網格變形已啟用，可拖曳黃色控制點' }[action]);
+    };
+    menu.addEventListener('click', event => {
+        const action = event.target.closest('[data-action]')?.dataset.action;
+        if (!action) return; event.preventDefault(); event.stopImmediatePropagation(); run(action);
+    }, true);
+    document.addEventListener('contextmenu', event => {
+        if (!canvasContainer.contains(event.target)) return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        menuPoint = { x: event.clientX, y: event.clientY };
+        menu.querySelector('[data-action="copy"]').disabled = !api.hasSelection();
+        menu.querySelector('[data-action="cut"]').disabled = !api.hasSelection();
+        menu.querySelector('[data-action="paste"]').disabled = !api.hasClipboard();
+        menu.querySelectorAll('[data-action="rotate-left"], [data-action="rotate-right"], [data-action="mirror-x"], [data-action="mirror-y"], [data-action="grid"]').forEach(button => button.disabled = !api.hasSelection());
+        menu.querySelectorAll('button').forEach(button => { button.style.opacity = button.disabled ? '.45' : '1'; button.style.cursor = button.disabled ? 'not-allowed' : 'pointer'; });
+        menu.style.display = 'block'; menu.style.left = '0px'; menu.style.top = '0px';
+        const rect = menu.getBoundingClientRect();
+        menu.style.left = `${Math.min(event.clientX, window.innerWidth - rect.width - 8)}px`;
+        menu.style.top = `${Math.min(event.clientY, window.innerHeight - rect.height - 8)}px`;
+    }, true);
+    document.addEventListener('pointerdown', event => { if (!menu.contains(event.target)) menu.style.display = 'none'; }, true);
+    document.addEventListener('click', event => {
+        const id = event.target.closest?.('#copy-selection, #cut-selection, #paste-selection, #delete-selection, #clear-selection')?.id;
+        if (!id) return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        const action = { 'copy-selection': 'copy', 'cut-selection': 'cut', 'paste-selection': 'paste', 'delete-selection': 'delete', 'clear-selection': 'cancel' }[id];
+        if (action === 'delete') { if (!api.delete()) message('請先框選一個區域'); else message('已刪除選取像素'); return; }
+        if (action === 'paste') { const rect = currentLayer.canvas.getBoundingClientRect(); menuPoint = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; }
+        run(action);
+    }, true);
+    document.addEventListener('keydown', event => {
+        if (!(event.ctrlKey || event.metaKey) || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+        const action = { c: 'copy', x: 'cut', v: 'paste' }[event.key.toLowerCase()];
+        if (!action) return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        if (action === 'paste') { const rect = currentLayer.canvas.getBoundingClientRect(); menuPoint = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; }
+        run(action);
+    }, true);
+});
+</script>
+<style id="mobile-touch-menu-styles">
+/* 手機版：不依賴右鍵，改用可點擊的操作按鈕與底部選單。 */
+#mobile-selection-trigger {
+    display: none;
+    position: fixed;
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 2147483646;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: #1565c0;
+    color: #fff;
+    font: 600 15px/1 Arial, sans-serif;
+    box-shadow: 0 4px 14px rgba(0,0,0,.28);
+    touch-action: manipulation;
+}
+#mobile-selection-sheet {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    background: rgba(0,0,0,.36);
+    align-items: flex-end;
+    justify-content: center;
+}
+#mobile-selection-sheet.is-open { display: flex; }
+#mobile-selection-sheet .sheet-panel {
+    width: min(100%, 520px);
+    box-sizing: border-box;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+    background: #fff;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.2);
+}
+#mobile-selection-sheet h3 { margin: 4px 4px 12px; font: 700 17px/1.3 Arial, sans-serif; }
+#mobile-selection-sheet .sheet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+#mobile-selection-sheet button {
+    min-height: 48px;
+    padding: 8px;
+    border: 1px solid #d6dce5;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #172033;
+    font: 600 14px/1.2 Arial, sans-serif;
+    touch-action: manipulation;
+}
+#mobile-selection-sheet button:active { background: #dcecff; }
+#mobile-selection-sheet button:disabled { opacity: .42; }
+#mobile-selection-sheet .close { width: 100%; margin-top: 10px; background: #fff; }
+@media (pointer: coarse), (max-width: 768px) {
+    #mobile-selection-trigger { display: block; }
+    #canvas-container { min-width: 0; min-height: 0; max-width: calc(100vw - 12px); max-height: 70vh; }
+    #toolbar, .tool-group { max-width: calc(100vw - 16px); }
+    .tool, button, input, select { min-height: 40px; }
+}
+</style>
+<script id="mobile-touch-menu">
+/* 觸控版 HTML 選單：長按畫布或點右下角按鈕都能開啟。 */
+document.addEventListener('DOMContentLoaded', () => {
+    const api = window.proDrawingSelection;
+    const container = document.getElementById('canvas-container');
+    if (!api || !container) return;
+
+    const trigger = document.createElement('button');
+    trigger.id = 'mobile-selection-trigger';
+    trigger.type = 'button';
+    trigger.textContent = '選取操作';
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    document.body.appendChild(trigger);
+
+    const sheet = document.createElement('div');
+    sheet.id = 'mobile-selection-sheet';
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-label', '選取操作選單');
+    sheet.innerHTML = `<div class="sheet-panel">
+        <h3>選取操作</h3>
+        <div class="sheet-grid">
+            <button type="button" data-mobile-action="copy">複製</button>
+            <button type="button" data-mobile-action="cut">剪下</button>
+            <button type="button" data-mobile-action="paste">貼上</button>
+            <button type="button" data-mobile-action="rotate-left">向左旋轉 90°</button>
+            <button type="button" data-mobile-action="rotate-right">向右旋轉 90°</button>
+            <button type="button" data-mobile-action="mirror-x">水平鏡射</button>
+            <button type="button" data-mobile-action="mirror-y">垂直鏡射</button>
+            <button type="button" data-mobile-action="grid">網格變形</button>
+        </div>
+        <button type="button" class="close" data-mobile-action="close">關閉</button>
+    </div>`;
+    document.body.appendChild(sheet);
+
+    let lastPoint = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const show = point => {
+        if (point) lastPoint = point;
+        sheet.querySelectorAll('[data-mobile-action]').forEach(button => {
+            const action = button.dataset.mobileAction;
+            button.disabled = ['copy', 'cut', 'rotate-left', 'rotate-right', 'mirror-x', 'mirror-y', 'grid'].includes(action) && !api.hasSelection();
+            if (action === 'paste') button.disabled = !api.hasClipboard();
+        });
+        sheet.classList.add('is-open');
+    };
+    const close = () => sheet.classList.remove('is-open');
+    trigger.addEventListener('click', () => show());
+    sheet.addEventListener('click', event => { if (event.target === sheet) close(); });
+    sheet.querySelector('.sheet-panel').addEventListener('click', event => event.stopPropagation());
+    sheet.addEventListener('click', event => {
+        const action = event.target.closest('[data-mobile-action]')?.dataset.mobileAction;
+        if (!action || event.target.disabled) return;
+        if (action === 'close') return close();
+        let ok = false;
+        if (action === 'copy') ok = api.copy();
+        if (action === 'cut') ok = api.cut();
+        if (action === 'paste') ok = api.paste(api.pointFromClient(lastPoint));
+        if (action === 'rotate-left') ok = api.rotate(-90);
+        if (action === 'rotate-right') ok = api.rotate(90);
+        if (action === 'mirror-x') ok = api.mirror(true);
+        if (action === 'mirror-y') ok = api.mirror(false);
+        if (action === 'grid') ok = api.toggleGrid();
+        if (ok) close();
+    });
+
+    let timer = null, start = null;
+    const cancelHold = () => { if (timer) clearTimeout(timer); timer = null; start = null; };
+    document.addEventListener('pointerdown', event => {
+        if (!container.contains(event.target) || event.pointerType !== 'touch' || event.isPrimary === false) return;
+        start = { x: event.clientX, y: event.clientY };
+        lastPoint = start;
+        timer = setTimeout(() => { timer = null; navigator.vibrate?.(12); show(start); }, 550);
+    }, { capture: true, passive: true });
+    document.addEventListener('pointermove', event => {
+        if (!start) return;
+        lastPoint = { x: event.clientX, y: event.clientY };
+        if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) cancelHold();
+    }, { capture: true, passive: true });
+    ['pointerup', 'pointercancel'].forEach(type => document.addEventListener(type, cancelHold, { capture: true, passive: true }));
+});
+</script>
 </body>
 </html>
