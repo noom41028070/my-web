@@ -3240,6 +3240,39 @@ overflow:auto;
 
 }
 
+
+#editor-resize-handle{
+
+
+position:absolute;
+
+
+right:0;
+
+bottom:0;
+
+
+width:25px;
+
+height:25px;
+
+
+background:
+linear-gradient(
+135deg,
+transparent 50%,
+#777 50%
+);
+
+
+cursor:nwse-resize;
+
+
+touch-action:none;
+
+
+}
+
     </style>
 </head>
 <body>
@@ -11761,6 +11794,102 @@ select.addEventListener("change",()=>{
 
 
     };
+
+
+})();
+
+const editor =
+document.querySelector("#previewFloat");
+
+(function(){
+
+const editor =
+document.querySelector("#editorFloat");
+
+
+if(!editor) return;
+
+
+
+const handle =
+document.createElement("div");
+
+
+handle.id="editor-resize-handle";
+
+
+editor.appendChild(handle);
+
+
+
+let startX;
+let startY;
+
+let startW;
+let startH;
+
+
+
+handle.addEventListener(
+"pointerdown",
+e=>{
+
+
+e.preventDefault();
+
+
+startX=e.clientX;
+startY=e.clientY;
+
+
+startW=editor.offsetWidth;
+startH=editor.offsetHeight;
+
+
+
+handle.setPointerCapture(
+e.pointerId
+);
+
+
+});
+
+
+
+handle.addEventListener(
+"pointermove",
+e=>{
+
+
+if(!handle.hasPointerCapture(
+e.pointerId
+)) return;
+
+
+
+let w =
+startW +
+(e.clientX-startX);
+
+
+
+let h =
+startH +
+(e.clientY-startY);
+
+
+
+editor.style.width =
+Math.max(300,w)+"px";
+
+
+editor.style.height =
+Math.max(250,h)+"px";
+
+
+
+});
+
 
 
 })();
