@@ -3073,15 +3073,18 @@ overflow:auto;
    小螢幕
 ================================= */
 
+/* =================================
+   小螢幕
+================================= */
 
 @media(max-width:700px){
 
 
-
-    /* 編輯器 */
+    /* =========================
+       編輯器
+    ========================= */
 
     #editorFloat {
-
 
         top:20px;
 
@@ -3089,14 +3092,13 @@ overflow:auto;
 
         right:auto;
 
-
         width:90%;
-
 
         height:45vh;
 
         max-height:45vh;
 
+        border-radius:12px;
 
     }
 
@@ -3104,80 +3106,35 @@ overflow:auto;
 
     #editorPanel{
 
-
         width:100%;
 
-
-        height:calc(45vh - 40px);
-
+        height:calc(45vh - 45px);
 
         box-sizing:border-box;
 
+        overflow-y:auto;
 
-        overflow:auto;
-
+        overflow-x:hidden;
 
     }
 
 
 
+   /* =================================
+   小螢幕補充
+================================= */
 
+@media(max-width:700px){
 
-    /* 預覽視窗 */
 
     #previewFloat {
-
-
-        bottom:20px;
 
 
         left:5%;
 
         right:auto;
 
-
         width:90%;
-
-
-        height:35vh;
-
-
-        max-height:35vh;
-
-
-    }
-
-
-
-
-    #previewPanel{
-
-
-        height:calc(35vh - 40px);
-
-
-        overflow-y:auto;
-
-
-        padding:15px;
-
-
-    }
-
-
-
-
-
-    /* 標題列 */
-
-    #editorHeader,
-    #previewHeader{
-
-
-        height:45px;
-
-
-        font-size:16px;
 
 
     }
@@ -3187,22 +3144,35 @@ overflow:auto;
 }
 
 
-
-
 /* =================================
-   觸控拖曳設定
+   標題列觸控
 ================================= */
 
+
+/*
+  不要整個 Header 禁止觸控
+  否則按鈕可能無法點擊
+*/
 
 #editorHeader,
 #previewHeader{
 
 
-    touch-action:none;
-
-
     user-select:none;
 
+    -webkit-user-select:none;
+
+
+}
+
+
+/* 真正拖曳區使用 */
+
+#editorHeader .drag-area,
+#previewHeader .drag-area{
+
+
+    touch-action:none;
 
 }
 
@@ -3211,7 +3181,7 @@ overflow:auto;
 
 
 /* =================================
-   空選項刪除按鈕
+   移除空選項按鈕
 ================================= */
 
 
@@ -3227,16 +3197,31 @@ overflow:auto;
     color:#777;
 
 
-    width:26px;
+    width:30px;
 
 
-    height:26px;
+    height:30px;
 
 
     border-radius:50%;
 
 
     cursor:pointer;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:center;
+
+
+    font-size:16px;
+
+
+    touch-action:manipulation;
 
 
 }
