@@ -399,27 +399,28 @@
 /* ===== 流程圖工作區 ===== */
 
 
-.pixiv-editor-container #flowPanel {
-
-    position:relative;
-
-    height:calc(100vh - 100px);
-
-    background-color:#f3f4f6;
-
-    overflow:hidden;
-
-    overscroll-behavior:none;
-
-    -webkit-overflow-scrolling:touch;
-
-    touch-action:none;
-
-    border-bottom:2px solid #aaa;
-
-    cursor:grab;
-
-}
+.pixiv-editor-container #flowPanel {  
+  
+    position:relative;  
+  
+   height:calc(100vh - 100px);  
+  
+    background-color:#f3f4f6;  
+  
+    overflow:auto;  
+  
+    overscroll-behavior:contain;  
+  
+    -webkit-overflow-scrolling:touch;  
+  
+    touch-action:auto;  
+  
+    border-bottom:2px solid #aaa;  
+  
+    cursor:grab;  
+  
+}  
+  
 
 
 /* ===== 無限畫布區 ===== */
