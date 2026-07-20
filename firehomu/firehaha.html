@@ -399,28 +399,28 @@
 /* ===== 流程圖工作區 ===== */
 
 
-.pixiv-editor-container #flowPanel {  
-  
-    position:relative;  
-  
-   height:calc(100vh - 100px);  
-  
-    background-color:#f3f4f6;  
-  
-    overflow:auto;  
-  
-    overscroll-behavior:contain;  
-  
-    -webkit-overflow-scrolling:touch;  
-  
-    touch-action:auto;  
-  
-    border-bottom:2px solid #aaa;  
-  
-    cursor:grab;  
-  
-}  
-  
+.pixiv-editor-container #flowPanel {
+
+    position:relative;
+
+   height:calc(100vh - 100px);
+
+    background-color:#f3f4f6;
+
+    overflow:auto;
+
+    overscroll-behavior:contain;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:auto;
+
+    border-bottom:2px solid #aaa;
+
+    cursor:grab;
+
+}
+
 
 
 /* ===== 無限畫布區 ===== */
@@ -3130,46 +3130,6 @@ margin-top:5px;
 }
 
 
-@media (max-width:600px){
-
-    header{
-        padding:5px;
-        height:auto;
-        flex-wrap:wrap;
-    }
-
-
-    header button{
-        font-size:12px;
-        padding:5px 8px;
-    }
-
-
-    header input,
-    header select{
-        font-size:12px;
-        height:28px;
-    }
-
-}
-
-@media (max-width:600px){
-
-    .pixiv-editor-container #flowPanel{
-
-        height:calc(100vh - 55px);
-
-    }
-
-}
-
-
-
-
-
-
-
-
     </style>
 </head>
 <body>
@@ -3858,6 +3818,7 @@ safeStorage.isPersistent()
                 pageTextPlaceholder: "在此輸入正文...選取文字可搭配上方工具列排版",
                 optionsHeader: "分歧選項",
                 addOption: "新增選項（自動生成新頁面）",
+                branchOrder: "選項1,選項2（內文）,選項3→3　※加「→頁碼」可匯合到既有頁面",
                 deletePage: "🗑️ 刪除此頁面",
                 previewHeader: "Pixiv預覽",
                 notSet: "未設定",
@@ -3898,6 +3859,7 @@ safeStorage.isPersistent()
                 pageTextPlaceholder: "Enter story content here... Select text to format using the toolbar above.",
                 optionsHeader: "Branch Options",
                 addOption: "Add Option (Auto-generate page)",
+                branchOrder: "Option1,Option2(text),Option3→3  (add \"→pageNum\" to link to an existing page)",
                 deletePage: "🗑️ Delete This Page",
                 previewHeader: "Pixiv Preview",
                 notSet: "Not Set",
@@ -3971,6 +3933,7 @@ newOption:"New Option"
                 pageTextPlaceholder: "ここに本文を入力... 文字を選択して上のツールバーで装飾できます",
                 optionsHeader: "分岐選択肢",
                 addOption: "選択肢追加（新ページ自動生成）",
+                branchOrder: "選択肢1,選択肢2（本文）,選択肢3→3　※「→ページ番号」で既存ページに合流できます",
                 deletePage: "🗑️ このページを削除",
                 previewHeader: "Pixivプレビュー",
                 notSet: "未設定",
@@ -5864,6 +5827,11 @@ document.getElementById('plug-branch').addEventListener('click', () => {
 
 
 
+    // 統計最後要顯示的訊息用
+    let createdCount = 0;
+    let linkedCount = 0;
+
+
     chars.forEach((item,index)=>{
 
 
@@ -5874,6 +5842,31 @@ document.getElementById('plug-branch').addEventListener('click', () => {
         let content =
         "";
 
+
+
+        // =========================
+        // 先抓「→頁碼」：指定這個分支要「匯合」連到既有的第幾頁，
+        // 而不是每次都自動建立新頁面。例如：
+        //   西瓜檸檬（很甜）,回到起點→1
+        // 「回到起點」這個分支就會直接連到第 1 頁，不會另外生一頁。
+        // =========================
+
+        let linkPageNum = null;
+
+        const linkMatch =
+        item.match(/→\s*(\d+)\s*$/);
+
+        if(linkMatch){
+
+            linkPageNum =
+            parseInt(linkMatch[1], 10);
+
+            item =
+            item.slice(0, linkMatch.index).trim();
+
+            char = item;
+
+        }
 
 
         // =========================
@@ -5906,6 +5899,39 @@ document.getElementById('plug-branch').addEventListener('click', () => {
             .trim();
 
         }
+
+        // =========================
+        // 如果有指定「→頁碼」，而且頁碼確實存在，就直接匯合連到那一頁，
+        // 不建立新頁面；頁碼無效（例如超出範圍）就照原本邏輯建立新頁，
+        // 並在 console 留下警告方便排查。
+        // =========================
+
+        const targetExisting =
+        (linkPageNum && linkPageNum >= 1 && linkPageNum <= pages.length)
+        ? pages[linkPageNum - 1]
+        : null;
+
+        if(targetExisting){
+
+            currentPage.options.push({
+                text: char,
+                target: targetExisting.id
+            });
+
+            linkedCount++;
+
+            return; // 這個分支處理完了，不用往下建立新頁面
+
+        }
+
+        if(linkPageNum && !targetExisting){
+
+            console.warn(
+                `「${char}」指定的 →${linkPageNum} 找不到對應頁面，改為自動建立新頁面。`
+            );
+
+        }
+
 
 
 
@@ -6004,7 +6030,7 @@ if(content){
 
         createFlowNode(next);
 
-
+        createdCount++;
 
     });
 
@@ -6018,7 +6044,9 @@ if(content){
 
 
     alert(
-        `已成功生成 ${chars.length} 個分支！`
+        linkedCount > 0
+        ? `已成功生成 ${createdCount} 個新分支，並匯合連結 ${linkedCount} 個既有頁面！`
+        : `已成功生成 ${createdCount} 個分支！`
     );
 
 
@@ -6161,7 +6189,7 @@ box-shadow:0 8px 20px rgba(0,0,0,.25);
 
 z-index:9999;
 
-overflow:auto;
+overflow:hidden;
 
 }
 
@@ -8011,6 +8039,110 @@ function updatePixivWordCounter(){
 
 }
 
+// ---------------------------------------------
+// 定位目前Node
+// ---------------------------------------------
+
+function jumpCurrent(){
+
+
+if(!currentPage)
+return alert("目前沒有選取頁面");
+
+
+let key =
+`[chapter:${currentPage.id}|`;
+
+
+let chapterPos =
+editor.value.indexOf(
+"[chapter:"+key+"]"
+);
+
+
+let pos =
+chapterPos>=0 ?
+chapterPos :
+editor.value.indexOf(key);
+
+
+if(pos>=0){
+
+    editor.focus();
+
+
+    editor.setSelectionRange(
+        pos,
+        pos + key.length
+    );
+
+
+    editor.scrollTop =
+    editor.value
+    .substring(0,pos)
+    .split("\n")
+    .length
+    *
+    24;
+
+
+}else{
+
+    alert("找不到目前Node");
+
+}
+
+
+}
+
+function jumpCursorChapter(){
+
+    let key =
+    prompt("輸入頁面名稱");
+
+
+    if(!key)
+        return;
+
+
+    let pos =
+    editor.value.indexOf(
+        "[chapter:"+key+"]"
+    );
+
+
+    if(pos>=0){
+
+
+        editor.focus();
+
+
+        editor.setSelectionRange(
+            pos,
+            pos+key.length
+        );
+
+
+        editor.scrollTop =
+        editor.value
+        .substring(0,pos)
+        .split("\n")
+        .length
+        *
+        24;
+
+
+    }
+    else{
+
+        alert(
+        "找不到章節："+key
+        );
+
+    }
+
+}
+
 
 
 
@@ -8495,10 +8627,6 @@ win.innerHTML=`
 </button>
 
 
-<button id="source-current">
-📍定位目前Node
-</button>
-
 <button id="source-auto">
 🔄自動同步
 </button>
@@ -8506,8 +8634,8 @@ win.innerHTML=`
 <input id="source-search"
 placeholder="搜尋文字">
 
-<button id="source-cursor">
-🔎定位章節
+<button id="source-search-btn">
+搜尋
 </button>
 
 </div>
@@ -8729,38 +8857,60 @@ win.querySelector("#source-apply")
     projectChanged = true;
 
 };
-win.querySelector("#source-search")
-.oninput=function(){
-
-let key=this.value;
-
-if(!key)
-    return;
+win.querySelector("#source-search-btn")
+.onclick=function(){
 
 
-let pos=
-editor.value.indexOf(key);
+    let key =
+    win.querySelector("#source-search")
+    .value
+    .trim();
 
 
-if(pos>=0){
+    if(!key)
+        return;
 
-editor.focus();
 
-editor.setSelectionRange(
-pos,
-pos+key.length
-);
 
-}
+    let pos =
+    editor.value.indexOf(key);
+
+
+
+    if(pos>=0){
+
+
+        editor.focus();
+
+
+        editor.setSelectionRange(
+            pos,
+            pos + key.length
+        );
+
+
+        editor.scrollTop =
+        editor.value
+        .substring(0,pos)
+        .split("\n")
+        .length
+        *
+        24;
+
+
+    }
+    else{
+
+
+        alert(
+            "找不到："+key
+        );
+
+
+    }
+
 
 };
-
-
-
-
-win.querySelector("#source-current")
-.onclick=jumpCurrent;
-
 
 
 // 新增：定位其他章節
@@ -8827,6 +8977,7 @@ updateAll();
 
 
 
+
 // ---------------------------------------------
 // 更新行號與字數
 // ---------------------------------------------
@@ -8872,111 +9023,6 @@ ${text.length.toLocaleString()}
 
 }
 
-
-
-// ---------------------------------------------
-// 定位目前Node
-// ---------------------------------------------
-
-function jumpCurrent(){
-
-
-if(!currentPage)
-return alert("目前沒有選取頁面");
-
-
-let key =
-`[chapter:${currentPage.id}|`;
-
-
-let chapterPos =
-editor.value.indexOf(
-"[chapter:"+key+"]"
-);
-
-
-let pos =
-chapterPos>=0 ?
-chapterPos :
-editor.value.indexOf(key);
-
-
-if(pos>=0){
-
-    editor.focus();
-
-
-    editor.setSelectionRange(
-        pos,
-        pos + key.length
-    );
-
-
-    editor.scrollTop =
-    editor.value
-    .substring(0,pos)
-    .split("\n")
-    .length
-    *
-    24;
-
-
-}else{
-
-    alert("找不到目前Node");
-
-}
-
-
-}
-
-function jumpCursorChapter(){
-
-    let key =
-    prompt("輸入頁面名稱");
-
-
-    if(!key)
-        return;
-
-
-    let pos =
-    editor.value.indexOf(
-        "[chapter:"+key+"]"
-    );
-
-
-    if(pos>=0){
-
-
-        editor.focus();
-
-
-        editor.setSelectionRange(
-            pos,
-            pos+key.length
-        );
-
-
-        editor.scrollTop =
-        editor.value
-        .substring(0,pos)
-        .split("\n")
-        .length
-        *
-        24;
-
-
-    }
-    else{
-
-        alert(
-        "找不到章節："+key
-        );
-
-    }
-
-}
 
 
 
@@ -9172,7 +9218,6 @@ addSourceTools();
 
 
 })();
-
 
 // =====================================
 // Pixiv Source Parser v3
@@ -10214,7 +10259,7 @@ window.addEventListener('load', function() {
 
     renderMaterialList();
 
-    // =====================================================
+     // =====================================================
     // 模組三：自由畫筆
     // =====================================================
     window.allDrawings = window.allDrawings || [];
@@ -10474,6 +10519,7 @@ window.addEventListener('load', function() {
     window.addEventListener("resize", ()=>{
         if(window.__drawModeActive) resizeDrawLayer();
     });
+
 
     // =====================================================
     // 模組四：擲骰工具（給 Gamebook／互動小說作者測試隨機分歧、事件表用）
@@ -11323,7 +11369,6 @@ window.addEventListener(
 
 
 
-
 // =============================================
 // 啟動所有浮動視窗
 // =============================================
@@ -11561,6 +11606,63 @@ select.addEventListener("change",()=>{
 
 
 });
+
+
+(function(){
+
+    const box=document.createElement("div");
+
+    box.innerHTML=`
+    <input id="pageFinder"
+    placeholder="搜尋頁面">
+    <div id="pageFinderResult"></div>
+    `;
+
+    document.body.appendChild(box);
+
+
+
+    const input =
+    box.querySelector("#pageFinder");
+
+
+    input.oninput=function(){
+
+
+        let key =
+        this.value.trim();
+
+
+        if(!key)
+            return;
+
+
+
+        let result =
+        pages.filter(
+            p=>
+            p.title &&
+            p.title.includes(key)
+        );
+
+
+
+        console.log(result);
+
+
+    };
+
+
+})();
+
+
+
+PageLinkConnector.js
+
+
+
+
+
 
 </script>
 </body>
