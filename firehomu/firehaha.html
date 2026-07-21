@@ -4193,6 +4193,15 @@ event.clientY-page.y;
 
 
 
+
+
+
+
+
+
+
+
+
 function move(e){
 
 
@@ -11330,36 +11339,114 @@ function makeDraggable(panelId, headerId){
 
 
 
+window.addEventListener(
 
-    window.addEventListener(
-        "pointermove",
-        function(e){
+    "pointermove",
 
-
-            if(!dragging)
-                return;
+    function(e){
 
 
-            e.preventDefault();
+        if(!dragging)
+
+            return;
 
 
-
-            panel.style.left =
-            (e.clientX - offsetX) + "px";
-
-
-            panel.style.top =
-            (e.clientY - offsetY) + "px";
-
-
-        },
-        {
-            passive:false
-        }
-    );
+        e.preventDefault();
 
 
 
+        let left = e.clientX - offsetX;
+
+        let top  = e.clientY - offsetY;
+
+
+
+        // ===== 邊緣安全距離 =====
+
+        const edgeSafe = window.innerWidth <= 700 ? 16 : 12;
+
+
+
+        // ===== 左右限制 =====
+
+        const minLeft = edgeSafe;
+
+
+        const maxLeft = Math.max(
+
+            minLeft,
+
+            window.innerWidth -
+
+            panel.offsetWidth -
+
+            edgeSafe
+
+        );
+
+
+
+        // ===== 上下限制 =====
+
+        const minTop = edgeSafe;
+
+
+        const maxTop = Math.max(
+
+            minTop,
+
+            window.innerHeight -
+
+            panel.offsetHeight -
+
+            edgeSafe
+
+        );
+
+
+
+        // ===== 套用限制 =====
+
+        left = Math.max(
+
+            minLeft,
+
+            Math.min(left, maxLeft)
+
+        );
+
+
+
+        top = Math.max(
+
+            minTop,
+
+            Math.min(top, maxTop)
+
+        );
+
+
+
+        panel.style.left =
+
+            left + "px";
+
+
+
+        panel.style.top =
+
+            top + "px";
+
+
+    },
+
+    {
+
+        passive:false
+
+    }
+
+);
 
 
     window.addEventListener(
