@@ -2829,15 +2829,7 @@ margin-top:5px;
 
     width:420px;
 
-    height:500px;
-
-    min-width:380px;
-
-    min-height:300px;
-
     max-width:90vw;
-
-    max-height:85vh;
 
     background:white;
 
@@ -2850,24 +2842,28 @@ margin-top:5px;
 
     overflow:hidden;
 
-    resize:both;
-
 }
+
 
 
 #editorPanel{
 
-    width:100%;
+    width:420px;
 
-    height:calc(100% - 40px);
+    min-width:380px;
+
+    max-width:600px;
+
+    min-height:300px;
+
+    max-height:85vh;
 
     padding:12px;
-
-    box-sizing:border-box;
 
     overflow:auto;
 
 }
+
 
 /* 標題列 */
 
@@ -2937,20 +2933,14 @@ margin-top:5px;
 }
 
 
+
+
 /* =================================
    浮動預覽視窗
 ================================= */
 
 
 #previewFloat {
-
-resize:both;
-
-min-width:300px;
-
-min-height:200px;
-
-height:400px;
 
 
     position:fixed;
@@ -3029,13 +3019,17 @@ height:400px;
 
 
 
-#previewPanel{
+#previewPanel {
 
-height:calc(100% - 40px);
 
-box-sizing:border-box;
+    padding:18px;
 
-overflow:auto;
+
+    max-height:65vh;
+
+
+    overflow-y:auto;
+
 
 }
 
@@ -3064,6 +3058,9 @@ overflow:auto;
     display:none;
 
 }
+
+
+
 /* =================================
    小螢幕
 ================================= */
@@ -3134,11 +3131,6 @@ overflow:auto;
 
 
     </style>
-
-
-
-
-
 </head>
 <body>
 
@@ -6688,6 +6680,9 @@ makeDraggable(
 
 
 
+            // 備份內容跟正式的 saveProject() 對齊，
+            // 原本這裡漏了 note / groupId / groupColor / notes / drawings，
+            // 等於萬一真的要靠這份備份救回來，筆記、群組、便利貼、畫筆全部都會不見。
             const backup={
 
                 time:
@@ -6700,11 +6695,24 @@ makeDraggable(
                     id:p.id,
                     title:p.title,
                     text:p.text,
+                    note:p.note || "",
+                    groupId:p.groupId || null,
+                    groupColor:p.groupColor || null,
                     options:p.options,
                     x:p.x,
                     y:p.y
 
-                }))
+                })),
+
+                notes:
+                (typeof window.allNotes !== 'undefined')
+                ? window.allNotes
+                : [],
+
+                drawings:
+                (typeof window.allDrawings !== 'undefined')
+                ? window.allDrawings
+                : []
 
 
             };
@@ -6736,6 +6744,62 @@ makeDraggable(
     );
 
 
+    // ===============================
+    // 5. 還原自動備份
+    // 原本只有「寫入」備份，完全沒有對應的「讀取/還原」功能，
+    // 等於這份備份存了也用不到；這裡補上讓它真的能救援。
+    // ===============================
+
+    window.restoreAutoBackup=function(){
+
+        const raw =
+        safeStorage.getItem("Pixiv_AutoBackup");
+
+        if(!raw){
+
+            alert("目前沒有自動備份紀錄。");
+
+            return;
+
+        }
+
+        let backup;
+
+        try{
+            backup = JSON.parse(raw);
+        }
+        catch(e){
+            alert("自動備份資料損壞，無法還原。");
+            return;
+        }
+
+        if(!backup || !Array.isArray(backup.pages) || !backup.pages.length){
+            alert("自動備份資料是空的，無法還原。");
+            return;
+        }
+
+        const timeStr =
+        backup.time
+        ? new Date(backup.time).toLocaleString()
+        : "未知時間";
+
+        if(!confirm(
+            `找到一份自動備份（${timeStr}），共 ${backup.pages.length} 頁。\n還原後會覆蓋目前畫布上的內容，確定要還原嗎？`
+        )){
+            return;
+        }
+
+        if(typeof window.importProjectData === "function"){
+            window.importProjectData({
+                pages: backup.pages,
+                notes: backup.notes || [],
+                drawings: backup.drawings || []
+            });
+        }
+
+        alert("已還原自動備份！");
+
+    };
 
 })();
 
@@ -8047,110 +8111,6 @@ function updatePixivWordCounter(){
 
 }
 
-// ---------------------------------------------
-// 定位目前Node
-// ---------------------------------------------
-
-function jumpCurrent(){
-
-
-if(!currentPage)
-return alert("目前沒有選取頁面");
-
-
-let key =
-`[chapter:${currentPage.id}|`;
-
-
-let chapterPos =
-editor.value.indexOf(
-"[chapter:"+key+"]"
-);
-
-
-let pos =
-chapterPos>=0 ?
-chapterPos :
-editor.value.indexOf(key);
-
-
-if(pos>=0){
-
-    editor.focus();
-
-
-    editor.setSelectionRange(
-        pos,
-        pos + key.length
-    );
-
-
-    editor.scrollTop =
-    editor.value
-    .substring(0,pos)
-    .split("\n")
-    .length
-    *
-    24;
-
-
-}else{
-
-    alert("找不到目前Node");
-
-}
-
-
-}
-
-function jumpCursorChapter(){
-
-    let key =
-    prompt("輸入頁面名稱");
-
-
-    if(!key)
-        return;
-
-
-    let pos =
-    editor.value.indexOf(
-        "[chapter:"+key+"]"
-    );
-
-
-    if(pos>=0){
-
-
-        editor.focus();
-
-
-        editor.setSelectionRange(
-            pos,
-            pos+key.length
-        );
-
-
-        editor.scrollTop =
-        editor.value
-        .substring(0,pos)
-        .split("\n")
-        .length
-        *
-        24;
-
-
-    }
-    else{
-
-        alert(
-        "找不到章節："+key
-        );
-
-    }
-
-}
-
 
 
 
@@ -8479,13 +8439,19 @@ function generatePixivText(){
         return output;
 
 
-    pages.forEach(page=>{
+    pages.forEach((page, index)=>{
 
 
         if(page.title){
 
             output +=
-`[chapter:${page.id}|${page.title}]\n\n`;
+`[chapter:${page.id}|${page.title}]\n`;
+
+            // 動態頁碼標註：只是給使用者在原始碼模式裡方便對照第幾頁用，
+            // 每次重新整理/自動同步都會依目前頁面順序重新計算；
+            // applySourceText() 會把這一行過濾掉，不會被當成正文內容存進去。
+            output +=
+`┃ 第 ${index + 1} 頁 / 共 ${pages.length} 頁\n\n`;
         }
 
 
@@ -8635,6 +8601,10 @@ win.innerHTML=`
 </button>
 
 
+<button id="source-current">
+📍定位目前Node
+</button>
+
 <button id="source-auto">
 🔄自動同步
 </button>
@@ -8642,8 +8612,8 @@ win.innerHTML=`
 <input id="source-search"
 placeholder="搜尋文字">
 
-<button id="source-search-btn">
-搜尋
+<button id="source-cursor">
+🔎定位章節
 </button>
 
 </div>
@@ -8865,60 +8835,38 @@ win.querySelector("#source-apply")
     projectChanged = true;
 
 };
-win.querySelector("#source-search-btn")
-.onclick=function(){
+win.querySelector("#source-search")
+.oninput=function(){
+
+let key=this.value;
+
+if(!key)
+    return;
 
 
-    let key =
-    win.querySelector("#source-search")
-    .value
-    .trim();
+let pos=
+editor.value.indexOf(key);
 
 
-    if(!key)
-        return;
+if(pos>=0){
 
+editor.focus();
 
+editor.setSelectionRange(
+pos,
+pos+key.length
+);
 
-    let pos =
-    editor.value.indexOf(key);
-
-
-
-    if(pos>=0){
-
-
-        editor.focus();
-
-
-        editor.setSelectionRange(
-            pos,
-            pos + key.length
-        );
-
-
-        editor.scrollTop =
-        editor.value
-        .substring(0,pos)
-        .split("\n")
-        .length
-        *
-        24;
-
-
-    }
-    else{
-
-
-        alert(
-            "找不到："+key
-        );
-
-
-    }
-
+}
 
 };
+
+
+
+
+win.querySelector("#source-current")
+.onclick=jumpCurrent;
+
 
 
 // 新增：定位其他章節
@@ -8985,7 +8933,6 @@ updateAll();
 
 
 
-
 // ---------------------------------------------
 // 更新行號與字數
 // ---------------------------------------------
@@ -9031,6 +8978,111 @@ ${text.length.toLocaleString()}
 
 }
 
+
+
+// ---------------------------------------------
+// 定位目前Node
+// ---------------------------------------------
+
+function jumpCurrent(){
+
+
+if(!currentPage)
+return alert("目前沒有選取頁面");
+
+
+let key =
+`[chapter:${currentPage.id}|`;
+
+
+let chapterPos =
+editor.value.indexOf(
+"[chapter:"+key+"]"
+);
+
+
+let pos =
+chapterPos>=0 ?
+chapterPos :
+editor.value.indexOf(key);
+
+
+if(pos>=0){
+
+    editor.focus();
+
+
+    editor.setSelectionRange(
+        pos,
+        pos + key.length
+    );
+
+
+    editor.scrollTop =
+    editor.value
+    .substring(0,pos)
+    .split("\n")
+    .length
+    *
+    24;
+
+
+}else{
+
+    alert("找不到目前Node");
+
+}
+
+
+}
+
+function jumpCursorChapter(){
+
+    let key =
+    prompt("輸入頁面名稱");
+
+
+    if(!key)
+        return;
+
+
+    let pos =
+    editor.value.indexOf(
+        "[chapter:"+key+"]"
+    );
+
+
+    if(pos>=0){
+
+
+        editor.focus();
+
+
+        editor.setSelectionRange(
+            pos,
+            pos+key.length
+        );
+
+
+        editor.scrollTop =
+        editor.value
+        .substring(0,pos)
+        .split("\n")
+        .length
+        *
+        24;
+
+
+    }
+    else{
+
+        alert(
+        "找不到章節："+key
+        );
+
+    }
+
+}
 
 
 
@@ -9226,6 +9278,7 @@ addSourceTools();
 
 
 })();
+
 
 // =====================================
 // Pixiv Source Parser v3
@@ -9732,6 +9785,18 @@ alert("Pixiv 原始碼已同步");
 
 
     header.appendChild(label);
+
+    // 還原自動備份按鈕（每60秒自動寫入一次，緊急時可以用這個救回來）
+    const restoreBtn = document.createElement("button");
+    restoreBtn.type = "button";
+    restoreBtn.textContent = "🛟 還原自動備份";
+    restoreBtn.style.marginLeft = "6px";
+    restoreBtn.addEventListener("click", () => {
+        if (typeof window.restoreAutoBackup === "function") {
+            window.restoreAutoBackup();
+        }
+    });
+    header.appendChild(restoreBtn);
 
 
 setInterval(()=>{
@@ -10267,7 +10332,7 @@ window.addEventListener('load', function() {
 
     renderMaterialList();
 
-     // =====================================================
+    // =====================================================
     // 模組三：自由畫筆
     // =====================================================
     window.allDrawings = window.allDrawings || [];
@@ -10528,6 +10593,8 @@ window.addEventListener('load', function() {
         if(window.__drawModeActive) resizeDrawLayer();
     });
 
+
+    //
 
     // =====================================================
     // 模組四：擲骰工具（給 Gamebook／互動小說作者測試隨機分歧、事件表用）
@@ -11013,7 +11080,7 @@ document.createElement("div");
 text.className="reader-text";
 
 
-text.innerHTML=page.text;
+text.textContent=page.text;
 
 
 
@@ -11263,71 +11330,36 @@ function makeDraggable(panelId, headerId){
 
 
 
-window.addEventListener(
-    "pointermove",
-    function(e){
 
-        if(!dragging)
-            return;
-
-        e.preventDefault();
+    window.addEventListener(
+        "pointermove",
+        function(e){
 
 
-        let left = e.clientX - offsetX;
-        let top  = e.clientY - offsetY;
+            if(!dragging)
+                return;
 
 
-        // ===== 邊緣安全距離 =====
-        const edgeSafe = 30;
+            e.preventDefault();
 
 
-        // ===== 左右限制 =====
-        const minLeft = edgeSafe;
 
-        const maxLeft = Math.max(
-            minLeft,
-            window.innerWidth -
-            panel.offsetWidth -
-            edgeSafe
-        );
+            panel.style.left =
+            (e.clientX - offsetX) + "px";
 
 
-        // ===== 上下限制 =====
-        const minTop = edgeSafe;
-
-        const maxTop = Math.max(
-            minTop,
-            window.innerHeight -
-            panel.offsetHeight -
-            edgeSafe
-        );
+            panel.style.top =
+            (e.clientY - offsetY) + "px";
 
 
-        // ===== 套用限制 =====
-        left = Math.max(
-            minLeft,
-            Math.min(left, maxLeft)
-        );
+        },
+        {
+            passive:false
+        }
+    );
 
 
-        top = Math.max(
-            minTop,
-            Math.min(top, maxTop)
-        );
 
-
-        panel.style.left =
-            left + "px";
-
-
-        panel.style.top =
-            top + "px";
-
-    },
-    {
-        passive:false
-    }
-);
 
 
     window.addEventListener(
@@ -11374,6 +11406,7 @@ window.addEventListener(
     );
 
 }
+
 
 
 
@@ -11449,76 +11482,12 @@ setupToggle(
     "togglePerm",
     "permFloat"
 );
-
 // =================================
-// 手機長按多選
+// （原本這裡有一段「手機長按多選」的殘留程式碼，
+//   用了沒宣告過的 canvas / toggleSelection / updateToolbar / container 變數，
+//   會直接丟 ReferenceError 讓整支 script 從這裡中斷、後面全部程式碼都不會執行。
+//   已移除；長按多選功能本來就已經在上面「D. 多選節點」那個 IIFE 裡正常運作了。）
 // =================================
-
-let pressTimer = null;
-
-
-canvas.addEventListener(
-"pointerdown",
-(e)=>{
-
-
-const nodeEl = e.target.closest(".flowNode");
-
-if(!nodeEl) return;
-
-
-
-const page =
-pages.find(p=>p.element===nodeEl);
-
-
-if(!page) return;
-
-
-
-// 只處理觸控
-
-if(e.pointerType !== "touch")
-return;
-
-
-
-pressTimer=setTimeout(()=>{
-
-
-toggleSelection(page);
-
-updateToolbar();
-
-
-},500);
-
-
-
-});
-
-
-
-canvas.addEventListener(
-"pointerup",
-()=>{
-
-clearTimeout(pressTimer);
-
-});
-
-
-
-canvas.addEventListener(
-"pointercancel",
-()=>{
-
-clearTimeout(pressTimer);
-
-});
-
-
-document.body.appendChild(container);
 
 // =============================================
 // Pixiv預覽 收起 / 展開
@@ -11541,129 +11510,205 @@ if(togglePreview && previewFloat){
 
 }
 
-select.addEventListener("change",()=>{
-
-
-    // 建立新頁面
-    if(select.value==="__NEW__"){
-
-
-        const targetPage =
-        handleAddNewPage();
-
-
-        option.target =
-        targetPage.id;
-
-
-        projectChanged=true;
+// （原本這裡有一段重複、且變數已經跑到 scope 外的殘留 select.addEventListener 程式碼，
+//   加上一行沒有意義的「PageLinkConnector.js」文字，兩者都會讓 script 執行到這裡直接報錯中斷。
+//   對應的「建立新頁面 / 連結已有頁面」邏輯本來就已經正確存在於 renderOptions() 裡面了，
+//   這裡單純是壞掉的重複殘留，已移除。）
 
 
 
-        if(option.text &&
-           option.text!==t("newOption")){
-
-
-            targetPage.title =
-            option.text;
-
-
-            updateNodeTitle(targetPage);
-
-
-        }
-        else{
-
-
-            option.text =
-            t("optionPrefix")
-            +
-            targetPage.title;
-
-
-        }
-
-
-        renderOptions();
-
-        drawLines();
-
-        updatePreview();
-
-
-        return;
-
-    }
 
 
 
-    // 連結已有頁面
-
-    option.target =
-    select.value || null;
 
 
-    projectChanged=true;
-
-
-    renderOptions();
-
-    drawLines();
-
-    updatePreview();
-
-
-});
-
-
+// =============================================
+// 操作歷史：復原 / 重做
+// 採用「快照」設計 —— 不用替每一種操作（打字、拖曳、刪頁、生成分歧…）
+// 各自寫一套「怎麼復原」的邏輯，而是每隔一小段時間就把當下整個專案
+// 狀態記一筆快照，復原/重做就是把畫布切換回某一筆快照。
+// 好處是不管使用者做了什麼操作，通通「無痛」自動被記錄，不用另外手動存點。
+// =============================================
 (function(){
 
-    const box=document.createElement("div");
+    const HISTORY_LIMIT = 60;   // 最多保留幾筆快照，避免無限占記憶體
+    const DEBOUNCE_MS = 900;    // 停止操作後多久才真的記一筆快照
 
-    box.innerHTML=`
-    <input id="pageFinder"
-    placeholder="搜尋頁面">
-    <div id="pageFinderResult"></div>
-    `;
+    let historyStack = [];
+    let historyIndex = -1;
+    let isRestoring = false;
+    let debounceTimer = null;
+    let observer = null;
 
-    document.body.appendChild(box);
+    function serializeState(){
+        return JSON.stringify({
+            pages: pages.map(p => ({
+                id: p.id,
+                title: p.title,
+                text: p.text,
+                note: p.note || "",
+                groupId: p.groupId || null,
+                groupColor: p.groupColor || null,
+                options: JSON.parse(JSON.stringify(p.options || [])),
+                x: p.x,
+                y: p.y
+            })),
+            notes: JSON.parse(JSON.stringify(window.allNotes || [])),
+            drawings: JSON.parse(JSON.stringify(window.allDrawings || [])),
+            currentPageId: currentPage ? currentPage.id : null
+        });
+    }
 
+    function updateButtons(){
+        const undoBtn = document.getElementById("historyUndoBtn");
+        const redoBtn = document.getElementById("historyRedoBtn");
+        if(undoBtn) undoBtn.disabled = historyIndex <= 0;
+        if(redoBtn) redoBtn.disabled = historyIndex >= historyStack.length - 1;
+    }
 
+    function pushSnapshot(){
+        if(isRestoring) return;
+        if(typeof pages === "undefined") return;
 
-    const input =
-    box.querySelector("#pageFinder");
+        const snap = serializeState();
 
+        if(historyIndex >= 0 && historyStack[historyIndex] === snap) return;
 
-    input.oninput=function(){
+        historyStack = historyStack.slice(0, historyIndex + 1);
+        historyStack.push(snap);
 
+        if(historyStack.length > HISTORY_LIMIT){
+            historyStack.shift();
+        }
 
-        let key =
-        this.value.trim();
+        historyIndex = historyStack.length - 1;
+        updateButtons();
+    }
 
+    function scheduleSnapshot(){
+        if(isRestoring) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(pushSnapshot, DEBOUNCE_MS);
+    }
 
-        if(!key)
-            return;
+    function observeCanvas(){
+        const flowCanvasEl = document.getElementById("flowCanvas");
+        if(!flowCanvasEl) return;
+        observer = new MutationObserver(() => {
+            if(isRestoring) return;
+            scheduleSnapshot();
+        });
+        observer.observe(flowCanvasEl, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["style"]
+        });
+    }
 
+    function restoreState(snap){
+        if(!snap) return;
 
+        isRestoring = true;
+        if(observer) observer.disconnect();
+        clearTimeout(debounceTimer);
 
-        let result =
-        pages.filter(
-            p=>
-            p.title &&
-            p.title.includes(key)
-        );
+        try{
+            const data = JSON.parse(snap);
 
+            if(typeof window.importProjectData === "function"){
+                window.importProjectData({
+                    pages: data.pages,
+                    notes: data.notes,
+                    drawings: data.drawings
+                });
+            }
 
+            if(data.currentPageId){
+                const p = pages.find(pp => pp.id === data.currentPageId);
+                if(p) selectPage(p);
+            }
 
-        console.log(result);
+            projectChanged = true;
+            if(typeof window.markDirty === "function") window.markDirty();
 
+        } finally {
+            setTimeout(() => {
+                isRestoring = false;
+                observeCanvas();
+            }, 150);
+        }
+    }
 
+    window.undoHistory = function(){
+        if(historyIndex <= 0) return;
+
+        clearTimeout(debounceTimer);
+        pushSnapshot();
+
+        historyIndex--;
+        restoreState(historyStack[historyIndex]);
+        updateButtons();
     };
 
+    window.redoHistory = function(){
+        if(historyIndex >= historyStack.length - 1) return;
+        historyIndex++;
+        restoreState(historyStack[historyIndex]);
+        updateButtons();
+    };
+
+    const header = document.querySelector("header");
+    if(header){
+        const wrap = document.createElement("div");
+        wrap.className = "header-group";
+        wrap.innerHTML =
+            '<button type="button" id="historyUndoBtn" title="復原 (Ctrl+Z)">\u21a9\ufe0f 復原</button>' +
+            '<button type="button" id="historyRedoBtn" title="重做 (Ctrl+Y 或 Ctrl+Shift+Z)">\u21aa\ufe0f 重做</button>';
+        header.appendChild(wrap);
+
+        document.getElementById("historyUndoBtn").addEventListener("click", () => window.undoHistory());
+        document.getElementById("historyRedoBtn").addEventListener("click", () => window.redoHistory());
+        updateButtons();
+    }
+
+    document.addEventListener("input", (e) => {
+        if(isRestoring) return;
+        if(e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") scheduleSnapshot();
+    });
+
+    document.addEventListener("change", (e) => {
+        if(isRestoring) return;
+        if(e.target.tagName === "SELECT") scheduleSnapshot();
+    });
+
+    observeCanvas();
+
+    document.addEventListener("keydown", (e) => {
+        const tag = e.target.tagName;
+        const typing = (tag === "TEXTAREA" || tag === "INPUT");
+        const key = e.key.toLowerCase();
+
+        if((e.ctrlKey || e.metaKey) && !e.shiftKey && key === "z"){
+            if(typing) return;
+            e.preventDefault();
+            window.undoHistory();
+        } else if(
+            ((e.ctrlKey || e.metaKey) && key === "y") ||
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && key === "z")
+        ){
+            if(typing) return;
+            e.preventDefault();
+            window.redoHistory();
+        }
+    });
+
+    setTimeout(() => {
+        pushSnapshot();
+        updateButtons();
+    }, 2000);
 
 })();
-
-
 
 </script>
 </body>
