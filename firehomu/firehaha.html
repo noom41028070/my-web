@@ -2937,8 +2937,6 @@ margin-top:5px;
 }
 
 
-
-
 /* =================================
    浮動預覽視窗
 ================================= */
@@ -3066,214 +3064,81 @@ overflow:auto;
     display:none;
 
 }
-
-
-
 /* =================================
    小螢幕
 ================================= */
 
-/* =================================
-   小螢幕
-================================= */
 
 @media(max-width:700px){
 
-
-    /* =========================
-       編輯器
-    ========================= */
 
     #editorFloat {
 
-        top:20px;
 
-        left:5%;
-
-        right:auto;
+        right:5%;
 
         width:90%;
 
-        height:45vh;
-
-        max-height:45vh;
-
-        border-radius:12px;
-
     }
 
-
-
-    #editorPanel{
-
-        width:100%;
-
-        height:calc(45vh - 45px);
-
-        box-sizing:border-box;
-
-        overflow-y:auto;
-
-        overflow-x:hidden;
-
-    }
-
-
-
-   /* =================================
-   小螢幕補充
-================================= */
-
-@media(max-width:700px){
 
 
     #previewFloat {
 
 
-        left:5%;
-
-        right:auto;
+        right:5%;
 
         width:90%;
-
 
     }
 
 
-
 }
-
-
-/* =================================
-   標題列觸控
-================================= */
-
-
-/*
-  不要整個 Header 禁止觸控
-  否則按鈕可能無法點擊
-*/
 
 #editorHeader,
 #previewHeader{
 
+    touch-action:none;
 
     user-select:none;
 
-    -webkit-user-select:none;
-
-
 }
-
-
-/* 真正拖曳區使用 */
-
-#editorHeader .drag-area,
-#previewHeader .drag-area{
-
-
-    touch-action:none;
-
-}
-
-
-
-
-
-/* =================================
-   移除空選項按鈕
-================================= */
 
 
 .removeEmptyOption{
 
-
     border:none;
-
 
     background:#eee;
 
-
     color:#777;
 
+    width:26px;
 
-    width:30px;
-
-
-    height:30px;
-
+    height:26px;
 
     border-radius:50%;
 
-
     cursor:pointer;
 
-
-    display:flex;
-
-
-    align-items:center;
-
-
-    justify-content:center;
-
-
-    font-size:16px;
-
-
-    touch-action:manipulation;
-
-
 }
-
-
 
 
 .removeEmptyOption:hover{
 
-
     background:#ddd;
-
 
     color:#d9534f;
 
-
 }
 
-
-#editor-resize-handle{
-
-
-position:absolute;
-
-
-right:0;
-
-bottom:0;
-
-
-width:25px;
-
-height:25px;
-
-
-background:
-linear-gradient(
-135deg,
-transparent 50%,
-#777 50%
-);
-
-
-cursor:nwse-resize;
-
-
-touch-action:none;
-
-
-}
 
     </style>
+
+
+
+
+
 </head>
 <body>
 
@@ -11797,109 +11662,6 @@ select.addEventListener("change",()=>{
 
 
 })();
-
-const editor =
-document.querySelector("#previewFloat");
-
-(function(){
-
-const editor =
-document.querySelector("#editorFloat");
-
-
-if(!editor) return;
-
-
-
-const handle =
-document.createElement("div");
-
-
-handle.id="editor-resize-handle";
-
-
-editor.appendChild(handle);
-
-
-
-let startX;
-let startY;
-
-let startW;
-let startH;
-
-
-
-handle.addEventListener(
-"pointerdown",
-e=>{
-
-
-e.preventDefault();
-
-
-startX=e.clientX;
-startY=e.clientY;
-
-
-startW=editor.offsetWidth;
-startH=editor.offsetHeight;
-
-
-
-handle.setPointerCapture(
-e.pointerId
-);
-
-
-});
-
-
-
-handle.addEventListener(
-"pointermove",
-e=>{
-
-
-if(!handle.hasPointerCapture(
-e.pointerId
-)) return;
-
-
-
-let w =
-startW +
-(e.clientX-startX);
-
-
-
-let h =
-startH +
-(e.clientY-startY);
-
-
-
-editor.style.width =
-Math.max(300,w)+"px";
-
-
-editor.style.height =
-Math.max(250,h)+"px";
-
-
-
-});
-
-
-
-})();
-
-
-
-PageLinkConnector.js
-
-
-
 
 
 
