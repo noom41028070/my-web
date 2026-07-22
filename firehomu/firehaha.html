@@ -3326,6 +3326,12 @@ English
             頁面標題
         </label>
 
+
+<input id="chapterStyleInput">
+<button onclick="saveChapterStyle()">
+儲存
+</button>
+
         <input id="pageTitle" type="text">
 
 
@@ -11792,6 +11798,470 @@ if(togglePreview && previewFloat){
     }, 2000);
 
 })();
+
+
+
+(function () {
+
+    "use strict";
+
+
+    // ============================================================
+    // 可調整大小的浮動視窗設定
+    //
+    // panelId:
+    //   外層浮動視窗（調整寬度）
+    //
+    // contentId:
+    //   內容區塊（調整高度）
+    //
+    // minWidth / minHeight:
+    //   最小尺寸限制，避免縮到壞掉
+    //
+    // 新增浮動視窗時，只需要在這裡增加設定即可
+    // ============================================================
+
+    const PANELS = [
+
+        {
+            panelId: "editorFloat",
+            contentId: "editorPanel",
+            minWidth: 320,
+            minHeight: 160
+        },
+
+        {
+            panelId: "previewFloat",
+            contentId: "previewPanel",
+            minWidth: 280,
+            minHeight: 120
+        },
+
+        {
+            panelId: "permFloat",
+            contentId: "permBody",
+            minWidth: 260,
+            minHeight: 80
+        }
+
+    ];
+
+
+
+    // ============================================================
+    // 建立右下角縮放把手
+    // ============================================================
+
+    function createResizeHandle() {
+
+        const handle = document.createElement("div");
+
+        handle.className = "__pixiv-resize-handle";
+        handle.title = "拖曳調整視窗大小";
+
+
+        // 全部使用 inline style
+        // 不修改 style.css
+
+        Object.assign(handle.style, {
+
+            position: "absolute",
+
+            right: "2px",
+
+            bottom: "2px",
+
+            width: "16px",
+
+            height: "16px",
+
+            cursor: "nwse-resize",
+
+            touchAction: "none",
+
+            zIndex: "10",
+
+            opacity: "0.55",
+
+            background:
+                "linear-gradient(135deg, transparent 0 42%, currentColor 42% 54%, transparent 54% 66%, currentColor 66% 78%, transparent 78% 100%)",
+
+            color: "#000"
+
+        });
+
+
+
+        handle.addEventListener(
+            "pointerenter",
+            function () {
+
+                handle.style.opacity = "1";
+
+            }
+        );
+
+
+        handle.addEventListener(
+            "pointerleave",
+            function () {
+
+                handle.style.opacity = "0.55";
+
+            }
+        );
+
+
+        return handle;
+
+    }
+
+
+
+
+    // ============================================================
+    // 讓指定浮動視窗支援 resize
+    // ============================================================
+
+    function makeResizable(
+        panelId,
+        contentId,
+        minWidth,
+        minHeight
+    ) {
+
+
+        const panel =
+            document.getElementById(panelId);
+
+
+        const content =
+            document.getElementById(contentId);
+
+
+
+        if (!panel || !content) return;
+
+
+
+        // 避免重複加入
+
+        if (
+            panel.querySelector(
+                ".__pixiv-resize-handle"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+
+
+        // 確保縮小時可以捲動
+
+        const currentOverflow =
+            getComputedStyle(content).overflowY;
+
+
+        if (currentOverflow === "visible") {
+
+            content.style.overflow = "auto";
+
+        }
+
+
+
+
+        const handle = createResizeHandle();
+
+        panel.appendChild(handle);
+
+
+
+
+        let resizing = false;
+
+        let startX = 0;
+
+        let startY = 0;
+
+        let startWidth = 0;
+
+        let startContentHeight = 0;
+
+
+
+
+
+        // --------------------------------------------------------
+        // 開始縮放
+        // --------------------------------------------------------
+
+        handle.addEventListener(
+            "pointerdown",
+            function (e) {
+
+
+                resizing = true;
+
+
+                startX = e.clientX;
+
+                startY = e.clientY;
+
+
+                startWidth =
+                    panel.getBoundingClientRect().width;
+
+
+                startContentHeight =
+                    content.getBoundingClientRect().height;
+
+
+
+                handle.setPointerCapture(
+                    e.pointerId
+                );
+
+
+                document.body.style.userSelect =
+                    "none";
+
+
+                e.preventDefault();
+
+            }
+        );
+
+
+
+
+
+
+        // --------------------------------------------------------
+        // 縮放中
+        // --------------------------------------------------------
+
+        handle.addEventListener(
+            "pointermove",
+            function (e) {
+
+
+                if (!resizing) return;
+
+
+
+                const dx =
+                    e.clientX - startX;
+
+
+                const dy =
+                    e.clientY - startY;
+
+
+
+
+                const maxWidth =
+                    window.innerWidth * 0.9;
+
+
+                const maxContentHeight =
+                    window.innerHeight * 0.85;
+
+
+
+
+                const newWidth =
+                    Math.min(
+                        maxWidth,
+                        Math.max(
+                            minWidth,
+                            startWidth + dx
+                        )
+                    );
+
+
+
+                const newContentHeight =
+                    Math.min(
+                        maxContentHeight,
+                        Math.max(
+                            minHeight,
+                            startContentHeight + dy
+                        )
+                    );
+
+
+
+
+
+                panel.style.width =
+                    newWidth + "px";
+
+
+                content.style.height =
+                    newContentHeight + "px";
+
+
+                content.style.maxHeight =
+                    newContentHeight + "px";
+
+
+            }
+        );
+
+
+
+
+
+
+
+        // --------------------------------------------------------
+        // 結束縮放
+        // --------------------------------------------------------
+
+        function stopResize(e) {
+
+
+            if (!resizing) return;
+
+
+            resizing = false;
+
+
+            document.body.style.userSelect =
+                "";
+
+
+
+            try {
+
+                handle.releasePointerCapture(
+                    e.pointerId
+                );
+
+            }
+
+            catch (err) {}
+
+        }
+
+
+
+
+        handle.addEventListener(
+            "pointerup",
+            stopResize
+        );
+
+
+        handle.addEventListener(
+            "pointercancel",
+            stopResize
+        );
+
+    }
+
+
+
+
+
+
+    // ============================================================
+    // 初始化
+    // ============================================================
+
+    function init() {
+
+
+        PANELS.forEach(
+            function (p) {
+
+
+                makeResizable(
+                    p.panelId,
+                    p.contentId,
+                    p.minWidth,
+                    p.minHeight
+                );
+
+
+            }
+        );
+
+    }
+
+
+
+
+
+    // 頁面載入後執行
+
+    if (
+        document.readyState === "complete" ||
+        document.readyState === "interactive"
+    ) {
+
+        init();
+
+    }
+
+
+    window.addEventListener(
+        "load",
+        init
+    );
+
+
+
+
+
+
+    // ============================================================
+    // 保險機制
+    // 防止浮動視窗稍後才建立
+    // ============================================================
+
+    let retries = 0;
+
+
+    const retryTimer =
+        setInterval(
+            function () {
+
+
+                init();
+
+
+
+                retries++;
+
+
+                if (retries > 20) {
+
+                    clearInterval(
+                        retryTimer
+                    );
+
+                }
+
+
+            },
+            500
+        );
+
+
+
+})();
+
+
+
+
+
+
+
 
 </script>
 </body>
