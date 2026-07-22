@@ -4867,35 +4867,37 @@ up
 
 
 
-    // =====================
-    // 清單
-    // =====================
+   // 清單
+
+html = html.replace(
+    /\[list\](.*?)\[\/list\]/gs,
+
+    function(match,content){
+
+        let items =
+        content
+        .split("\n")
+        .filter(x=>x.trim())
+        .map(x=>
+            "<li>"+
+            x.replace(/^[-*]\s*/,"")
+            +"</li>"
+        )
+        .join("");
+
+        return "<ul>"+items+"</ul>";
+
+    }
+);
 
 
-    // [list]
-    // -文字
-    // -文字
-    // [/list]
 
+// 最後才換行
 
-    html = html.replace(
-        /\[list\](.*?)\[\/list\]/gs,
-        function(match,content){
-
-            let items =
-            content
-            .split("\n")
-            .filter(x=>x.trim())
-            .map(x=>
-                "<li>"+x.replace(/^[-*]\s*/,"")+"</li>"
-            )
-            .join("");
-
-            return "<ul>"+items+"</ul>";
-
-        }
-    );
-
+html = html.replace(
+    /\n/g,
+    "<br>"
+);
 
 
 
@@ -4934,6 +4936,19 @@ html = html.replace(
     </div>
     `
 );
+
+html =
+html.replace(
+/\[dot:(.*?)\|(.*?)\]/g,
+
+'<span class="emphasis">' +
+'<span class="dot">$2</span>' +
+'$1' +
+'</span>'
+
+);
+
+
 
 
     return html;
@@ -5210,16 +5225,19 @@ html = html.replace(
 // 強調點
 // =====================
 
+// [dot:文字|符號]
 
-html = html.replace(
-    /\[\[emphasismark:(.*?)\s*>\s*(.*?)\]\]/g,
-    `
-    <span class="emphasis">
-        <span>$2</span>
-        $1
-    </span>
-    `
+html =
+html.replace(
+/\\[dot:(.*?)\\|(.*?)\\]/g,
+
+'<span class="emphasis">' +
+'<span class="dot">$2</span>' +
+'$1' +
+'</span>'
+
 );
+
 
 
 
@@ -12328,6 +12346,31 @@ opacity:.85;
 }
 
 
+.emphasis{
+
+    position:relative;
+
+    display:inline-block;
+
+}
+
+
+.emphasis .dot{
+
+    position:absolute;
+
+    top:-0.8em;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    font-size:.7em;
+
+}
+
+
+
 
 </style>
 
@@ -12373,6 +12416,20 @@ function renderHTML(text){
 	// 底線
 	.replace(/\[u\](.*?)\[\/u\]/g,
 	"<u>$1</u>"),
+	
+	html =
+html.replace(
+/\[dot:(.*?)\|(.*?)\]/g,
+
+'<span class="emphasis">' +
+'<span class="dot">$2</span>' +
+'$1' +
+'</span>'
+
+);
+
+
+
 
 }
 
@@ -13729,21 +13786,16 @@ margin:10px 0;
 
 }
 
-.emphasis-dot{
-
-text-emphasis-style: dot;
-
-text-emphasis-position: over;
-
-}
-
 .emphasis{
+
     position:relative;
+
     display:inline-block;
+
 }
 
 
-.emphasis span{
+.emphasis .dot{
 
     position:absolute;
 
@@ -13756,8 +13808,6 @@ text-emphasis-position: over;
     font-size:.7em;
 
 }
-
-
 
 </style>
 
@@ -13799,6 +13849,77 @@ html.replace(
 "<em>$1</em>"
 );
 
+// =====================
+// 底線
+// =====================
+
+html =
+html.replace(
+/\\[u:(.*?)\\]/g,
+"<u>$1</u>"
+);
+
+// =====================
+// 刪除線
+// =====================
+
+html =
+html.replace(
+/\\[s:(.*?)\\]/g,
+"<del>$1</del>"
+);
+
+// =====================
+// 顏色
+// =====================
+
+// [color:red:文字]
+
+html =
+html.replace(
+/\\[color:(.*?):(.*?)\\]/g,
+'<span style="color:$1">$2</span>'
+);
+
+// =====================
+// 字體大小
+// =====================
+
+// [size:24:文字]
+
+html =
+html.replace(
+/\\[size:(\\d+):(.*?)\\]/g,
+'<span style="font-size:$1px">$2</span>'
+);
+
+
+// =====================
+// 引用
+// =====================
+
+// [quote:文字]
+
+html =
+html.replace(
+/\\[quote:(.*?)\\]/gs,
+"<blockquote>$1</blockquote>"
+);
+
+// =====================
+// 分隔線
+// =====================
+
+// [hr]
+
+html =
+html.replace(
+/\\[hr\\]/g,
+"<hr>"
+);
+
+
+
 
 // Ruby
 
@@ -13808,6 +13929,52 @@ html.replace(
 "<ruby>$1<rt>$2</rt></ruby>"
 );
 
+// =====================
+// 強調點
+// =====================
+
+// [dot:文字|符號]
+
+html =
+html.replace(
+/\\[dot:(.*?)\\|(.*?)\\]/g,
+
+'<span class="emphasis">' +
+'<span class="dot">$2</span>' +
+'$1' +
+'</span>'
+
+);
+
+// =====================
+// Pixiv圖片連結
+// =====================
+
+// [pixivimage:132259734]
+
+html =
+html.replace(
+/\\[pixivimage:(\\d+)\\]/g,
+
+'<a href="https://www.pixiv.net/artworks/$1" target="_blank">' +
+'Pixiv插畫 $1' +
+'</a>'
+
+);
+
+// =====================
+// 外部連結
+// =====================
+
+// [link:名稱|網址]
+
+html =
+html.replace(
+/\\[link:(.*?)\\|(.*?)\\]/g,
+
+'<a href="$2" target="_blank">$1</a>'
+
+);
 
 // 換行
 
@@ -13816,6 +13983,24 @@ html.replace(
 /\\n/g,
 "<br>"
 );
+
+// =====================
+// 圖片
+// =====================
+
+// [img:圖片網址]
+
+html =
+html.replace(
+/\\[img:(.*?)\\]/g,
+
+'<img src="$1" style="max-width:100%;">'
+
+);
+
+
+
+
 
 
 return html;
@@ -13999,4 +14184,3 @@ header.appendChild(btn);
 </script>
 </body>
 </html>
-
