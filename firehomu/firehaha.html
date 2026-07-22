@@ -3124,6 +3124,100 @@ padding:20px;
     color:#d9534f;
 
 }
+#chapterSettingPanel{
+
+
+position:fixed;
+
+
+top:70px;
+
+right:20px;
+
+
+width:260px;
+
+
+background:white;
+
+
+padding:18px;
+
+
+border-radius:12px;
+
+
+box-shadow:
+0 5px 20px rgba(0,0,0,.25);
+
+
+z-index:99999;
+
+
+font-size:14px;
+
+
+}
+
+
+#chapterSettingPanel input{
+
+
+width:100%;
+
+
+box-sizing:border-box;
+
+
+padding:6px;
+
+
+margin-top:5px;
+
+
+}
+
+
+
+#chapterSettingPanel button{
+
+
+margin-top:10px;
+
+
+padding:8px 15px;
+
+
+cursor:pointer;
+
+
+}
+
+#htmlPreview{
+
+    margin-top:20px;
+
+    padding:20px;
+
+    background:white;
+
+    border-radius:10px;
+
+    line-height:1.8;
+
+}
+
+
+.preview-title{
+
+    font-weight:bold;
+
+    margin:15px 0 8px;
+
+}
+
+
+
 
 
     </style>
@@ -3320,6 +3414,11 @@ English
 
 
     <section id="editorPanel">
+
+
+        <label data-i18n="pageTitleLabel">
+            頁面標題
+        </label>
 
         <input id="pageTitle" type="text">
 
@@ -3540,7 +3639,24 @@ English
     <section id="previewPanel">
 
 
+        <!-- Pixiv純文字預覽 -->
+
+        <div class="preview-title">
+            Pixiv格式
+        </div>
+
         <div id="previewText"></div>
+
+
+
+        <!-- HTML閱讀預覽 -->
+
+        <div class="preview-title">
+            HTML閱讀模式
+        </div>
+
+
+        <div id="htmlPreview"></div>
 
 
     </section>
@@ -4378,6 +4494,66 @@ up
                 page.element.textContent = page.title;
             }
         }
+		
+		
+		function renderHTMLText(text){
+
+    if(!text)
+        return "";
+
+
+    let html =
+    text;
+
+
+    // 基本安全處理
+    html =
+    html.replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;");
+
+
+    // Pixiv風格標記轉HTML
+
+    html =
+    html.replace(
+        /\[b:(.*?)\]/g,
+        "<strong>$1</strong>"
+    );
+
+
+    html =
+    html.replace(
+        /\[i:(.*?)\]/g,
+        "<em>$1</em>"
+    );
+
+
+    html =
+    html.replace(
+        /\[\[rb:(.*?) > (.*?)\]\]/g,
+        "<ruby>$1<rt>$2</rt></ruby>"
+    );
+
+
+    html =
+    html.replace(
+        /\[\[emphasismark:(.*?) > (.*?)\]\]/g,
+        "$1<sup>$2</sup>"
+    );
+
+
+    // 換行
+
+    html =
+    html.replace(/\n/g,"<br>");
+
+
+    return html;
+
+}
+		
+		
+		
 
         function selectPage(page) {
             const pageTextPageNum = document.getElementById("pageTextPageNum");
@@ -4390,18 +4566,29 @@ up
                 if (pageTextPageNum) pageTextPageNum.textContent = "";
                 optionsBox.innerHTML = "";
                 updatePreview();
+				updateHTMLPreview(); 
                 return;
             }
+currentPage = page;
 
-            currentPage = page;
-            titleInput.value = page.title;
-            if (noteInput) noteInput.value = page.note || "";
-            textInput.value = page.text;
+titleInput.value = page.title;
 
-            if (pageTextPageNum) {
-                const idx = pages.indexOf(page);
-                pageTextPageNum.textContent = idx >= 0 ? `（第 ${idx + 1} 頁）` : "";
-            }
+if (noteInput)
+    noteInput.value = page.note || "";
+
+textInput.value = page.text;
+
+
+if (pageTextPageNum) {
+
+    const idx = pages.indexOf(page);
+
+    pageTextPageNum.textContent =
+    idx >= 0
+    ? `（第 ${idx + 1} 頁）`
+    : "";
+
+}
 
             document.querySelectorAll(".flowNode").forEach(node => {
                 node.classList.remove("selected");
@@ -4413,23 +4600,35 @@ up
             }
             renderOptions();
             updatePreview();
+            updateHTMLPreview();
+			
         }
 
         titleInput.addEventListener("input", () => {
-            if (!currentPage) return;
-            currentPage.title = titleInput.value;
-            projectChanged = true;
 
-            projectChanged = true;
+    if (!currentPage)
+        return;
 
 
-            updateNodeTitle(currentPage);
-            renderOptions();
-            updatePreview();
+    currentPage.title =
+    titleInput.value;
 
 
+    projectChanged = true;
 
-        });
+
+    updateNodeTitle(currentPage);
+
+
+    renderOptions();
+
+
+    updatePreview();
+
+
+    updateHTMLPreview();
+
+});
 
         if (noteInput) {
             noteInput.addEventListener("input", () => {
@@ -4441,6 +4640,98 @@ up
                 if (typeof drawLines === "function") drawLines();
             });
         }
+		
+		
+		function renderHTMLText(text){
+
+    if(!text)
+        return "";
+
+
+    let html = text;
+
+
+    // 粗體
+    html = html.replace(
+        /\[b:(.*?)\]/g,
+        "<strong>$1</strong>"
+    );
+
+
+    // 斜體
+    html = html.replace(
+        /\[i:(.*?)\]/g,
+        "<em>$1</em>"
+    );
+
+
+    // Ruby
+    html = html.replace(
+        /\[\[rb:(.*?) > (.*?)\]\]/g,
+        "<ruby>$1<rt>$2</rt></ruby>"
+    );
+
+
+    // Pixiv 圖片
+    html = html.replace(
+        /\[pixivimage:(\d+)\]/g,
+        `
+        <div class="pixiv-image">
+        [Pixiv圖片:$1]
+        </div>
+        `
+    );
+
+
+    // 換行
+    html = html.replace(
+        /\n/g,
+        "<br>"
+    );
+
+
+    return html;
+
+}
+		
+		
+		
+		function updateHTMLPreview(){
+
+
+
+    const preview =
+
+    document.getElementById("htmlPreview");
+
+
+
+
+
+    if(!preview || !currentPage)
+
+        return;
+
+
+
+
+
+    preview.innerHTML =
+
+    renderHTMLText(
+
+        currentPage.text
+
+    );
+
+
+
+}
+
+		
+		
+		
+		
 
        function handleAddNewPage(){
 
@@ -4529,8 +4820,7 @@ projectChanged=true;
 
 updatePreview();
 
-
-
+updateHTMLPreview();
 
 });
         // =======================
@@ -5196,11 +5486,350 @@ if(removeEmptyBtn){
             return map;
         }
 
+
+// =======================
+// Chapter 設定
+// =======================
+
+const chapterStyle = {
+
+    enabled:true,
+
+    prefix:"",
+
+    suffix:""
+
+};
+
+const chapterSettingBtn =
+document.createElement("button");
+
+chapterSettingBtn.textContent =
+"Chapter設定";
+
+document.querySelector("header")
+.appendChild(chapterSettingBtn);
+
+
+function openChapterSetting(){
+
+    const box =
+    document.createElement("div");
+
+
+    box.style.cssText = `
+    position:fixed;
+    top:80px;
+    right:30px;
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 5px 20px rgba(0,0,0,.2);
+    z-index:99999;
+    `;
+
+
+    box.innerHTML = `
+
+    <h3>
+    Chapter樣式
+    </h3>
+
+
+    <label>
+    <input id="chapterEnable"
+    type="checkbox"
+    ${chapterStyle.enabled?"checked":""}>
+    啟用chapter
+    </label>
+
+
+    <br><br>
+
+
+    前綴符號：
+
+    <input id="chapterPrefix"
+    value="${chapterStyle.prefix}">
+
+
+    <br><br>
+
+
+    後綴符號：
+
+    <input id="chapterSuffix"
+    value="${chapterStyle.suffix}">
+
+
+    <br><br>
+
+
+    <button id="chapterSave">
+    套用
+    </button>
+
+
+    `;
+
+
+
+    document.body.appendChild(box);
+
+
+
+    box.querySelector("#chapterSave")
+    .onclick=()=>{
+
+
+        chapterStyle.enabled =
+        box.querySelector("#chapterEnable").checked;
+
+
+        chapterStyle.prefix =
+        box.querySelector("#chapterPrefix").value;
+
+
+        chapterStyle.suffix =
+        box.querySelector("#chapterSuffix").value;
+
+
+        updatePreview();
+
+
+        box.remove();
+
+    };
+
+}
+
+
+
+chapterSettingBtn.onclick =
+openChapterSetting;
+
+
+
+
+function renderChapter(title){
+
+    if(!chapterStyle.enabled){
+
+        return title + "\n\n";
+
+    }
+
+
+    return (
+        "[chapter:" +
+        chapterStyle.prefix +
+        title +
+        chapterStyle.suffix +
+        "]\n\n"
+    );
+
+}
+
+// =======================
+// Chapter設定UI
+// =======================
+
+function createChapterSettingUI(){
+
+
+    const box = document.createElement("div");
+
+    box.id = "chapterSettingBox";
+
+
+    box.style.cssText = `
+
+    position:fixed;
+
+    top:80px;
+
+    right:30px;
+
+    width:280px;
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:12px;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.2);
+
+    z-index:99999;
+
+    display:none;
+
+    `;
+
+
+    box.innerHTML = `
+
+
+    <h3>
+    Chapter 樣式設定
+    </h3>
+
+
+    <label>
+
+    <input type="checkbox"
+    id="chapterEnable">
+
+    啟用 Chapter 標籤
+
+    </label>
+
+
+    <br><br>
+
+
+    前方符號：
+
+    <input id="chapterPrefix"
+    style="width:100%">
+
+
+    <br><br>
+
+
+    後方符號：
+
+    <input id="chapterSuffix"
+    style="width:100%">
+
+
+    <br><br>
+
+
+    <button id="chapterApply">
+
+    套用
+
+    </button>
+
+
+    `;
+
+
+    document.body.appendChild(box);
+
+
+
+    // 載入目前設定
+
+    box.querySelector("#chapterEnable")
+    .checked =
+    chapterStyle.enabled;
+
+
+    box.querySelector("#chapterPrefix")
+    .value =
+    chapterStyle.prefix;
+
+
+    box.querySelector("#chapterSuffix")
+    .value =
+    chapterStyle.suffix;
+
+
+
+    box.querySelector("#chapterApply")
+    .onclick = ()=>{
+
+
+        chapterStyle.enabled =
+        box.querySelector("#chapterEnable").checked;
+
+
+        chapterStyle.prefix =
+        box.querySelector("#chapterPrefix")
+        .value;
+
+
+        chapterStyle.suffix =
+        box.querySelector("#chapterSuffix")
+        .value;
+
+
+
+        updatePreview();
+
+
+        projectChanged = true;
+
+
+    };
+
+
+    return box;
+
+}
+
+
+// =======================
+// Chapter 設定按鈕
+// =======================
+
+const chapterButton =
+document.createElement("button");
+
+
+chapterButton.textContent =
+"Chapter設定";
+
+
+chapterButton.className =
+"chapter-setting-button";
+
+
+document.querySelector("header")
+.appendChild(chapterButton);
+
+
+
+// 建立 UI
+
+const chapterPanel =
+createChapterSettingUI();
+
+
+// 預設關閉
+
+chapterPanel.style.display =
+"none";
+
+
+
+// 開關
+
+chapterButton.onclick = ()=>{
+
+
+    chapterPanel.style.display =
+    chapterPanel.style.display === "none"
+    ?
+    "block"
+    :
+    "none";
+
+
+};
+
+
+
+
+
+
         function generatePixiv() {
             const indexMap = createPageIndex();
             let result = "";
             pages.forEach((page, index) => {
-                result += "[chapter:" + page.title + "]\n\n";
+                result += renderChapter(page.title);
                 result += page.text;
                 page.options.forEach((option) => {
                     if (option.target) {
@@ -5231,6 +5860,9 @@ if(removeEmptyBtn){
 
 
 
+
+
+
 let projectChanged = false;
 
     function saveProject(options = {}) {
@@ -5244,31 +5876,42 @@ let projectChanged = false;
 
 
     // 2. 打包資料
-    const data = {
+   const data = {
 
-        pages: pages.map(page => ({
-            id: page.id,
-            title: page.title,
-            text: page.text,
-            note: page.note || "",
-            groupId: page.groupId || null,
-            groupColor: page.groupColor || null,
-            options: page.options,
-            x: page.x,
-            y: page.y
-        })),
+    chapterStyle: {
 
-        notes:
-        (typeof window.allNotes !== 'undefined')
-        ? window.allNotes
-        : [],
+        enabled: chapterStyle.enabled,
 
-        drawings:
-        (typeof window.allDrawings !== 'undefined')
-        ? window.allDrawings
-        : []
+        prefix: chapterStyle.prefix,
 
-    };
+        suffix: chapterStyle.suffix
+
+    },
+
+
+    pages: pages.map(page => ({
+        id: page.id,
+        title: page.title,
+        text: page.text,
+        note: page.note || "",
+        groupId: page.groupId || null,
+        groupColor: page.groupColor || null,
+        options: page.options,
+        x: page.x,
+        y: page.y
+    })),
+
+    notes:
+    (typeof window.allNotes !== 'undefined')
+    ? window.allNotes
+    : [],
+
+    drawings:
+    (typeof window.allDrawings !== 'undefined')
+    ? window.allDrawings
+    : []
+
+};
 
 
     let library = JSON.parse(
@@ -5383,6 +6026,23 @@ loadInput.addEventListener("change", event => {
                 try {
                     const data = JSON.parse(reader.result);
 
+
+                  // 恢復 Chapter 樣式設定
+                 if(data.chapterStyle){
+
+                chapterStyle.enabled =
+                data.chapterStyle.enabled;
+
+
+               chapterStyle.prefix =
+               data.chapterStyle.prefix || "";
+
+
+             chapterStyle.suffix =
+    data.chapterStyle.suffix || "";
+
+}
+
                     // 1. 強制重置整個編輯器狀態 (確保 Note 與 Pages 都能重新初始化)
                     if (typeof importProjectData === 'function') {
                         importProjectData(data);
@@ -5421,7 +6081,9 @@ loadInput.addEventListener("change", event => {
                     }
                     projectChanged = false;
 
-                    alert("檔案匯入成功！");
+					updatePreview();
+
+					alert("檔案匯入成功！");
 
                 } catch (e) {
                     alert("匯入失敗，請檢查檔案格式是否正確。");
@@ -10821,6 +11483,7 @@ setInterval(
 );
 
 
+
 // =============================================
 // HTML Test Reader Export v1.1
 // 美化閱讀版
@@ -11035,6 +11698,34 @@ opacity:.85;
 
 const pages = ${json};
 
+function renderHTML(text){
+
+    if(!text)
+        return "";
+
+
+    return text
+
+    // 換行
+    .replace(/\n/g,"<br>")
+
+
+    // 粗體
+    .replace(/\[b\](.*?)\[\/b\]/g,
+    "<strong>$1</strong>")
+
+
+    // 斜體
+    .replace(/\[i\](.*?)\[\/i\]/g,
+    "<em>$1</em>")
+
+
+    // 底線
+    .replace(/\[u\](.*?)\[\/u\]/g,
+    "<u>$1</u>")
+
+}
+
 
 
 function renderReader(page){
@@ -11080,8 +11771,7 @@ document.createElement("div");
 text.className="reader-text";
 
 
-text.textContent=page.text;
-
+text.innerHTML=renderHTML(page.text);
 
 
 reader.appendChild(text);
@@ -12244,6 +12934,13 @@ if(togglePreview && previewFloat){
 
 
 })();
+
+
+
+
+
+
+
 
 </script>
 </body>
