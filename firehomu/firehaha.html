@@ -3769,6 +3769,31 @@ html.replace(
 	border-radius:4px;
 }
 
+.folderNode{
+
+position:absolute;
+
+width:140px;
+
+padding:12px;
+
+background:#ffe7a3;
+
+border:2px solid #d3aa3b;
+
+border-radius:10px;
+
+cursor:pointer;
+
+user-select:none;
+
+font-weight:bold;
+
+z-index:1;
+
+}
+
+
 	</style>
 </head>
 <body>
@@ -3809,6 +3834,14 @@ Pixiv Interactive Novel Editor V5.6
 <!-- 專案操作 -->
 
 <div class="header-group">
+<div id="folderPanel">
+<button id="createFolderBtn">
+📁 新增資料夾
+</button>
+
+<div id="folderList"></div>
+
+</div>
 
 
 <button 
@@ -3954,6 +3987,9 @@ English
 
 
 
+
+
+	
 
 
 	<div id="editorFloat">
@@ -4691,7 +4727,7 @@ newOption:"新しい選択"
     	// =======================
     	// 核心資料與邏輯
     	// =======================
-    	class NovelPage {
+    class NovelPage {
 
 	constructor(){
 
@@ -4712,6 +4748,10 @@ newOption:"新しい選択"
     	this.groupColor = null;
 
 
+    	// 資料夾
+    	this.folderId = null;
+
+
     	// 預設位置
     	this.x=100;
     	this.y=100;
@@ -4722,6 +4762,8 @@ newOption:"新しい選択"
 }
 
     	const pages = [];
+	const ProjectFolders = [];
+        
     	let currentPage = null;
     	window.selectedPages = window.selectedPages || new Set();
     	const flowCanvas = document.querySelector("#flowCanvas");
@@ -4750,6 +4792,9 @@ t("defaultNewPage");
 // （因為節點順序、筆記內容之後都可能變動）
 node.dataset.pagenum = "?";
 node.dataset.hasnote = page.note ? "1" : "0";
+
+node.dataset.folder =
+page.folderId || "";
 
 
 node.style.left =
@@ -4788,20 +4833,7 @@ drawLines();
 function enableNodeMenu(node,page){
 
 
-node.addEventListener(
-"contextmenu",
-e=>{
 
-e.preventDefault();
-
-showMenu(
-e.clientX,
-e.clientY,
-page
-);
-
-
-});
 
 
 let timer;
@@ -4838,7 +4870,10 @@ clearTimeout(timer);
 
 
 }
-    	function dragNode(element,page){
+
+
+
+function dragNode(element,page){
 
 
 element.addEventListener(
@@ -4954,9 +4989,31 @@ up
 );
 
 
+// =====================
+// 檢查是否丟入資料夾
+// =====================
+
+if(typeof checkFolderDrop==="function"){
+
+
+   console.log(
+    "檢查拖放",
+    page.title
+);
+
+
+console.log(
+    "資料夾數量",
+
+    window.ProjectFolders.length
+);
+
+    checkFolderDrop(page);
+
 }
 
 
+}
 
 element.addEventListener(
 "pointermove",
@@ -4970,11 +5027,181 @@ up
 );
 
 
-
 });
 
 
 }
+
+
+
+function checkFolderDrop(page){
+
+
+    if(
+        !page ||
+        !page.element ||
+        !window.ProjectFolders
+    ){
+
+        console.log(
+            "資料不足，取消檢查"
+        );
+
+        return false;
+
+    }
+
+
+
+    const nodeRect =
+    page.element.getBoundingClientRect();
+console.log(
+    "node位置",
+    nodeRect.left,
+    nodeRect.top
+);
+
+
+
+    console.log(
+        "檢查拖入:",
+        page.title
+    );
+
+
+
+    console.log(
+        "資料夾數:",
+        window.ProjectFolders.length
+    );
+
+
+
+
+    for(
+        const folder of window.ProjectFolders
+    ){
+
+
+        if(
+            !folder.element
+        ){
+            continue;
+        }
+
+
+
+        const folderRect =
+        folder.element.getBoundingClientRect();
+
+    // =====================
+// 測試資料夾位置
+// =====================
+
+console.log(
+    "folder位置",
+    folder.name,
+    folderRect.left,
+    folderRect.top
+);
+
+
+
+
+        // =====================
+        // 碰撞判斷
+        // =====================
+
+        const overlap =
+        !(
+            nodeRect.right < folderRect.left ||
+            nodeRect.left > folderRect.right ||
+            nodeRect.bottom < folderRect.top ||
+            nodeRect.top > folderRect.bottom
+        );
+
+
+
+        if(overlap){
+
+
+
+            console.log(
+                "成功放入:",
+                folder.name
+            );
+
+
+
+            // =====================
+            // 加入資料夾
+            // =====================
+
+
+            if(
+                !folder.nodes.includes(page.id)
+            ){
+
+                folder.nodes.push(
+                    page.id
+                );
+
+            }
+
+
+
+            page.folderId =
+            folder.id;
+
+
+
+            // =====================
+            // 隱藏節點
+            // =====================
+
+            page.element.style.display =
+            "none";
+
+
+
+            if(
+                typeof projectChanged !== "undefined"
+            ){
+
+                projectChanged = true;
+
+            }
+
+
+
+            console.log(
+                "資料夾內容:",
+                folder.nodes
+            );
+
+
+
+            return true;
+
+
+        }
+
+
+    }
+
+
+
+    console.log(
+        "沒有碰到任何資料夾"
+    );
+
+
+    return false;
+
+
+}
+
+
 
     	function refreshNodeBadges() {
         	pages.forEach((page, index) => {
@@ -5309,80 +5536,117 @@ html.replace(
 		
 
     	function selectPage(page) {
-        	const pageTextPageNum = document.getElementById("pageTextPageNum");
+	const pageTextPageNum = document.getElementById("pageTextPageNum");
 
-        	if (!page) {
-            	currentPage = null;
-            	titleInput.value = "";
-            	if (noteInput) noteInput.value = "";
-            	textInput.value = "";
-            	if (pageTextPageNum) pageTextPageNum.textContent = "";
-            	optionsBox.innerHTML = "";
-            	updatePreview();
-				updateHTMLPreview(); 
-            	return;
-        	}
-currentPage = page;
-
-titleInput.value = page.title;
-
-if (noteInput)
-	noteInput.value = page.note || "";
-
-textInput.value = page.text;
+	if (!page) {
+		currentPage = null;
+		titleInput.value = "";
+		if (noteInput) noteInput.value = "";
+		textInput.value = "";
+		if (pageTextPageNum) pageTextPageNum.textContent = "";
+		optionsBox.innerHTML = "";
+		updatePreview();
+		updateHTMLPreview(); 
+		return;
+	}
 
 
-if (pageTextPageNum) {
+	currentPage = page;
 
-	const idx = pages.indexOf(page);
+	titleInput.value = page.title;
 
-	pageTextPageNum.textContent =
-	idx >= 0
-	? `（第 ${idx + 1} 頁）`
-	: "";
+
+	if (noteInput)
+		noteInput.value = page.note || "";
+
+
+	textInput.value = page.text;
+
+
+
+	if (pageTextPageNum) {
+
+		const idx = pages.indexOf(page);
+
+		pageTextPageNum.textContent =
+		idx >= 0
+		? `（第 ${idx + 1} 頁）`
+		: "";
+
+	}
+
+
+
+	document.querySelectorAll(".flowNode").forEach(node => {
+
+		node.classList.remove("selected");
+		node.style.boxShadow = "none";
+
+	});
+
+
+
+	if (page.element) {
+
+		page.element.style.borderColor = "#007bff";
+
+		page.element.style.boxShadow =
+		"0 0 10px rgba(0, 123, 255, 0.5)";
+
+
+		// ==========================
+		// 自動畫布定位
+		// ==========================
+
+const canvas =
+document.getElementById("flowCanvas");
+
+
+if(canvas && page.element){
+
+
+    const nodeX =
+    page.x;
+
+
+    const nodeY =
+    page.y;
+
+
+
+    canvas.scrollTo({
+
+        left:
+        nodeX -
+        canvas.clientWidth / 2,
+
+
+        top:
+        nodeY -
+        canvas.clientHeight / 2,
+
+
+        behavior:"smooth"
+
+    });
+
 
 }
 
-        	document.querySelectorAll(".flowNode").forEach(node => {
-            	node.classList.remove("selected");
-            	node.style.boxShadow = "none";
-        	});
-        	if (page.element) {
-            	page.element.style.borderColor = "#007bff";
-            	page.element.style.boxShadow = "0 0 10px rgba(0, 123, 255, 0.5)";
-        	}
-        	renderOptions();
-        	updatePreview();
-        	updateHTMLPreview();
-			
-    	}
+		
 
-    	titleInput.addEventListener("input", () => {
+	}
 
-	if (!currentPage)
-    	return;
-
-
-	currentPage.title =
-	titleInput.value;
-
-
-	projectChanged = true;
-
-
-	updateNodeTitle(currentPage);
 
 
 	renderOptions();
 
-
 	updatePreview();
-
 
 	updateHTMLPreview();
 
-});
-
+			
+}
     	if (noteInput) {
         	noteInput.addEventListener("input", () => {
             	if (!currentPage) return;
@@ -5752,7 +6016,7 @@ return html;
 		
 		
 
-   	function handleAddNewPage(){
+function handleAddNewPage(){
 
 
 const page =
@@ -5842,7 +6106,10 @@ updatePreview();
 updateHTMLPreview();
 
 });
-    	// =======================
+
+
+
+ // =======================
 // Pixiv 標籤工具
 // =======================
 
@@ -6971,16 +7238,23 @@ function getWindowState() {
 
 
 	pages: pages.map(page => ({
-    	id: page.id,
-    	title: page.title,
-    	text: page.text,
-    	note: page.note || "",
-    	groupId: page.groupId || null,
-    	groupColor: page.groupColor || null,
-    	options: page.options,
-    	x: page.x,
-    	y: page.y
-	})),
+    id: page.id,
+    title: page.title,
+    text: page.text,
+    note: page.note || "",
+
+    // 群組
+    groupId: page.groupId || null,
+    groupColor: page.groupColor || null,
+
+    // 資料夾
+    folderId: page.folderId || null,
+
+    options: page.options,
+
+    x: page.x,
+    y: page.y
+})),
 
 	notes:
 	(typeof window.allNotes !== 'undefined')
@@ -6992,6 +7266,23 @@ function getWindowState() {
 ? window.allDrawings
 : [],
 
+
+folders:
+window.ProjectFolders.map(folder=>({
+
+    id:folder.id,
+
+    name:folder.name,
+
+    icon:folder.icon,
+
+    nodes:folder.nodes,
+
+    x:folder.x,
+
+    y:folder.y
+
+})),
 
 // 保存浮動視窗狀態
 windowState: getWindowState()
@@ -10108,6 +10399,56 @@ window.importProjectData=function(data){
             	if (typeof renderNotes === 'function') renderNotes();
         	}
 
+		// =====================================
+// 3a. 處理資料夾
+// =====================================
+
+window.ProjectFolders.length = 0;
+
+
+if(projectData.folders){
+
+    projectData.folders.forEach(item=>{
+
+
+        const folder = {
+
+            id:item.id,
+
+            name:item.name,
+
+            icon:item.icon || "📁",
+
+            nodes:item.nodes || [],
+
+            x:item.x || 300,
+
+            y:item.y || 200,
+
+            element:null
+
+        };
+
+
+        window.ProjectFolders.push(
+            folder
+        );
+
+
+        if(typeof createFolderNode==="function"){
+
+            createFolderNode(
+                folder
+            );
+
+        }
+
+
+    });
+
+}
+		
+
         	// 3b. 處理畫筆筆劃 (projectData.drawings)
         	if (projectData.drawings) {
             	window.allDrawings = projectData.drawings;
@@ -10260,12 +10601,19 @@ function setupTouchSupport(element, callback) {
 	});
 
 }
+
+
+
+
+
+
 // =====================================
 // 現代化右鍵選單與剪貼簿系統
 // =====================================
 (function() {
 	let nodeMenu = null;
 	let canvasMenu = null;
+        let folderMenu = null;
 	let activePage = null; // 當前操作的節點
 	let clickX = 0;    	// 記錄畫布點擊 X
 	let clickY = 0;    	// 記錄畫布點擊 Y
@@ -10277,16 +10625,21 @@ function setupTouchSupport(element, callback) {
     	toast.style.cssText = `position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; z-index:9999999; font-size:14px; pointer-events:none;`;
     	document.body.appendChild(toast);
     	setTimeout(() => toast.remove(), 2000);
-	}
-
+	}	    
+        
 	// --- 1. 節點右鍵選單 ---
 	function createNodeMenu() {
+
     	if (nodeMenu) return;
     	nodeMenu = document.createElement("div");
     	nodeMenu.style.cssText = `position:fixed; display:none; background:white; border:1px solid #ddd; border-radius:8px; padding:5px; box-shadow:0 5px 15px rgba(0,0,0,0.2); z-index:999999; min-width:140px;`;
     	
     	nodeMenu.innerHTML = `
         	<div data-action="rename">✏️ 編輯名稱</div>
+		<div data-action="folder">📁 放入資料夾</div>
+		<div data-action="removeFolder">
+    		📂 移出資料夾
+		</div>
         	<div data-action="cut">✂️ 剪下</div>
         	<div data-action="copy">📋 複製</div>
         	<div data-action="delete">🗑️ 刪除</div>
@@ -10299,6 +10652,69 @@ function setupTouchSupport(element, callback) {
         	
         	item.onclick = async () => {
             	const action = item.dataset.action;
+	if(action==="folder"){
+
+
+const folder =
+window.currentFolder;
+
+
+if(!folder){
+
+    showToast(
+        "請先選取資料夾"
+    );
+
+    return;
+
+}
+
+
+// =======================
+// 加入資料夾
+// =======================
+
+activePage.folderId =
+folder.id;
+
+
+// 加入資料夾清單
+
+if(!folder.nodes){
+
+    folder.nodes=[];
+
+}
+
+
+if(!folder.nodes.includes(activePage.id)){
+
+    folder.nodes.push(
+        activePage.id
+    );
+
+}
+
+// 隱藏畫布節點
+
+if(activePage.element){
+
+    activePage.element.style.display =
+    "none";
+
+}
+
+
+
+showToast(
+    "📁 已加入："+folder.name
+);
+
+
+    projectChanged=true;
+
+
+}
             	if (!activePage) return;
 
             	if (action === "rename") {
@@ -10333,6 +10749,351 @@ function setupTouchSupport(element, callback) {
     	});
     	document.body.appendChild(nodeMenu);
 	}
+
+// =====================================
+// 資料夾選單
+// =====================================
+
+function createFolderMenu(){
+
+    if(folderMenu)
+        return;
+
+
+    folderMenu =
+    document.createElement("div");
+
+
+    folderMenu.id =
+    "folderMenu";
+
+
+    folderMenu.style.cssText =
+    `
+    position:fixed;
+    display:none;
+    background:white;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:5px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+    z-index:999999;
+    min-width:160px;
+    `;
+
+
+    folderMenu.innerHTML =
+
+    `
+    <div data-action="rename">
+        ✏️ 重新命名
+    </div>
+   <div data-action="remove">
+    📂 移出目前資料夾
+</div>
+
+    <div data-action="delete">
+        🗑️ 刪除資料夾
+    </div>
+    `;
+
+
+
+  folderMenu
+.querySelectorAll("div")
+.forEach(item=>{
+
+
+    item.style.cssText =
+    `
+    padding:8px 12px;
+    cursor:pointer;
+    `;
+
+
+
+    item.onclick=function(){
+
+
+        const action =
+        item.dataset.action;
+
+
+
+        const folder =
+        window.currentFolder;
+
+
+
+        if(!folder)
+            return;
+
+
+
+        // =====================
+        // 重新命名
+        // =====================
+
+        if(action==="rename"){
+
+
+            const name =
+            prompt(
+                "重新命名資料夾",
+                folder.name
+            );
+
+
+
+            if(name && name.trim()){
+
+
+                folder.name =
+                name.trim();
+
+
+
+                if(folder.element){
+
+
+                    folder.element.textContent =
+                    folder.icon+" "+folder.name;
+
+
+                }
+
+
+
+                if(typeof projectChanged!=="undefined"){
+
+                    projectChanged=true;
+
+                }
+
+
+
+                if(typeof saveProject==="function"){
+
+                    saveProject();
+
+                }
+
+
+            }
+
+
+        }
+
+       // =====================
+// 移出資料夾
+// =====================
+if(action==="remove"){
+
+
+    const folder =
+    window.currentFolder;
+
+
+    if(!folder)
+        return;
+
+
+
+    if(!folder.nodes || folder.nodes.length===0){
+
+        showToast(
+            "📂 此資料夾沒有頁面"
+        );
+
+        return;
+
+    }
+
+
+
+    folder.nodes.forEach(id=>{
+
+
+        const page =
+        pages.find(
+            p=>p.id===id
+        );
+
+
+        if(page){
+
+
+            page.folderId=null;
+
+
+            // 恢復節點顯示
+
+            if(page.element){
+
+                page.element.style.display =
+                "block";
+
+            }
+
+
+        }
+
+
+    });
+
+
+
+    folder.nodes=[];
+
+
+
+    projectChanged=true;
+
+
+    showToast(
+        "📂 已移出資料夾"
+    );
+
+
+}
+        // =====================
+        // 刪除資料夾
+        // =====================
+
+        if(action==="delete"){
+
+
+            if(confirm(
+                "確定刪除資料夾？\n（裡面的頁面不會被刪除）"
+            )){
+
+
+
+                // 清除資料夾內節點紀錄
+
+                folder.nodes=[];
+
+
+
+                // 清除頁面的資料夾關聯
+
+                if(typeof pages!=="undefined"){
+
+
+                    pages.forEach(page=>{
+
+
+                        if(page.folderId===folder.id){
+
+
+                            page.folderId=null;
+                            
+			if(page.element){
+
+   		 page.element.style.display =
+    		"block";
+
+		}
+
+                        }
+
+
+                    });
+
+
+                }
+
+
+
+                // 從資料夾列表移除
+
+                if(window.ProjectFolders){
+
+
+                    const index =
+                    window.ProjectFolders.findIndex(
+                        f=>f.id===folder.id
+                    );
+
+
+
+                    if(index!==-1){
+
+
+                        window.ProjectFolders.splice(
+                            index,
+                            1
+                        );
+
+
+                    }
+
+
+                }
+
+
+
+                // 移除畫布上的資料夾 Node
+
+                if(folder.element){
+
+
+                    folder.element.remove();
+
+
+                }
+
+
+
+                window.currentFolder=null;
+
+
+
+                if(typeof projectChanged!=="undefined"){
+
+
+                    projectChanged=true;
+
+
+                }
+
+
+
+                if(typeof saveProject==="function"){
+
+
+                    saveProject();
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+
+        folderMenu.style.display="none";
+
+
+    };
+
+
+});
+
+
+
+document.body.appendChild(folderMenu);
+
+
+}
+
+
+window.createFolderMenu =
+createFolderMenu;
+
 
 	// --- 2. 畫布空白處右鍵選單 (貼上) ---
 function createCanvasMenu() {
@@ -10407,6 +11168,24 @@ function openMenuAt(clientX, clientY) {
 // --- A. 滑鼠右鍵處理 ---
 document.addEventListener("contextmenu", (e) => {
 	if (e.target.closest("#flowPanel") && !e.target.closest(".node")) {
+
+if(
+        e.target.closest("#flowPanel")
+        &&
+        !e.target.closest(".node")
+        &&
+        !e.target.closest(".folderNode")
+    ){
+
+    	e.preventDefault();
+
+    	openMenuAt(
+            e.clientX,
+            e.clientY
+        );
+
+	}
+
     	e.preventDefault();
     	openMenuAt(e.clientX, e.clientY); // 呼叫統一函式
 	}
@@ -10421,7 +11200,13 @@ if (flowPanel) {
 	flowPanel.addEventListener("touchstart", function(e){
 
     	// 如果碰到節點，不開空白選單
-    	if(e.target.closest(".node")) return;
+    	// 如果碰到節點或資料夾，不開空白選單
+if(
+    e.target.closest(".node")
+    ||
+    e.target.closest(".folderNode")
+)
+return;
 
 
     	const touch = e.touches[0];
@@ -10516,8 +11301,12 @@ if (flowPanel) {
         	return;
 
     	// 點在節點上的話，交給節點自己的拖曳（dragNode）處理，這裡不搶事件
-    	if(e.target.closest(".flowNode"))
-        	return;
+    	if(
+    e.target.closest(".flowNode")
+    ||
+    e.target.closest(".folderNode")
+)
+    return;
 
     	// 按住 Shift 是要框選節點，不是要平移畫布，讓框選功能接手
     	if(e.shiftKey)
@@ -10560,6 +11349,7 @@ if (flowPanel) {
 	window.addEventListener("mouseleave", endPan);
 
 })();
+
 
 
 // --- D. 多選節點（框選 / Ctrl+點擊）+ 複製/剪下/貼上 + 釘成群組 ---
@@ -10892,6 +11682,7 @@ if (flowPanel) {
 
 	if(e.target.closest("#canvasMenu")) return;
 	if(e.target.closest("#nodeMenu")) return;
+        if(e.target.closest("#folderMenu")) return;
 
 
 	if (nodeMenu)
@@ -17272,7 +18063,11 @@ if(document.readyState === "loading"){
                     note: page.note || "",
                     groupId: page.groupId || null,
                     groupColor: page.groupColor || null,
-                    options: clone(page.options || [], []),
+
+		// 資料夾
+			folderId: page.folderId || null,
+
+		options: clone(page.options || [], []),
                     x: Number.isFinite(page.x) ? page.x : 100,
                     y: Number.isFinite(page.y) ? page.y : 100
                 };
@@ -17281,6 +18076,10 @@ if(document.readyState === "loading"){
         load: function (items) {
             if (typeof pages === "undefined" || !Array.isArray(pages)) return;
             const source = Array.isArray(items) ? items : [];
+	    console.log(
+    	"載入資料夾資料:",
+    	source
+);
             const canvas = document.getElementById("flowCanvas");
 
             pages.splice(0, pages.length);
@@ -17294,12 +18093,26 @@ if(document.readyState === "loading"){
                 page.note = item && typeof item.note === "string" ? item.note : "";
                 page.groupId = item && item.groupId ? item.groupId : null;
                 page.groupColor = item && item.groupColor ? item.groupColor : null;
+		page.folderId =item && item.folderId?item.folderId:null
+		
                 page.options = item && Array.isArray(item.options) ? clone(item.options, []) : [];
                 page.x = item && Number.isFinite(item.x) ? item.x : 100;
                 page.y = item && Number.isFinite(item.y) ? item.y : 100;
                 pages.push(page);
 
                 if (typeof createFlowNode === "function") createFlowNode(page);
+                // 如果屬於資料夾，載入時隱藏
+
+		if(
+    		page.folderId &&
+    		page.element
+	){
+
+    page.element.style.display =
+    "none";
+
+}
+                
                 if (page.groupId && page.element) {
                     page.element.dataset.groupId = page.groupId;
                     page.element.style.setProperty("--groupColor", page.groupColor || "#999");
@@ -17307,6 +18120,147 @@ if(document.readyState === "loading"){
             });
         }
     });
+
+    	register("folders", {
+    description: "資料夾與節點分類",
+    defaultValue: function () { return []; },
+    resetOnMissing: true,
+
+    save: function () {
+
+        if(
+            typeof window.ProjectFolders === "undefined" ||
+            !Array.isArray(window.ProjectFolders)
+        ){
+            return [];
+        }
+
+
+        return window.ProjectFolders.map(function(folder){
+
+            return {
+
+                id: folder.id,
+
+                name: folder.name || "",
+
+                icon: folder.icon || "📁",
+
+                nodes: clone(
+                    folder.nodes || [],
+                    []
+                ),
+
+                x: Number.isFinite(folder.x)
+                ?
+                folder.x
+                :
+                300,
+
+
+                y: Number.isFinite(folder.y)
+                ?
+                folder.y
+                :
+                200
+
+            };
+
+        });
+
+    },
+
+
+    load: function(items){
+
+        if(
+            typeof window.ProjectFolders === "undefined"
+        ){
+            window.ProjectFolders=[];
+        }
+
+
+        window.ProjectFolders.splice(
+            0,
+            window.ProjectFolders.length
+        );
+
+
+        const source =
+        Array.isArray(items)
+        ?
+        items
+        :
+        [];
+
+
+
+        source.forEach(function(item){
+
+
+            const folder={
+
+                id:
+                item.id ||
+                crypto.randomUUID(),
+
+
+                name:
+                item.name || "新資料夾",
+
+
+                icon:
+                item.icon || "📁",
+
+
+                nodes:
+                Array.isArray(item.nodes)
+                ?
+                item.nodes
+                :
+                [],
+
+
+                x:
+                Number.isFinite(item.x)
+                ?
+                item.x
+                :
+                300,
+
+
+                y:
+                Number.isFinite(item.y)
+                ?
+                item.y
+                :
+                200
+
+            };
+
+
+            window.ProjectFolders.push(
+                folder
+            );
+
+
+            if(
+                typeof createFolderNode==="function"
+            ){
+
+                createFolderNode(folder);
+
+            }
+
+
+        });
+
+
+    }
+
+});
+
+
 
     register("notes", {
         description: "便利貼與圖片釘選",
@@ -17412,6 +18366,10 @@ window.authorStatus = {
 // 註冊
 // ======================================
 
+// ======================================
+// 作者心情
+// ======================================
+
 ProjectDataCenter.register(
 
 "authorStatus",
@@ -17419,6 +18377,7 @@ ProjectDataCenter.register(
 {
 
     description:"作者心情",
+
 
     defaultValue:{
 
@@ -17428,19 +18387,35 @@ ProjectDataCenter.register(
 
     },
 
+
     resetOnMissing:true,
 
 
     save:function(){
 
-        return window.authorStatus;
+        return window.authorStatus || {
+
+            mood:"😴 沒靈感",
+
+            days:0
+
+        };
 
     },
 
 
     load:function(value){
 
-        window.authorStatus = value;
+
+        window.authorStatus =
+        value || {
+
+            mood:"😴 沒靈感",
+
+            days:0
+
+        };
+
 
         updateAuthorButton();
 
@@ -17449,7 +18424,6 @@ ProjectDataCenter.register(
 }
 
 );
-
 
 // ======================================
 // 更新按鈕文字
@@ -17529,6 +18503,1077 @@ function(){
 });
 
 })();
+
+
+(function(){
+
+
+if(!window.ProjectDataCenter)
+    return;
+
+
+
+// ======================================
+// 資料
+// ======================================
+
+window.ProjectFolders =
+window.ProjectFolders || [];
+
+
+
+
+// ======================================
+// ProjectDataCenter 註冊
+// ======================================
+
+window.ProjectDataCenter.register(
+
+"projectFolders",
+
+{
+
+description:"專案資料夾",
+
+
+defaultValue:[],
+
+
+resetOnMissing:true,
+
+
+save:function(){
+
+    return window.ProjectFolders;
+
+},
+
+
+
+load:function(value){
+
+// 清除舊資料夾 DOM
+document
+.querySelectorAll(".folderNode")
+.forEach(el=>{
+    el.remove();
+});
+
+
+    window.ProjectFolders.length=0;
+
+
+    window.ProjectFolders.push(
+        ...(value || [])
+    );
+
+
+
+    // 還原畫布資料夾
+
+    window.ProjectFolders.forEach(folder=>{
+
+
+        if(typeof createFolderNode==="function"){
+
+            createFolderNode(folder);
+
+        }
+
+
+    });
+
+
+}
+
+
+
+});
+
+
+})();
+
+
+
+
+// ======================================
+// 建立畫布資料夾 Node
+// ======================================
+
+window.createFolderNode=function(folder){
+
+
+const node =
+document.createElement("div");
+
+
+
+node.className =
+"folderNode";
+
+
+// =====================
+// 資料夾外觀
+// =====================
+
+node.style.position =
+"absolute";
+
+node.style.width =
+"300px";
+
+node.style.height =
+"200px";
+
+node.style.padding =
+"12px";
+
+node.style.background =
+"#ffe7a3";
+
+node.style.border =
+"2px solid #d3aa3b";
+
+node.style.borderRadius =
+"10px";
+
+node.style.cursor =
+"pointer";
+
+node.style.userSelect =
+"none";
+
+node.style.fontWeight =
+"bold";
+
+
+// 資料夾在 node 下層
+
+node.style.zIndex =
+"1";
+
+
+node.textContent =
+folder.icon+" "+folder.name;
+
+
+
+node.style.left =
+(folder.x || 300)+"px";
+
+
+node.style.top =
+(folder.y || 200)+"px";
+
+node.style.width =
+"300px";
+
+
+node.style.height =
+"200px";
+
+
+
+flowCanvas.appendChild(node);
+
+
+
+folder.element=node;
+
+node.addEventListener(
+"contextmenu",
+e=>{
+
+    e.preventDefault();
+    e.stopPropagation();
+
+
+    window.currentFolder =
+    folder;
+
+
+    createFolderMenu();
+
+  
+
+
+
+    folderMenu.style.left =
+    e.clientX+"px";
+
+
+    folderMenu.style.top =
+    e.clientY+"px";
+
+
+    folderMenu.style.display =
+    "block";
+
+
+});
+
+node.onclick=function(e){
+
+    e.stopPropagation();
+
+
+    document
+    .querySelectorAll(".folderNode")
+    .forEach(el=>{
+
+        el.classList.remove(
+            "selectedFolder"
+        );
+
+    });
+
+
+
+    node.classList.add(
+        "selectedFolder"
+    );
+
+
+
+    window.currentFolder =
+    folder;
+
+
+
+    console.log(
+        "選取資料夾:",
+        folder.name
+    );
+
+
+    console.log(
+        "資料夾內容:",
+        folder.nodes
+    );
+
+
+    showFolderPages(folder);
+
+
+};
+
+
+ enableFolderDrag(
+     node,
+     folder
+ );
+
+ enableFolderDrop(
+     node,
+     folder
+ );
+
+
+};
+
+
+
+
+
+
+// ======================================
+// 建立資料夾
+// ======================================
+
+window.createFolder=function(
+name="新資料夾"
+){
+
+
+
+const folder={
+
+
+id:
+crypto.randomUUID(),
+
+
+name:name,
+
+
+icon:"📁",
+
+
+nodes:[],
+
+
+// 畫布位置
+
+x:300,
+
+y:200
+
+
+};
+
+
+
+
+
+window.ProjectFolders.push(
+    folder
+);
+
+
+
+
+
+if(typeof createFolderNode==="function"){
+
+    createFolderNode(folder);
+
+}
+
+
+
+
+if(typeof projectChanged !== "undefined"){
+
+    projectChanged=true;
+
+}
+
+
+
+
+return folder;
+
+
+};
+
+
+
+
+
+
+
+// ======================================
+// Node 移動到資料夾
+// ======================================
+
+window.movePageToFolder=function(
+page,
+folderId
+){
+
+
+
+const folder =
+window.ProjectFolders.find(
+f=>f.id===folderId
+);
+
+
+
+
+if(!folder){
+
+    console.warn(
+        "找不到資料夾",
+        folderId
+    );
+
+
+    return false;
+
+}
+
+
+
+
+
+// 移除舊資料夾
+
+window.ProjectFolders.forEach(f=>{
+
+
+    f.nodes =
+    f.nodes.filter(
+        id=>id!==page.id
+    );
+
+
+});
+
+
+
+
+
+
+// 加入新資料夾
+
+if(
+!folder.nodes.includes(page.id)
+){
+
+    folder.nodes.push(
+        page.id
+    );
+
+}
+
+
+
+
+// Node 記錄
+
+page.folderId =
+folder.id;
+console.log(
+    "目前頁面:",
+    activePage.title,
+    "資料夾ID:",
+    activePage.folderId,
+    "資料夾:",
+    folder.name
+);
+
+
+
+
+if(typeof projectChanged !== "undefined"){
+
+    projectChanged=true;
+
+}
+
+
+
+
+
+console.log(
+"移動完成:",
+page.title,
+"→",
+folder.name
+);
+
+
+
+
+return true;
+
+
+};
+
+
+
+
+
+// ======================================
+// 資料夾拖曳
+// ======================================
+
+window.enableFolderDrag=function(
+node,
+folder
+){
+
+
+let dragging=false;
+
+let isDown=false;
+
+
+let startX=0;
+let startY=0;
+
+
+let offsetX=0;
+let offsetY=0;
+
+
+
+
+node.addEventListener(
+"pointerdown",
+e=>{
+
+
+e.stopPropagation();
+
+
+isDown=true;
+
+dragging=false;
+
+
+startX=e.clientX;
+startY=e.clientY;
+
+
+
+offsetX =
+e.clientX -
+node.offsetLeft;
+
+
+offsetY =
+e.clientY -
+node.offsetTop;
+
+
+
+node.setPointerCapture(
+e.pointerId
+);
+
+
+
+});
+
+
+
+
+
+
+node.addEventListener(
+"pointermove",
+e=>{
+
+
+if(!isDown)
+    return;
+
+
+
+const dx =
+Math.abs(
+e.clientX-startX
+);
+
+
+const dy =
+Math.abs(
+e.clientY-startY
+);
+
+
+
+if(
+!dragging &&
+(dx>5 || dy>5)
+){
+
+    dragging=true;
+	
+   window.folderDragging = true;
+
+}
+
+
+
+if(!dragging)
+    return;
+
+
+
+// 開始真的拖曳後才阻止畫布
+
+e.stopPropagation();
+
+
+
+folder.x =
+e.clientX-offsetX;
+
+
+folder.y =
+e.clientY-offsetY;
+
+
+
+node.style.left =
+folder.x+"px";
+
+
+node.style.top =
+folder.y+"px";
+
+
+
+});
+
+
+node.addEventListener(
+"pointerup",
+e=>{
+
+
+e.stopPropagation();
+
+
+isDown=false;
+
+
+dragging=false;
+
+
+// 結束資料夾拖曳
+window.folderDragging=false;
+
+
+
+if(typeof projectChanged !== "undefined"){
+
+    projectChanged=true;
+
+}
+
+
+});
+
+node.addEventListener(
+"pointercancel",
+()=>{
+
+isDown=false;
+
+dragging=false;
+
+window.folderDragging=false;
+
+});
+
+
+
+}
+
+
+;document.addEventListener(
+"DOMContentLoaded",
+()=>{
+
+
+const btn =
+document.getElementById(
+"createFolderBtn"
+);
+
+
+
+if(!btn)
+    return;
+
+
+
+btn.onclick=function(){
+
+
+const name =
+prompt(
+"資料夾名稱",
+"新資料夾"
+);
+
+
+
+if(!name)
+    return;
+
+
+
+createFolder(name);
+
+
+
+};
+
+
+});
+
+
+// =====================================
+// 資料夾內容視窗
+// =====================================
+
+let folderViewWindow = null;
+
+
+
+function createFolderView(){
+
+
+    if(folderViewWindow)
+        return;
+
+
+
+    folderViewWindow =
+    document.createElement("div");
+
+
+    folderViewWindow.id =
+    "folderViewWindow";
+
+
+
+    folderViewWindow.style.cssText = `
+
+    position:fixed;
+
+    width:500px;
+
+    height:500px;
+
+    right:40px;
+
+    top:120px;
+
+    background:white;
+
+    border:1px solid #ccc;
+
+    border-radius:12px;
+
+    box-shadow:
+    0 8px 30px rgba(0,0,0,.25);
+
+    z-index:999999;
+
+    display:none;
+
+    overflow:auto;
+
+    padding:15px;
+
+    `;
+
+
+
+    document.body.appendChild(
+        folderViewWindow
+    );
+
+
+}
+
+
+
+
+function showFolderPages(folder){
+
+
+    createFolderView();
+
+
+
+    if(!folder.nodes){
+
+        console.log(
+            "資料夾沒有內容"
+        );
+
+        return;
+
+    }
+
+
+
+    const list =
+    pages.filter(
+        page =>
+        folder.nodes.includes(page.id)
+    );
+
+
+
+    folderViewWindow.innerHTML =
+
+`
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<h3>
+${folder.icon || "📁"}
+${folder.name}
+</h3>
+
+
+<button
+type="button"
+id="closeFolderView">
+
+✕
+
+</button>
+
+
+</div>
+
+
+<hr>
+
+
+<button
+id="extractFolderPages"
+type="button"
+style="
+padding:8px 12px;
+margin-bottom:10px;
+cursor:pointer;
+border-radius:6px;
+border:1px solid #ccc;
+background:white;
+">
+
+📤 取出選取頁面
+
+</button>
+
+
+
+
+`;
+
+
+
+    if(list.length===0){
+
+
+        const empty =
+        document.createElement("div");
+
+
+        empty.textContent =
+        "此資料夾沒有頁面";
+
+
+        folderViewWindow.appendChild(
+            empty
+        );
+
+
+    }
+
+
+
+    list.forEach(page=>{
+
+
+        const item =
+        document.createElement("div");
+
+
+
+        item.className =
+        "folderPageItem";
+
+
+
+       item.innerHTML =
+
+`
+<label style="
+display:flex;
+align-items:center;
+gap:8px;
+cursor:pointer;
+">
+
+<input 
+type="checkbox"
+class="folderPageCheck"
+data-id="${page.id}"
+>
+
+📄 ${page.title || "未命名頁面"}
+
+</label>
+`;
+
+
+
+        item.style.cssText = `
+
+        padding:10px;
+
+        margin:8px 0;
+
+        background:#f5f5f5;
+
+        border-radius:8px;
+
+        cursor:pointer;
+
+        `;
+
+
+
+        item.onclick=function(){
+
+
+            if(typeof selectPage==="function"){
+
+                selectPage(page);
+
+            }
+
+
+        };
+
+
+
+        folderViewWindow.appendChild(
+            item
+        );
+
+
+    });
+
+
+
+    // 顯示
+
+    folderViewWindow.style.display =
+    "block";
+
+
+
+    // =========================
+    // 關閉按鈕
+    // =========================
+
+    const closeBtn =
+    folderViewWindow.querySelector(
+        "#closeFolderView"
+    );
+
+
+
+    if(closeBtn){
+
+
+        closeBtn.onclick=function(e){
+
+
+            e.stopPropagation();
+
+
+            folderViewWindow.style.display =
+            "none";
+
+
+        };
+
+
+    }
+
+
+// =========================
+// 取出選取頁面
+// =========================
+
+const extractBtn =
+folderViewWindow.querySelector(
+    "#extractFolderPages"
+);
+
+
+
+if(extractBtn){
+
+
+    extractBtn.onclick=function(){
+
+
+        const checks =
+        folderViewWindow.querySelectorAll(
+            ".folderPageCheck:checked"
+        );
+
+
+
+        if(checks.length===0){
+
+            showToast(
+                "請先勾選頁面"
+            );
+
+            return;
+
+        }
+
+
+
+        checks.forEach(check=>{
+
+
+            const id =
+            check.dataset.id;
+
+
+
+            const page =
+            pages.find(
+                p=>p.id===id
+            );
+
+
+
+            if(page){
+
+
+                // 移出資料夾
+
+                page.folderId =
+                null;
+
+
+
+                // 顯示節點
+
+                if(page.element){
+
+                    page.element.style.display =
+                    "block";
+
+                }
+
+
+            }
+
+
+
+            folder.nodes =
+            folder.nodes.filter(
+                x=>x!==id
+            );
+
+
+
+        });
+
+
+
+        projectChanged=true;
+
+
+
+        // 更新視窗
+
+        showFolderPages(folder);
+
+
+
+    };
+
+
+}
+
+
+
+}
+
+
 
 
 
