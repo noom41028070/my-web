@@ -3,6 +3,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Pixiv Interactive Novel Editor V5.6 (Blogger Entity Fix)</title>
+        <link rel="icon" href="https://i.meee.com.tw/6w3uE2t.png" type="image/jpeg">
+
 	<style>
   	/* =================================================
    Pixiv Interactive Novel Editor V5.6
@@ -2050,15 +2052,15 @@ gap:10px;
 
 .header-group{
 
-display:flex;
+    display:flex;
 
-align-items:center;
+    align-items:center;
 
-gap:6px;
+    gap:6px;
 
-padding-left:10px;
+    padding-right:12px;
 
-border-left:1px solid #555;
+    border-right:1px solid #ddd;
 
 }
 
@@ -2371,7 +2373,7 @@ box-shadow:0 0 10px #007bff;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	z-index: 1000010;
+	z-index: 900000;
 }
 #gamebook-float-toolbar button {
 	background: #37474f;
@@ -2824,12 +2826,11 @@ margin-top:5px;
 	position:fixed;
 
 	top:60px;
-
 	right:30px;
 
 	width:520px;
-
 	max-width:90vw;
+
 	background:white;
 
 	border-radius:12px;
@@ -2843,9 +2844,8 @@ margin-top:5px;
 
 }
 
-
-
 #editorPanel{
+        height:700px;
 
 	width:100%;
 
@@ -3057,6 +3057,7 @@ padding:20px;
 
 
 
+
 /* =================================
    小螢幕
 ================================= */
@@ -3215,6 +3216,14 @@ cursor:pointer;
 	margin:15px 0 8px;
 
 }
+
+#editorFloat,
+#previewFloat{
+
+    box-sizing:border-box;
+
+}
+
 
 
 /* =================================
@@ -3453,7 +3462,312 @@ html.replace(
 
 
 
+.editor-title-icon{
 
+    width:32px;
+    height:32px;
+
+    object-fit:contain;
+
+    vertical-align:middle;
+
+    margin-right:10px;
+
+}
+
+
+/* =========================
+   編輯器 Header
+========================= */
+
+.pixiv-editor-app header{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    padding:10px 16px;
+
+    background:#ffffff;
+
+    color:#333;
+
+    flex-wrap:wrap;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+
+    border-bottom:1px solid #e5e5e5;
+
+}
+
+
+.header-group button{
+
+    height:34px;
+
+    padding:5px 12px;
+
+    border-radius:6px;
+
+    border:none;
+
+    background:#0096fa;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-size:13px;
+
+    transition:.15s;
+
+}
+
+.header-group button:hover{
+
+    background:#007acb;
+
+}
+
+
+.header-group button:active{
+
+    background:#006bb3;
+
+    transform:translateY(1px);
+
+}
+
+
+
+
+
+/* =================================================
+   追加樣式（統一按鈕 / 排版整理 / Pixiv小說預覽）
+   Added block — does not modify rules above,
+   relies on cascade order to take effect.
+================================================= */
+
+/* ---------- 色彩變數 ---------- */
+.pixiv-editor-container,
+.pixiv-source-window {
+	--px-blue:#0096fa;
+	--px-blue-dark:#0077cc;
+	--px-pink:#ff6f91;
+	--px-green:#39b54a;
+	--px-purple:#9c5fd6;
+	--px-text:#333;
+	--px-border:#e2e5e9;
+}
+
+/* ---------- 統一按鈕樣式（全域） ---------- */
+.pixiv-editor-container button,
+.pixiv-source-window button {
+	border:none;
+	border-radius:20px;
+	padding:8px 16px;
+	font-size:13px;
+	font-weight:600;
+	background:#555;
+	color:#fff;
+	cursor:pointer;
+	transition:background .15s ease, transform .15s ease, box-shadow .15s ease;
+	display:inline-flex;
+	align-items:center;
+	gap:4px;
+	line-height:1.4;
+}
+
+.pixiv-editor-container button:hover,
+.pixiv-source-window button:hover {
+	background:#666;
+	transform:translateY(-1px);
+}
+
+.pixiv-editor-container button:active,
+.pixiv-source-window button:active {
+	transform:translateY(0) scale(.97);
+}
+
+/* Header 按鈕：header 實際背景是白色（.pixiv-editor-app header），
+   維持原本 pixiv 藍底白字，只統一外形為圓角膠囊 */
+.pixiv-editor-container header button {
+	border-radius:20px;
+	color:#fff;
+}
+
+.pixiv-editor-container header button:hover {
+	filter:brightness(.92);
+}
+
+/* 主要操作按鈕保留識別色，但統一為圓角膠囊 */
+.pixiv-editor-container #addPage {
+	background:var(--px-blue);
+	border-color:transparent;
+}
+.pixiv-editor-container #addPage:hover { background:var(--px-blue-dark); }
+
+.pixiv-editor-container #exportPixiv {
+	background:var(--px-green);
+	border-color:transparent;
+}
+.pixiv-editor-container #exportPixiv:hover { background:#2e9a3d; }
+
+.pixiv-editor-container #saveProject {
+	background:var(--px-purple);
+	border-color:transparent;
+}
+.pixiv-editor-container #saveProject:hover { background:#8348c4; }
+
+.pixiv-editor-container .chapter-setting-button,
+.pixiv-editor-container header button.chapter-setting-button {
+	background:var(--px-pink);
+	color:#fff;
+	border-color:transparent;
+}
+.pixiv-editor-container .chapter-setting-button:hover { background:#f0567e; }
+
+/* 格式化工具列按鈕（正文/原始碼共用）：白底描邊膠囊，hover 變 pixiv 藍 */
+.pixiv-editor-container .pixiv-toolbar button,
+.pixiv-source-window .source-toolbar button,
+.pixiv-format-toolbar button {
+	background:#fff !important;
+	border:1px solid var(--px-border) !important;
+	border-radius:18px !important;
+	padding:6px 14px !important;
+	font-size:13px;
+	color:#444;
+}
+
+.pixiv-editor-container .pixiv-toolbar button:hover,
+.pixiv-source-window .source-toolbar button:hover,
+.pixiv-format-toolbar button:hover {
+	background:#eaf6ff !important;
+	border-color:var(--px-blue) !important;
+	color:var(--px-blue);
+}
+
+.pixiv-format-toolbar {
+	display:flex;
+	flex-wrap:wrap;
+	gap:6px;
+	margin-top:6px;
+	padding-top:6px;
+	border-top:1px dashed var(--px-border);
+	width:100%;
+}
+
+/* ---------- 排版整理 ---------- */
+.pixiv-editor-container header {
+	padding:12px 20px;
+	gap:10px;
+}
+
+#editorPanel {
+	padding:18px 20px;
+}
+
+#editorPanel > label {
+	display:block;
+	margin:16px 0 6px;
+	font-weight:600;
+	color:#444;
+	font-size:13px;
+}
+
+#editorPanel > label:first-of-type {
+	margin-top:0;
+}
+
+#editorPanel > input,
+#editorPanel > textarea {
+	width:100%;
+}
+
+#previewPanel {
+	padding:18px 20px;
+}
+
+.preview-title {
+	font-weight:700;
+	font-size:13px;
+	color:var(--px-blue);
+	margin:22px 0 10px;
+	padding-bottom:6px;
+	border-bottom:2px solid rgba(0,150,250,.25);
+	letter-spacing:.5px;
+}
+
+.preview-title:first-of-type {
+	margin-top:0;
+}
+
+/* ---------- 擬 Pixiv 小說預覽區 ---------- */
+.pixiv-novel-preview {
+	background:#fff;
+	max-width:640px;
+	margin:0 auto;
+	padding:36px 32px;
+	font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Georgia",serif;
+	font-size:16px;
+	line-height:2;
+	color:#2b2b2b;
+	border:1px solid #eee;
+	border-radius:6px;
+	box-shadow:0 1px 6px rgba(0,0,0,.06);
+	word-break:break-word;
+}
+
+.pixiv-novel-preview .novel-chapter-title {
+	font-size:22px;
+	font-weight:700;
+	text-align:center;
+	margin:36px 0 26px;
+	padding-bottom:14px;
+	border-bottom:2px solid var(--px-blue);
+	letter-spacing:1px;
+	color:#1a1a1a;
+	font-family:system-ui,"Noto Sans TC",sans-serif;
+}
+
+.pixiv-novel-preview .novel-chapter-title:first-child {
+	margin-top:0;
+}
+
+.pixiv-novel-preview .novel-divider {
+	border:none;
+	border-top:1px dashed #ccc;
+	margin:32px 0;
+}
+
+.pixiv-novel-preview .novel-jump {
+	display:inline-block;
+	margin:14px 0;
+	padding:6px 16px;
+	border-radius:20px;
+	background:#eaf6ff;
+	color:var(--px-blue);
+	font-size:13px;
+	font-family:system-ui,"Noto Sans TC",sans-serif;
+}
+
+.pixiv-novel-preview ruby rt {
+	font-size:.6em;
+}
+
+.pixiv-novel-preview blockquote {
+	border-left:4px solid #ccc;
+	margin:12px 0;
+	padding:4px 16px;
+	color:#666;
+}
+
+.pixiv-novel-preview img {
+	max-width:100%;
+	border-radius:4px;
+}
 
 	</style>
 </head>
@@ -3471,9 +3785,17 @@ html.replace(
 
 
 <strong id="editorTitle">
-Pixiv Interactive Novel Editor V5.6
-</strong>
 
+<img 
+    class="editor-title-icon"
+    src="https://i.meee.com.tw/6w3uE2t.png"
+>
+
+<span id="editorTitleText">
+Pixiv Interactive Novel Editor V5.6
+</span>
+
+</strong>
 
 <span id="currentProjectName">
 未開啟專案
@@ -3499,6 +3821,10 @@ data-i18n="addPage">
 id="exportPixiv"
 data-i18n="exportPixiv">
 輸出 Pixiv
+</button>
+
+<button id="authorMoodBtn">
+    😊 作者心情
 </button>
 
 
@@ -6558,6 +6884,68 @@ chapterButton.onclick = ()=>{
 
 let projectChanged = false;
 
+
+// =====================================
+// 浮動視窗狀態控制
+// 只保存位置與摺疊狀態
+// 尺寸交給 resize 模組
+// =====================================
+
+function getWindowState() {
+
+	const panels = [
+		"editorFloat",
+		"previewFloat",
+                "permFloat"
+	];
+
+	const state = {};
+
+
+	panels.forEach(panelId=>{
+
+		const el =
+		document.getElementById(panelId);
+
+		if(!el) return;
+
+
+		const style =
+		getComputedStyle(el);
+
+
+
+		state[panelId]={
+
+
+			left:
+			style.left,
+
+
+			top:
+			style.top,
+
+
+			right:
+			style.right,
+
+
+			bottom:
+			style.bottom,
+
+
+			isMinimized:
+			el.classList.contains("minimize")
+
+		};
+
+
+	});
+
+
+	return state;
+
+}
 	function saveProject(options = {}) {
 
 	const silent = options.silent || false;
@@ -6600,12 +6988,15 @@ let projectChanged = false;
 	: [],
 
 	drawings:
-	(typeof window.allDrawings !== 'undefined')
-	? window.allDrawings
-	: []
+(typeof window.allDrawings !== 'undefined')
+? window.allDrawings
+: [],
+
+
+// 保存浮動視窗狀態
+windowState: getWindowState()
 
 };
-
 
 	let library = JSON.parse(
     	safeStorage.getItem("PixivNovelLibrary_V2") || "[]"
@@ -6772,7 +7163,38 @@ loadInput.addEventListener("change", event => {
                 	if (typeof window.unlockEditor === 'function') {
                     	window.unlockEditor();
                 	}
-                	projectChanged = false;
+
+if (typeof window.unlockEditor === 'function') {
+
+	window.unlockEditor();
+
+}
+
+
+// ============================
+// 恢復浮動視窗狀態
+// ============================
+
+if(data.windowState){
+
+	console.log(
+		"恢復浮動視窗",
+		data.windowState
+	);
+
+
+	setTimeout(()=>{
+
+		restoreWindowState(
+			data.windowState
+		);
+
+	},100);
+
+}
+
+
+projectChanged = false;
 
 					updatePreview();
 
@@ -6785,6 +7207,202 @@ loadInput.addEventListener("change", event => {
         	};
         	reader.readAsText(file);
     	});
+function restoreWindowState(state){
+
+
+    if(!state)
+        return;
+
+
+
+    Object.keys(state).forEach(id=>{
+
+
+        const el =
+        document.getElementById(id);
+
+
+
+        if(!el)
+            return;
+
+
+
+        const s =
+        state[id];
+
+
+
+        // =====================
+        // 位置恢復
+        // =====================
+
+
+        [
+            "left",
+            "top",
+            "right",
+            "bottom"
+        ].forEach(prop=>{
+
+
+            if(
+                s[prop] !== undefined &&
+                s[prop] !== null &&
+                s[prop] !== ""
+            ){
+
+                el.style[prop]=s[prop];
+
+            }
+
+
+        });
+
+
+
+        // =====================
+        // 尺寸恢復
+        // 只有明確設定才恢復
+        // 並避開收起狀態
+        // =====================
+
+
+        const isCollapsed =
+        s.collapsed ||
+        s.minimized;
+
+
+
+        if(!isCollapsed){
+
+
+            if(
+                s.width &&
+                s.width !== "auto"
+            ){
+
+                el.style.width =
+                s.width;
+
+            }
+
+
+
+            /*
+            高度先不要恢復
+
+            因為 CSS 改高度會被舊資料污染
+
+            if(s.height)
+                el.style.height=s.height;
+
+            */
+
+
+        }
+
+
+
+        // =====================
+        // 收起狀態
+        // =====================
+
+
+        if(
+            s.collapsed ||
+            s.minimized
+        ){
+
+
+            el.classList.add(
+                "minimize"
+            );
+
+
+        }
+        else{
+
+
+            el.classList.remove(
+                "minimize"
+            );
+
+
+            el.classList.remove(
+                "collapsed"
+            );
+
+
+        }
+
+
+
+        // =====================
+        // 按鈕文字同步
+        // =====================
+
+
+        if(id==="editorFloat"){
+
+
+            const btn =
+            el.querySelector(
+                "#toggleEditor"
+            );
+
+
+            if(btn){
+
+                btn.textContent =
+                el.classList.contains("minimize")
+                ?
+                "＋"
+                :
+                "─";
+
+            }
+
+        }
+
+
+
+        if(id==="previewFloat"){
+
+
+            const btn =
+            el.querySelector(
+                "#togglePreview"
+            );
+
+
+            if(btn){
+
+                btn.textContent =
+                el.classList.contains("minimize")
+                ?
+                "＋"
+                :
+                "─";
+
+            }
+
+        }
+
+
+
+    });
+
+
+}
+// ========== 輔助函式 ==========
+function parsePx(str){
+    if(!str) return 100;
+    const num = parseFloat(str);
+    return isNaN(num) ? 100 : Math.round(num);
+}
+
+
 
     	function startTest() {
         	let testPage = pages[0];
@@ -6870,37 +7488,31 @@ body{
 /* 選項 */
 
 .reader-button{
-
 	display:block;
-
 	width:100%;
-
-	max-width:500px;
-
-	margin:12px auto;
-
-	padding:12px 16px;
-
+	max-width:520px;
+	margin:10px auto;
+	padding:13px 20px;
 	border:none;
-
-	border-radius:8px;
-
+	border-radius:24px;
 	cursor:pointer;
-
-	font-size:16px;
-
-	background:#4CAF50;
-
-	color:white;
-
+	font-size:15px;
+	font-weight:600;
+	letter-spacing:.3px;
+	background:#0096fa;
+	color:#fff;
+	box-shadow:0 2px 8px rgba(0,150,250,.35);
+	transition:background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 
-
-
 .reader-button:hover{
+	background:#0077cc;
+	transform:translateY(-1px);
+	box-shadow:0 4px 12px rgba(0,150,250,.45);
+}
 
-	opacity:0.85;
-
+.reader-button:active{
+	transform:translateY(0);
 }
 
 
@@ -7536,6 +8148,8 @@ bottom:20px;
 
 width:330px;
 
+max-height:380px;
+
 background:#ffffff;
 
 border-radius:10px;
@@ -7547,8 +8161,6 @@ z-index:9999;
 overflow:hidden;
 
 }
-
-
 #permHeader{
 
 
@@ -7580,6 +8192,10 @@ font-weight:bold;
 #permBody{
 
 padding:12px;
+
+max-height:320px;
+
+overflow:hidden;
 
 }
 
@@ -7623,9 +8239,13 @@ gap:8px;
 
 margin-top:12px;
 
+height:auto;
+
 max-height:260px;
 
-overflow:auto;
+overflow-y:auto;
+
+overflow-x:hidden;
 
 }
 
@@ -7727,20 +8347,141 @@ maxlength="6">
 
 document.body.appendChild(panel);
 
+panel.style.height = "auto";
+
 const display=document.getElementById("perms-result");
 
+//--------------------------------
+// 儲存 permFloat 狀態
+//--------------------------------
+
+function savePermState(){
+
+    const style =
+    getComputedStyle(panel);
+
+
+    const state = {
+
+        left:
+        style.left || "20px",
+
+
+        top:
+        style.top || "auto",
+
+
+        right:
+        style.right || "auto",
+
+
+        bottom:
+        style.bottom || "20px",
+
+
+        isMinimized:
+        panel.classList.contains("minimize")
+
+    };
+
+
+    localStorage.setItem(
+        "permFloatState",
+        JSON.stringify(state)
+    );
+
+}
 //--------------------------------
 // 收合
 //--------------------------------
 
+const togglePermBtn =
 document
 .getElementById("togglePerm")
 .onclick=function(){
 
-panel.classList.toggle("minimize");
+    panel.classList.toggle("minimize");
+
+
+    this.textContent =
+    panel.classList.contains("minimize")
+    ?
+    "＋"
+    :
+    "─";
+
+
+    savePermState();
 
 };
 
+// ============================
+// 恢復 permFloat 狀態
+// ============================
+
+(function restorePermState(){
+
+	const saved =
+	localStorage.getItem("permFloatState");
+
+	if(!saved)
+		return;
+
+	try{
+
+		const state =
+		JSON.parse(saved);
+
+
+		// ---------- 位置 ----------
+
+		if(state.left)
+			panel.style.left = state.left;
+
+		if(state.top)
+			panel.style.top = state.top;
+
+		if(state.right)
+			panel.style.right = state.right;
+
+		if(state.bottom)
+			panel.style.bottom = state.bottom;
+
+
+		// ---------- 收合狀態 ----------
+
+		if(state.isMinimized){
+
+			panel.classList.add("minimize");
+
+		}
+		else{
+
+			panel.classList.remove("minimize");
+
+		}
+
+
+		// ---------- 按鈕同步 ----------
+
+		togglePermBtn.textContent =
+		panel.classList.contains("minimize")
+		?
+		"＋"
+		:
+		"─";
+
+	}
+	catch(err){
+
+		console.warn(
+			"permFloat 狀態恢復失敗",
+			err
+		);
+
+	}
+
+})();
 //--------------------------------
 // 點一下複製
 //--------------------------------
@@ -8302,59 +9043,668 @@ if(!Array.isArray(state.openedProjects)){
         	// 啟動
         	setTimeout(initUI, 1500);
     	})();
+(function(){
 
-    	(function() {
-        	// 1. 確保 UI 建立在最外層
-        	const miniMap = document.createElement('div');
-        	miniMap.id = "mini-map-plugin";
-        	miniMap.style = "position: fixed; bottom: 80px; right: 20px; width: 220px; background: rgba(255,255,255,0.95); border: 2px solid #673ab7; border-radius: 8px; padding: 12px; z-index: 99999; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-family: sans-serif;";
 
-        	miniMap.innerHTML = `
-            	<div style="font-weight:bold; font-size:13px; margin-bottom:8px; color:#333;">🔍 節點快速搜尋</div>
-            	<input type="text" id="node-search" placeholder="輸入頁面標題..." style="width:100%; padding:5px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;">
-            	<div id="search-results" style="max-height:150px; overflow-y:auto; font-size:12px; background:#fff; border:1px solid #eee;"></div>
-        	`;
-        	document.body.appendChild(miniMap);
+"use strict";
 
-        	const searchInput = document.getElementById('node-search');
-        	const resultsDiv = document.getElementById('search-results');
 
-        	// 2. 搜尋邏輯
-        	searchInput.addEventListener('input', (e) => {
-            	const keyword = e.target.value.toLowerCase();
-            	if (!keyword) {
-                	resultsDiv.innerHTML = "";
-                	return;
-            	}
-            	// 從全域 pages 陣列篩選
-            	const matches = pages.filter(p => p.title && p.title.toLowerCase().includes(keyword));
+// =====================================
+// 節點快速搜尋插件
+// =====================================
 
-            	resultsDiv.innerHTML = matches.map(m => `
-                	<div class="search-item" style="padding:6px; cursor:pointer; border-bottom:1px solid #eee; transition: background 0.2s;"
-                     	onmouseover="this.style.background='#f0f0f0'"
-                     	onmouseout="this.style.background='transparent'">
-                    	${m.title}
-                	</div>
-            	`).join('');
 
-            	// 綁定點擊事件 (事件委派)
-            	resultsDiv.querySelectorAll('.search-item').forEach((item, index) => {
-                	item.onclick = (e) => {
-                    	e.stopPropagation(); // 防止事件冒泡
 
-                    	// 直接呼叫 selectPage
-                    	const targetPage = matches[index];
-                    	if (typeof selectPage === 'function') {
-                        	selectPage(targetPage);
-                        	console.log(`已成功選取頁面: ${targetPage.title}`);
-                    	} else {
-                        	console.error("找不到 selectPage 函數，請確認是否為全域函數");
-                    	}
-                	};
-            	});
-        	});
-    	})();
+//-------------------------------------
+// CSS 注入
+//-------------------------------------
 
+const style =
+document.createElement("style");
+
+
+style.textContent = `
+
+
+#mini-map-plugin{
+
+    position:fixed;
+
+    bottom:80px;
+
+    right:20px;
+
+    width:220px;
+
+    background:rgba(255,255,255,.95);
+
+    border:2px solid #673ab7;
+
+    border-radius:8px;
+
+    z-index:99999;
+
+    box-shadow:
+    0 4px 15px rgba(0,0,0,.3);
+
+    font-family:sans-serif;
+
+    overflow:hidden;
+
+    transition:.2s;
+
+}
+
+
+
+/* =========================
+   標題列
+========================= */
+
+
+#mini-map-header{
+
+
+    height:36px;
+
+
+    background:#673ab7;
+
+
+    color:white;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:space-between;
+
+
+    padding:0 10px;
+
+
+    font-size:13px;
+
+
+    font-weight:bold;
+
+
+    user-select:none;
+
+}
+
+
+
+/* =========================
+   按鈕
+========================= */
+
+
+#toggle-mini-map,
+#fade-mini-map{
+
+
+    border:none;
+
+
+    background:none;
+
+
+    color:white;
+
+
+    font-size:18px;
+
+
+    cursor:pointer;
+
+
+    padding:0 3px;
+
+
+}
+
+
+
+
+
+/* =========================
+   內容區
+========================= */
+
+
+#mini-map-body{
+
+
+    padding:12px;
+
+
+}
+
+
+
+#mini-map-plugin.minimize #mini-map-body{
+
+
+    display:none;
+
+
+}
+
+
+
+
+/* =========================
+   搜尋框
+========================= */
+
+
+#node-search{
+
+
+    width:100%;
+
+
+    box-sizing:border-box;
+
+
+    padding:6px;
+
+
+    margin-bottom:10px;
+
+
+    border:1px solid #ccc;
+
+
+    border-radius:4px;
+
+
+}
+
+
+
+
+
+/* =========================
+   搜尋結果
+========================= */
+
+
+#search-results{
+
+
+    max-height:150px;
+
+
+    overflow-y:auto;
+
+
+    font-size:12px;
+
+
+    background:white;
+
+
+    border:1px solid #eee;
+
+
+}
+
+
+
+.search-item{
+
+
+    padding:6px;
+
+
+    cursor:pointer;
+
+
+    border-bottom:1px solid #eee;
+
+
+    transition:.2s;
+
+
+}
+
+
+
+.search-item:hover{
+
+
+    background:#f0f0f0;
+
+
+}
+
+
+
+
+
+/* =========================
+   透明模式
+========================= */
+
+
+#mini-map-plugin.transparent{
+
+
+    opacity:.25;
+
+
+}
+
+
+
+#mini-map-plugin.transparent:hover{
+
+
+    opacity:1;
+
+
+}
+
+
+
+/*
+  透明時禁止內容攔截滑鼠
+  但保留標題列可以恢復
+*/
+
+
+#mini-map-plugin.transparent #mini-map-body{
+
+
+    pointer-events:none;
+
+
+}
+
+
+
+#mini-map-plugin.transparent #mini-map-header{
+
+
+    pointer-events:auto;
+
+
+}
+
+
+
+
+/* =========================
+   手機版
+========================= */
+
+
+@media(max-width:700px){
+
+
+    #mini-map-plugin{
+
+
+        right:10px;
+
+
+        bottom:70px;
+
+
+        width:200px;
+
+
+    }
+
+
+
+    #mini-map-plugin.transparent{
+
+
+        opacity:.15;
+
+
+    }
+
+
+}
+
+
+`;
+
+
+document.head.appendChild(style);
+
+
+
+
+
+//-------------------------------------
+// 建立 UI
+//-------------------------------------
+
+
+const miniMap =
+document.createElement("div");
+
+
+miniMap.id =
+"mini-map-plugin";
+
+
+
+miniMap.innerHTML = `
+
+
+<div id="mini-map-header">
+
+
+    <span>
+    🔍 節點快速搜尋
+    </span>
+
+
+    <button id="toggle-mini-map">
+＋
+</button>
+
+
+<button id="fade-mini-map">
+◐
+</button>
+
+
+</div>
+
+
+
+<div id="mini-map-body">
+
+
+    <input
+
+    type="text"
+
+    id="node-search"
+
+    placeholder="輸入頁面標題..."
+
+    >
+
+
+
+    <div id="search-results"></div>
+
+
+</div>
+
+
+`;
+
+
+
+document.body.appendChild(miniMap);
+
+
+
+
+
+//-------------------------------------
+// 預設收起
+//-------------------------------------
+
+
+miniMap.classList.add(
+    "minimize"
+);
+
+
+
+
+
+//-------------------------------------
+// 收合控制
+//-------------------------------------
+
+
+const toggleBtn =
+document.getElementById(
+    "toggle-mini-map"
+);
+
+
+
+toggleBtn.onclick=function(){
+
+
+    miniMap.classList.toggle(
+        "minimize"
+    );
+
+
+
+    this.textContent =
+
+    miniMap.classList.contains(
+        "minimize"
+    )
+
+    ?
+
+    "＋"
+
+    :
+
+    "─";
+
+
+};
+
+const fadeBtn =
+document.getElementById(
+    "fade-mini-map"
+);
+
+
+
+fadeBtn.onclick=function(e){
+
+
+    e.stopPropagation();
+
+
+    miniMap.classList.toggle(
+        "transparent"
+    );
+
+
+    this.textContent =
+
+    miniMap.classList.contains(
+        "transparent"
+    )
+
+    ?
+
+    "●"
+
+    :
+
+    "◐";
+
+
+};
+
+
+
+//-------------------------------------
+// 搜尋元件
+//-------------------------------------
+
+
+const searchInput =
+document.getElementById(
+    "node-search"
+);
+
+
+
+const resultsDiv =
+document.getElementById(
+    "search-results"
+);
+
+
+
+
+
+//-------------------------------------
+// 搜尋邏輯
+//-------------------------------------
+
+
+searchInput.addEventListener(
+"input",
+
+function(e){
+
+
+    const keyword =
+    e.target.value
+    .toLowerCase()
+    .trim();
+
+
+
+    if(!keyword){
+
+
+        resultsDiv.innerHTML="";
+
+
+        return;
+
+
+    }
+
+
+
+    if(typeof pages==="undefined"){
+
+
+        console.warn(
+            "找不到 pages"
+        );
+
+
+        return;
+
+
+    }
+
+
+
+
+
+    const matches =
+    pages.filter(
+        p =>
+        p.title &&
+        p.title
+        .toLowerCase()
+        .includes(keyword)
+    );
+
+
+
+
+
+    resultsDiv.innerHTML =
+
+    matches.map(
+        m=>`
+
+        <div class="search-item">
+
+            ${m.title}
+
+        </div>
+
+        `
+    ).join("");
+
+
+
+
+
+
+    resultsDiv
+    .querySelectorAll(
+        ".search-item"
+    )
+    .forEach(
+        (item,index)=>{
+
+
+            item.onclick=function(e){
+
+
+                e.stopPropagation();
+
+
+
+                const targetPage =
+                matches[index];
+
+
+
+                if(
+                    typeof selectPage ===
+                    "function"
+                ){
+
+
+                    selectPage(
+                        targetPage
+                    );
+
+
+                    console.log(
+                        "已選取頁面:",
+                        targetPage.title
+                    );
+
+
+                }
+
+                else{
+
+
+                    console.error(
+                    "找不到 selectPage"
+                    );
+
+
+                }
+
+
+            };
+
+
+        }
+    );
+
+
+});
+
+
+
+})();
     	(function() {
         	// 狀態存儲
         	window.state = { currentTab: null };
@@ -8371,18 +9721,207 @@ if(!Array.isArray(state.openedProjects)){
                 	display: flex; flex-direction: column; justify-content: center; align-items: center;
             	`;
             	overlay.innerHTML = `
-                	<div style="font-size:32px; font-weight:bold; color:#333; margin-bottom:20px;">🔒 編輯器已鎖定</div>
-                	<button id="btn-start-editor" style="padding:15px 30px; font-size:18px; cursor:pointer; background:#673ab7; color:#fff; border:none; border-radius:5px;">開啟或新增專案以開始</button>
-            	`;
+
+<div style="
+    text-align:center;
+    font-size:32px;
+    font-weight:bold;
+    color:#333;
+">
+
+    <img 
+        src="https://i.meee.com.tw/BwP7rvh.jpg"
+        style="
+            width:400px;
+            height:400px;
+            object-fit:contain;
+            display:block;
+            margin:0 auto 20px;
+        "
+    >
+
+    Pixiv互動小說編輯器
+
+    <div style="
+        font-size:18px;
+        margin-top:10px;
+        color:#666;
+    ">
+        正在初始化編輯環境...
+    </div>
+
+
+    <div style="
+        width:300px;
+        height:12px;
+        background:#ddd;
+        border-radius:10px;
+        overflow:hidden;
+        margin:20px auto;
+    ">
+
+        <div id="loading-progress"
+        style="
+            width:0%;
+            height:100%;
+            background:#673ab7;
+            transition:.3s;
+        ">
+        </div>
+
+    </div>
+
+
+    <div id="loading-text"
+    style="
+        font-size:14px;
+        color:#777;
+    ">
+        準備中...
+    </div>
+
+
+</div>
+
+
+<button id="btn-start-editor"
+style="
+    display:none;
+    padding:15px 30px;
+    font-size:18px;
+    cursor:pointer;
+    background:#673ab7;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+">
+開啟或新增專案以開始
+</button>
+
+`;
             	document.body.appendChild(overlay);
+                startLoading();
+
+function startLoading(){
+
+
+    const bar =
+    document.getElementById(
+        "loading-progress"
+    );
+
+
+    const text =
+    document.getElementById(
+        "loading-text"
+    );
+
+
+    const btn =
+    document.getElementById(
+        "btn-start-editor"
+    );
+
+
+    let progress = 0;
+
+
+    const steps = [
+
+        "載入編輯核心...",
+        "初始化節點系統...",
+        "準備素材庫...",
+        "載入工具模組...",
+        "完成初始化..."
+
+    ];
+
+
+
+    const timer =
+    setInterval(()=>{
+
+
+        progress += 20;
+
+
+        if(bar)
+            bar.style.width =
+            progress+"%";
+
+
+
+        if(text){
+
+            text.textContent =
+            steps[
+                Math.min(
+                    progress/20-1,
+                    steps.length-1
+                )
+            ];
+
+        }
+
+
+
+        if(progress>=100){
+
+
+            clearInterval(timer);
+
+
+
+            if(text)
+                text.textContent =
+                "準備完成";
+
+
+
+            setTimeout(()=>{
+
+
+                if(btn)
+                    btn.style.display="block";
+
+
+
+            },500);
+
+
+
+        }
+
+
+    },400);
+
+
+
+}
+                 
             	document.getElementById('btn-start-editor').onclick = () => window.openProjectSelector();
         	}
 
         	// 2. 解鎖函數
-        	window.unlockEditor = function() {
-            	const overlay = document.getElementById('editor-global-lock');
-            	if (overlay) overlay.style.display = 'none';
-        	};
+        	window.unlockEditor = function(){
+
+    const overlay =
+    document.getElementById(
+        'editor-global-lock'
+    );
+
+
+    if(overlay){
+
+        overlay.remove();
+
+    }
+
+
+};
+
+
+
 
         	// 3. 專案管理器彈窗
         	function createProjectModal() {
@@ -8447,15 +9986,22 @@ if(!Array.isArray(state.openedProjects)){
                 	projectName.textContent = "📁 " + p.name;
             	}
 
-            	if (p) {
-                	state.currentTab = p.id;
+            if (p) {
 
-                	// 只要這一個函式，就能處理所有資料（Pages + Notes）
-                	window.importProjectData(p.data);
+    state.currentTab = p.id;
 
-                	document.getElementById('project-manager-modal').style.display = 'none';
-                	window.unlockEditor();
-            	}
+
+    // 載入 Pages / Notes / Drawings
+    window.importProjectData(p.data);
+
+
+
+
+    document.getElementById('project-manager-modal').style.display = 'none';
+
+    window.unlockEditor();
+
+}
         	};
 
         	window.deleteProject = function(index) {
@@ -8611,7 +10157,28 @@ window.importProjectData=function(data){
             	// 更新標題列
             	const title = document.querySelector("#editorTitle");
             	if (title) {
-                	title.textContent = "Pixiv Interactive Novel Editor V5.6 - " + name;
+                	const titleText =
+document.getElementById(
+    "editorTitleText"
+);
+
+
+if(titleText){
+
+    const titleText =
+document.getElementById(
+    "editorTitleText"
+);
+
+
+if(titleText){
+
+    titleText.textContent =
+    "Pixiv Interactive Novel Editor V5.6 - " + name;
+
+}
+
+}
             	}
         	}
 
@@ -11017,83 +12584,551 @@ alert("Pixiv 原始碼已同步");
 
 
 (function() {
+
 	// 檢查是否已插入按鈕，避免重複執行
 	if (document.getElementById('plugin-custom-tools')) return;
 
-	// 1. 插入工具列 UI
+
 	const header = document.querySelector('header');
+
+	if(!header)
+	{
+		console.warn("找不到 header");
+		return;
+	}
+
+
 	const container = document.createElement('div');
+
 	container.id = 'plugin-custom-tools';
-	container.style = "display:inline-block; margin-left:15px; vertical-align:middle;";
 
-	const btnStyle = "padding:5px 12px; cursor:pointer; margin-right:8px; background:#444; color:#fff; border:1px solid #777; border-radius:4px; font-size:13px;";
-	
-	const exportBtn = document.createElement('button');
-	exportBtn.textContent = '匯出 JSON';
-	exportBtn.style.cssText = btnStyle;
+	container.style =
+	"display:inline-block; margin-left:15px; vertical-align:middle;";
 
-	const importBtn = document.createElement('button');
-	importBtn.textContent = '匯入 JSON';
-	importBtn.style.cssText = btnStyle;
 
-	const fileInput = document.createElement('input');
-	fileInput.type = 'file';
-	fileInput.accept = '.json,.txt';
-	fileInput.style.display = 'none';
+	const btnStyle =
+	"padding:5px 12px; cursor:pointer; margin-right:8px; background:#444; color:#fff; border:1px solid #777; border-radius:4px; font-size:13px;";
 
-	container.append(exportBtn, importBtn, fileInput);
+
+	const exportBtn =
+	document.createElement('button');
+
+	exportBtn.textContent =
+	'匯出 JSON';
+
+	exportBtn.style.cssText =
+	btnStyle;
+
+
+
+	const importBtn =
+	document.createElement('button');
+
+	importBtn.textContent =
+	'匯入 JSON';
+
+	importBtn.style.cssText =
+	btnStyle;
+
+
+
+	const fileInput =
+	document.createElement('input');
+
+	fileInput.type =
+	'file';
+
+	fileInput.accept =
+	'.json,.txt';
+
+	fileInput.style.display =
+	'none';
+
+
+
+	container.append(
+		exportBtn,
+		importBtn,
+		fileInput
+	);
+
+
 	header.appendChild(container);
 
-	// 2. 匯出功能：直接匯出全域 pages 資料
-	exportBtn.onclick = () => {
-    	if (typeof pages === 'undefined') return alert('錯誤：無法獲取頁面資料');
-    	const data = { pages: pages, notes: window.allNotes || [] };
-    	const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json;charset=utf-8'});
-    	const a = document.createElement('a');
-    	a.href = URL.createObjectURL(blob);
-    	a.download = 'project_export.json';
-    	a.click();
+
+
+
+
+	// =========================
+	// 匯出 JSON
+	// =========================
+
+	exportBtn.onclick = ()=>{
+
+
+		if(typeof pages === "undefined")
+		{
+			alert(
+			"錯誤：找不到頁面資料"
+			);
+
+			return;
+		}
+
+
+
+		const exportPages =
+		pages.map(page=>({
+
+			id:
+			page.id,
+
+			title:
+			page.title || "",
+
+			text:
+			page.text || "",
+
+			note:
+			page.note || "",
+
+			groupId:
+			page.groupId || null,
+
+			groupColor:
+			page.groupColor || null,
+
+			options:
+			page.options || [],
+
+			x:
+			page.x || 0,
+
+			y:
+			page.y || 0
+
+		}));
+
+
+
+
+		const data = {
+
+
+			pages:
+			exportPages,
+
+
+			notes:
+			window.allNotes || [],
+
+
+			drawings:
+			window.allDrawings || [],
+
+
+
+		windowState:
+
+window.lastWindowState
+&&
+Object.keys(window.lastWindowState).length
+
+?
+
+window.lastWindowState
+
+:
+
+(
+typeof window.collectWindowState === "function"
+?
+window.collectWindowState()
+:
+{}
+)
+
+
+		};
+
+
+
+
+		const blob =
+		new Blob(
+			[
+				JSON.stringify(
+					data,
+					null,
+					2
+				)
+			],
+			{
+				type:
+				'application/json;charset=utf-8'
+			}
+		);
+
+
+
+		const a =
+		document.createElement('a');
+
+
+		a.href =
+		URL.createObjectURL(blob);
+
+
+		a.download =
+		'project_export.json';
+
+
+		a.click();
+
+
+
+		URL.revokeObjectURL(
+			a.href
+		);
+
+
 	};
 
-	// 3. 匯入功能：針對 JSON 與 TXT 分別處理
-	importBtn.onclick = () => fileInput.click();
-	
-	fileInput.onchange = (e) => {
-    	const file = e.target.files[0];
-    	if (!file) return;
 
-    	const reader = new FileReader();
-    	reader.onload = (ev) => {
-        	const content = ev.target.result;
 
-        	// 情境 A：匯入 JSON (直接呼叫編輯器內建的 importProjectData)
-        	if (file.name.endsWith('.json')) {
-            	try {
-                	const projectData = JSON.parse(content);
-                	if (typeof window.importProjectData === 'function') {
-                    	window.importProjectData(projectData);
-                	} else {
-                    	alert('匯入失敗：找不到內建匯入函式。');
-                	}
-            	} catch (err) { alert('JSON 格式錯誤！'); }
 
-        	// 情境 B：匯入 TXT (寫入 source-text 編輯區並手動觸發解析)
-        	} else if (file.name.endsWith('.txt')) {
-            	const sourceEditor = document.getElementById("source-text");
-            	if (sourceEditor) {
-                	sourceEditor.value = content;
-                	if (typeof applySourceText === 'function') {
-                    	applySourceText();
-                    	alert('TXT 匯入成功，已觸發原始碼解析。');
-                	}
-            	} else {
-                	alert('找不到原始碼編輯框。');
-            	}
-        	}
-    	};
-    	reader.readAsText(file, 'UTF-8');
+
+
+	// =========================
+	// 匯入
+	// =========================
+
+	importBtn.onclick =
+	()=>{
+		fileInput.click();
 	};
+
+
+
+
+	fileInput.onchange =
+	(e)=>{
+
+
+		const file =
+		e.target.files[0];
+
+
+		if(!file)
+			return;
+
+
+
+		const reader =
+		new FileReader();
+
+
+
+		reader.onload =
+		(ev)=>{
+
+
+			const content =
+			ev.target.result;
+
+
+
+			// JSON
+
+			if(file.name.toLowerCase().endsWith(".json"))
+			{
+
+
+				try{
+
+
+					const projectData =
+					JSON.parse(content);
+
+
+
+					if(
+						typeof window.importProjectData
+						===
+						"function"
+					)
+					{
+
+						window.importProjectData(
+							projectData
+						);
+					
+				if(
+    			typeof window.trackWindowState
+    			===
+    			"function"
+			){
+
+    			setTimeout(()=>{
+
+        		window.trackWindowState();
+
+    			},500);
+
+			}
+
+
+						// 如果外部沒有處理 windowState
+						if(
+							projectData.windowState
+							&&
+							typeof window.restoreWindowState
+							===
+							"function"
+						)
+						{
+
+							setTimeout(()=>{
+
+
+								window.restoreWindowState(
+									projectData.windowState
+								);
+
+
+							},200);
+
+
+						}
+
+
+
+						alert(
+						"JSON 匯入完成"
+						);
+
+
+					}
+					else
+					{
+
+						alert(
+						"找不到匯入函式"
+						);
+
+					}
+
+
+
+				}
+				catch(err)
+				{
+
+					console.error(err);
+
+					alert(
+					"JSON 格式錯誤"
+					);
+
+				}
+
+
+			}
+
+
+
+
+			// TXT
+
+			else if(
+				file.name.toLowerCase().endsWith(".txt")
+			)
+			{
+
+
+				const sourceEditor =
+				document.getElementById(
+					"source-text"
+				);
+
+
+
+				if(sourceEditor)
+				{
+
+					sourceEditor.value =
+					content;
+
+
+
+					if(
+						typeof applySourceText
+						===
+						"function"
+					)
+					{
+
+						applySourceText();
+
+
+						alert(
+						"TXT 匯入成功"
+						);
+
+					}
+
+
+				}
+				else
+				{
+
+					alert(
+					"找不到原始碼編輯框"
+					);
+
+				}
+
+
+			}
+
+
+		};
+
+
+
+		reader.readAsText(
+			file,
+			"UTF-8"
+		);
+
+
+	};
+
+
+
 })();
+
+
+// =====================================
+// 浮動視窗狀態即時追蹤
+// =====================================
+
+window.lastWindowState = {};
+
+
+
+window.trackWindowState = function(){
+
+
+    const ids = [
+
+        "editorFloat",
+        "previewFloat",
+        "permFloat",
+
+        "mini-map-plugin",
+
+        "material-library-panel",
+
+        "draw-toolbar",
+
+        "dice-roller-panel"
+
+    ];
+
+
+
+
+    ids.forEach(id=>{
+
+
+        const el =
+        document.getElementById(id);
+
+
+        if(!el)
+            return;
+
+
+
+        const update = ()=>{
+
+
+            if(
+                typeof window.collectWindowState
+                ===
+                "function"
+            ){
+
+                window.lastWindowState =
+                window.collectWindowState();
+
+            }
+
+
+        };
+
+
+
+        // 初始記錄
+
+        update();
+
+
+
+        const observer =
+        new MutationObserver(()=>{
+
+
+            update();
+
+
+        });
+
+
+
+        observer.observe(
+            el,
+            {
+
+                attributes:true,
+
+                attributeFilter:[
+                    "style",
+                    "class"
+                ]
+
+            }
+        );
+
+
+
+    });
+
+
+
+};
+
+
+
+
+// 延遲啟動，等所有插件建立
+
+setTimeout(()=>{
+
+
+    window.trackWindowState();
+
+
+},1500);
+
+
+
+
+
+
+
+
 
 
 
@@ -12323,51 +14358,31 @@ color:#333;
 
 
 .reader-button{
-
-
-display:block;
-
-
-width:100%;
-
-
-max-width:500px;
-
-
-margin:12px auto;
-
-
-padding:12px 16px;
-
-
-border:none;
-
-
-border-radius:8px;
-
-
-cursor:pointer;
-
-
-font-size:16px;
-
-
-background:#4CAF50;
-
-
-color:white;
-
-
+	display:block;
+	width:100%;
+	max-width:520px;
+	margin:10px auto;
+	padding:13px 20px;
+	border:none;
+	border-radius:24px;
+	cursor:pointer;
+	font-size:15px;
+	font-weight:600;
+	letter-spacing:.3px;
+	background:#0096fa;
+	color:#fff;
+	box-shadow:0 2px 8px rgba(0,150,250,.35);
+	transition:background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 
-
-
 .reader-button:hover{
+	background:#0077cc;
+	transform:translateY(-1px);
+	box-shadow:0 4px 12px rgba(0,150,250,.45);
+}
 
-
-opacity:.85;
-
-
+.reader-button:active{
+	transform:translateY(0);
 }
 
 
@@ -12834,34 +14849,86 @@ window.addEventListener(
 
 
 	window.addEventListener(
-    	"pointerup",
-    	function(e){
+    "pointerup",
+    function(e){
 
 
-        	if(!dragging)
-            	return;
+        if(!dragging)
+            return;
 
 
-        	dragging=false;
+        dragging=false;
 
 
-        	document.body.style.userSelect="";
+        document.body.style.userSelect="";
 
 
-        	try{
+        try{
 
-            	header.releasePointerCapture(
-                	e.pointerId
-            	);
+            header.releasePointerCapture(
+                e.pointerId
+            );
 
-        	}catch(err){}
-
-
-
-    	}
-	);
+        }catch(err){}
 
 
+
+        // ============================
+        // 儲存 permFloat 拖曳位置
+        // ============================
+
+        if(panelId === "permFloat"){
+
+
+            const panel =
+            document.getElementById(panelId);
+
+
+            if(panel){
+
+
+                const state = {
+
+
+                    left:
+                    panel.style.left,
+
+
+                    top:
+                    panel.style.top,
+
+
+                    right:
+                    panel.style.right,
+
+
+                    bottom:
+                    panel.style.bottom,
+
+
+                    isMinimized:
+                    panel.classList.contains("minimize")
+
+
+                };
+
+
+                localStorage.setItem(
+
+                    "permFloatState",
+
+                    JSON.stringify(state)
+
+                );
+
+
+            }
+
+        }
+
+
+    }
+);
 
 
 
@@ -13012,6 +15079,15 @@ if(togglePreview && previewFloat){
 	let observer = null;
 
 	function serializeState(){
+    	// 集中化資料中心啟用後，歷史快照會自動包含所有已註冊的功能欄位。
+    	// 未來新增功能不必再回來手動補這個快照物件。
+    	if(window.ProjectDataCenter && typeof window.ProjectDataCenter.serialize === "function"){
+        	return JSON.stringify(
+            	window.ProjectDataCenter.serialize({ source: "history-snapshot" })
+        	);
+    	}
+
+    	// 相容保底：若資料中心尚未載入，保留原有的核心快照格式。
     	return JSON.stringify({
         	pages: pages.map(p => ({
             	id: p.id,
@@ -13088,17 +15164,21 @@ if(togglePreview && previewFloat){
         	const data = JSON.parse(snap);
 
         	if(typeof window.importProjectData === "function"){
-            	window.importProjectData({
-                	pages: data.pages,
-                	notes: data.notes,
-                	drawings: data.drawings
-            	});
+            	// 資料中心會自動讀取所有已註冊欄位；舊快照仍可正常相容。
+            	window.importProjectData(data, {
+                	source: "history-restore",
+                	resetMissing: true
+            });
         	}
 
-        	if(data.currentPageId){
-            	const p = pages.find(pp => pp.id === data.currentPageId);
+        	const selectedPageId =
+            	data.editorSelection && data.editorSelection.currentPageId
+                	? data.editorSelection.currentPageId
+                	: data.currentPageId;
+        	if(selectedPageId){
+            	const p = pages.find(pp => pp.id === selectedPageId);
             	if(p) selectPage(p);
-        	}
+        }
 
         	projectChanged = true;
         	if(typeof window.markDirty === "function") window.markDirty();
@@ -13743,25 +15823,31 @@ h1{
 
 
 .reader-button{
+	display:block;
+	width:100%;
+	max-width:520px;
+	margin:10px auto;
+	padding:13px 20px;
+	border:none;
+	border-radius:24px;
+	cursor:pointer;
+	font-size:15px;
+	font-weight:600;
+	letter-spacing:.3px;
+	background:#0096fa;
+	color:#fff;
+	box-shadow:0 2px 8px rgba(0,150,250,.35);
+	transition:background .15s ease, transform .15s ease, box-shadow .15s ease;
+}
 
-    display:block;
+.reader-button:hover{
+	background:#0077cc;
+	transform:translateY(-1px);
+	box-shadow:0 4px 12px rgba(0,150,250,.45);
+}
 
-    width:100%;
-
-    margin:12px 0;
-
-    padding:12px;
-
-    border:none;
-
-    border-radius:8px;
-
-    cursor:pointer;
-
-    background:#4CAF50;
-
-    color:white;
-
+.reader-button:active{
+	transform:translateY(0);
 }
 
 
@@ -14253,6 +16339,1194 @@ header.appendChild(btn);
 
 }
 
+
+})();
+
+
+function collectWindowState(){
+
+    const state={};
+
+
+    const windows=[
+
+        "editorFloat",
+        "previewFloat",
+        "permFloat",
+        "mini-map-plugin",
+        "material-library-panel",
+        "draw-toolbar",
+        "dice-roller-panel"
+
+    ];
+
+
+
+    windows.forEach(id=>{
+
+
+        const el =
+        document.getElementById(id);
+
+
+        if(!el)
+            return;
+
+
+
+        const rect =
+        el.getBoundingClientRect();
+
+
+
+        state[id]={
+
+
+            // =====================
+            // 位置
+            // =====================
+
+            left:
+            el.style.left || null,
+
+
+            top:
+            el.style.top || null,
+
+
+            right:
+            el.style.right || null,
+
+
+            bottom:
+            el.style.bottom || null,
+
+
+
+
+            // =====================
+            // 寬度保存
+            // 高度取消
+            // 避免 CSS 被污染
+            // =====================
+
+
+            width:
+            el.style.width || null,
+
+
+
+            height:
+            null,
+
+
+
+            // =====================
+            // 收起狀態
+            // =====================
+
+
+            minimized:
+            el.classList.contains(
+                "minimize"
+            ),
+
+
+
+            collapsed:
+            el.classList.contains(
+                "collapsed"
+            )
+
+
+
+        };
+
+
+    });
+
+
+
+    console.log(
+        "[WindowState 保存]",
+        state
+    );
+
+
+    return state;
+
+}
+
+</script>
+
+<script>
+// =============================================
+// 追加功能（外掛式，不修改既有程式碼）
+// 1. 正文編輯區 / 原始碼模式：共用排版工具列
+// 2. 新增「Pixiv小說預覽」區塊，[chapter:] 會顯示為標題字體
+// =============================================
+(function(){
+"use strict";
+
+// ---------- 共用：在 textarea 選取範圍前後插入標籤 ----------
+function insertAroundSelection(textarea, before, after){
+	if(!textarea) return;
+
+	const start = textarea.selectionStart;
+	const end = textarea.selectionEnd;
+	const val = textarea.value;
+	const sel = val.substring(start, end);
+
+	textarea.value =
+		val.substring(0, start) +
+		before + sel + after +
+		val.substring(end);
+
+	textarea.focus();
+	textarea.selectionStart = start + before.length;
+	textarea.selectionEnd = start + before.length + sel.length;
+
+	// 觸發既有的 input 監聽（同步資料/預覽），不需碰原始邏輯
+	textarea.dispatchEvent(new Event("input", { bubbles:true }));
+}
+
+// 額外排版按鈕清單（正文區與原始碼模式共用）
+const EXTRA_FORMAT_TAGS = [
+	{ label:"H1",     before:"[h1:",     after:"]" },
+	{ label:"H2",     before:"[h2:",     after:"]" },
+	{ label:"H3",     before:"[h3:",     after:"]" },
+	{ label:"底線",    before:"[u:",      after:"]" },
+	{ label:"刪除線",  before:"[s:",      after:"]" },
+	{ label:"引用",    before:"[quote:",  after:"]" },
+	{ label:"清單",    before:"[list]\n", after:"\n[/list]" },
+	{ label:"分隔線",  before:"",         after:"\n[hr]\n" },
+	{ label:"章節",    before:"[chapter:",after:"]" }
+];
+
+function buildFormatButtons(getTextarea){
+	const wrap = document.createElement("div");
+	wrap.className = "pixiv-format-toolbar";
+
+	EXTRA_FORMAT_TAGS.forEach(tag=>{
+		const btn = document.createElement("button");
+		btn.type = "button";
+		btn.textContent = tag.label;
+		btn.addEventListener("click", function(){
+			const ta = getTextarea();
+			if(!ta) return;
+			insertAroundSelection(ta, tag.before, tag.after);
+		});
+		wrap.appendChild(btn);
+	});
+
+	return wrap;
+}
+
+// ---------- 1a. 正文編輯區工具列擴充 ----------
+function enhanceMainToolbar(){
+	const toolbar = document.querySelector(".pixiv-toolbar");
+	if(!toolbar || toolbar.dataset.pxEnhanced) return false;
+
+	toolbar.dataset.pxEnhanced = "1";
+	toolbar.appendChild(
+		buildFormatButtons(()=>document.getElementById("pageText"))
+	);
+	return true;
+}
+
+// ---------- 1b. 原始碼模式工具列擴充（視窗為動態建立） ----------
+function enhanceSourceToolbar(){
+	const toolbar = document.querySelector(".source-toolbar");
+	if(!toolbar || toolbar.dataset.pxEnhanced) return false;
+
+	toolbar.dataset.pxEnhanced = "1";
+	toolbar.appendChild(
+		buildFormatButtons(()=>document.getElementById("source-text"))
+	);
+	return true;
+}
+
+// ---------- 2. Pixiv 小說預覽 ----------
+function escapeHtml(str){
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
+
+function renderPixivNovelText(text){
+	if(!text) return "";
+
+	let html = escapeHtml(text);
+
+	// [chapter:標題] → 標題字體
+	html = html.replace(
+		/\[chapter:(.*?)\]/g,
+		'<div class="novel-chapter-title">$1</div>'
+	);
+
+	// [newpage] → 分頁線
+	html = html.replace(
+		/\[newpage\]/g,
+		'<hr class="novel-divider">'
+	);
+
+	// [jump:n] → 前往下一頁提示
+	html = html.replace(
+		/\[jump:(.*?)\]/g,
+		'<div class="novel-jump">➜ 前往第 $1 頁</div>'
+	);
+
+	// 標題
+	html = html.replace(/\[h1:(.*?)\]/g, "<h1>$1</h1>");
+	html = html.replace(/\[h2:(.*?)\]/g, "<h2>$1</h2>");
+	html = html.replace(/\[h3:(.*?)\]/g, "<h3>$1</h3>");
+
+	// 基本文字樣式
+	html = html.replace(/\[b:(.*?)\]/g, "<strong>$1</strong>");
+	html = html.replace(/\[i:(.*?)\]/g, "<em>$1</em>");
+	html = html.replace(/\[u:(.*?)\]/g, "<u>$1</u>");
+	html = html.replace(/\[s:(.*?)\]/g, "<del>$1</del>");
+
+	// 顏色 / 字級
+	html = html.replace(/\[color:(.*?):(.*?)\]/g, '<span style="color:$1">$2</span>');
+	html = html.replace(/\[size:(\d+):(.*?)\]/g, '<span style="font-size:$1px">$2</span>');
+
+	// 引用 / 分隔線
+	html = html.replace(/\[quote:([\s\S]*?)\]/g, "<blockquote>$1</blockquote>");
+	html = html.replace(/\[hr\]/g, "<hr>");
+
+	// 連結 / 圖片 / Pixiv插畫
+	html = html.replace(/\[link:(.*?)\|(.*?)\]/g, '<a href="$2" target="_blank">$1</a>');
+	html = html.replace(/\[img:(.*?)\]/g, '<img src="$1">');
+	html = html.replace(
+		/\[pixivimage:(\d+)\]/g,
+		'<div class="pixiv-image-link"><a href="https://www.pixiv.net/artworks/$1" target="_blank">Pixiv插畫 $1</a></div>'
+	);
+
+	// Ruby
+	html = html.replace(/\[\[rb:(.*?) > (.*?)\]\]/g, "<ruby>$1<rt>$2</rt></ruby>");
+
+	// 清單
+	html = html.replace(/\[list\]([\s\S]*?)\[\/list\]/g, function(match, content){
+		const items = content
+			.trim()
+			.split(/\n/)
+			.map(x=>x.trim())
+			.filter(Boolean)
+			.map(x=>"<li>" + x.replace(/^[-*]\s*/, "") + "</li>")
+			.join("");
+		return "<ul>" + items + "</ul>";
+	});
+
+	// 換行（最後處理）
+	html = html.replace(/\n/g, "<br>");
+
+	return html;
+}
+window.renderPixivNovelText = renderPixivNovelText;
+
+function ensureNovelPreviewSection(){
+	const panel = document.getElementById("previewPanel");
+	if(!panel || document.getElementById("pixivNovelPreview")) return false;
+
+	const title = document.createElement("div");
+	title.className = "preview-title";
+	title.textContent = "Pixiv小說預覽";
+
+	const box = document.createElement("div");
+	box.id = "pixivNovelPreview";
+	box.className = "pixiv-novel-preview";
+
+	panel.appendChild(title);
+	panel.appendChild(box);
+
+	syncNovelPreview();
+	return true;
+}
+
+function syncNovelPreview(){
+	const source = document.getElementById("previewText");
+	const target = document.getElementById("pixivNovelPreview");
+	if(!source || !target) return;
+	target.innerHTML = renderPixivNovelText(source.textContent || "");
+}
+
+// previewText 一有變動就同步小說預覽，不需要更動既有的 updatePreview()
+let previewWatcherReady = false;
+function watchPreviewText(){
+	if(previewWatcherReady) return true;
+
+	const source = document.getElementById("previewText");
+	if(!source) return false;
+
+	const previewObserver = new MutationObserver(syncNovelPreview);
+	previewObserver.observe(source, {
+		childList:true,
+		characterData:true,
+		subtree:true
+	});
+
+	previewWatcherReady = true;
+	syncNovelPreview();
+	return true;
+}
+
+// ---------- 初始化與觀察 DOM（處理動態建立的原始碼視窗等） ----------
+function runEnhancements(){
+	const a = enhanceMainToolbar();
+	const b = enhanceSourceToolbar();
+	const c = ensureNovelPreviewSection();
+	const d = watchPreviewText();
+	return a && b && c && d;
+}
+
+if(!runEnhancements()){
+	const initObserver = new MutationObserver(function(){
+		if(runEnhancements()){
+			initObserver.disconnect();
+		}
+	});
+	initObserver.observe(document.body, { childList:true, subtree:true });
+}
+
+if(document.readyState === "loading"){
+	document.addEventListener("DOMContentLoaded", runEnhancements);
+}
+
+})();
+</script>
+
+<!-- 專案資料中心：集中管理存檔、讀檔、備份、JSON 匯出入 -->
+<script>
+
+/* =========================================================
+   專案資料中心 ProjectDataCenter
+   ---------------------------------------------------------
+   未來新增可保存功能時，只要在此區塊（或功能模組結尾）註冊一次：
+
+   ProjectDataCenter.register("myFeature", {
+       save: () => window.myFeatureState,
+       load: (value) => {
+           window.myFeatureState = Array.isArray(value) ? value : [];
+           renderMyFeature?.();
+       },
+       defaultValue: [],
+       resetOnMissing: true
+   });
+
+   save / load / 自動備份 / JSON 匯出入 / 復原快照都會自動包含該欄位。
+========================================================= */
+(function () {
+    "use strict";
+
+    const STORAGE_KEYS = Object.freeze({
+        library: "PixivNovelLibrary_V2",
+        backup: "Pixiv_AutoBackup",
+        autoSaveEnabled: "isAutoSaveEnabled"
+    });
+
+    const FORMAT = "PixivInteractiveNovelProject";
+    const FORMAT_VERSION = 1;
+    const adapters = new Map();
+    const lifecycle = {
+        beforeSave: new Set(),
+        afterSave: new Set(),
+        beforeLoad: new Set(),
+        afterLoad: new Set()
+    };
+    let lastBackupAt = 0;
+
+    function isPlainObject(value) {
+        return value !== null && typeof value === "object" && !Array.isArray(value);
+    }
+
+    function clone(value, fallback) {
+        if (value === undefined) return fallback;
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            console.warn("[ProjectDataCenter] 資料無法序列化，已略過。", error);
+            return fallback;
+        }
+    }
+
+    function readJSON(key, fallback) {
+        try {
+            const raw = safeStorage.getItem(key);
+            return raw ? JSON.parse(raw) : clone(fallback, fallback);
+        } catch (error) {
+            console.warn("[ProjectDataCenter] 讀取資料失敗：" + key, error);
+            return clone(fallback, fallback);
+        }
+    }
+
+    function writeJSON(key, value) {
+        try {
+            safeStorage.setItem(key, JSON.stringify(value));
+            return true;
+        } catch (error) {
+            console.error("[ProjectDataCenter] 儲存資料失敗：" + key, error);
+            throw error;
+        }
+    }
+
+    function getDefaultValue(adapter, context) {
+        const source = adapter.defaultValue;
+        return typeof source === "function" ? source(context) : clone(source);
+    }
+
+    function runHooks(name, context) {
+        lifecycle[name].forEach(function (handler) {
+            try {
+                handler(context);
+            } catch (error) {
+                console.error("[ProjectDataCenter] 生命週期鉤子失敗：" + name, error);
+            }
+        });
+    }
+
+    function register(key, config) {
+        if (!key || typeof key !== "string") {
+            throw new TypeError("ProjectDataCenter.register 的 key 必須是非空字串。");
+        }
+        if (!config || typeof config.save !== "function" || typeof config.load !== "function") {
+            throw new TypeError("ProjectDataCenter.register 需要 save 與 load 函式。");
+        }
+
+        adapters.set(key, Object.assign({
+            description: "",
+            defaultValue: undefined,
+            resetOnMissing: false
+        }, config));
+        return api;
+    }
+
+    function unregister(key) {
+        adapters.delete(key);
+        return api;
+    }
+
+    function on(eventName, handler) {
+        if (!lifecycle[eventName] || typeof handler !== "function") {
+            throw new TypeError("不支援的生命週期事件或處理函式。\n可用事件：beforeSave、afterSave、beforeLoad、afterLoad。");
+        }
+        lifecycle[eventName].add(handler);
+        return function () {
+            lifecycle[eventName].delete(handler);
+        };
+    }
+
+    function normalizeProjectData(raw) {
+        const data = isPlainObject(raw) && isPlainObject(raw.data) ? raw.data : raw;
+        if (!isPlainObject(data)) {
+            throw new TypeError("專案資料必須是 JSON 物件。");
+        }
+        return data;
+    }
+
+    function serialize(options) {
+        const settings = Object.assign({
+            source: "manual",
+            includeMetadata: true
+        }, options || {});
+        const context = {
+            source: settings.source,
+            options: settings,
+            data: {}
+        };
+
+        if (settings.includeMetadata) {
+            context.data._project = {
+                format: FORMAT,
+                version: FORMAT_VERSION,
+                savedAt: new Date().toISOString(),
+                source: settings.source
+            };
+        }
+
+        runHooks("beforeSave", context);
+
+        adapters.forEach(function (adapter, key) {
+            try {
+                const value = adapter.save(context);
+                if (value !== undefined) {
+                    context.data[key] = clone(value);
+                }
+            } catch (error) {
+                console.error("[ProjectDataCenter] 保存欄位失敗：" + key, error);
+            }
+        });
+
+        runHooks("afterSave", context);
+        return context.data;
+    }
+
+    function restore(rawData, options) {
+        const settings = Object.assign({
+            source: "load",
+            resetMissing: true,
+            markClean: true
+        }, options || {});
+        const data = normalizeProjectData(rawData);
+        const context = {
+            source: settings.source,
+            options: settings,
+            data: data,
+            missing: new Set(),
+            selectedPageId: null
+        };
+
+        runHooks("beforeLoad", context);
+
+        adapters.forEach(function (adapter, key) {
+            const hasValue = Object.prototype.hasOwnProperty.call(data, key);
+            if (!hasValue && !(settings.resetMissing && adapter.resetOnMissing)) {
+                return;
+            }
+
+            try {
+                const value = hasValue ? clone(data[key]) : getDefaultValue(adapter, context);
+                if (!hasValue) context.missing.add(key);
+                adapter.load(value, context);
+            } catch (error) {
+                console.error("[ProjectDataCenter] 讀取欄位失敗：" + key, error);
+            }
+        });
+
+        adapters.forEach(function (adapter, key) {
+            if (typeof adapter.afterLoad !== "function") return;
+            try {
+                adapter.afterLoad(context);
+            } catch (error) {
+                console.error("[ProjectDataCenter] 載入後處理失敗：" + key, error);
+            }
+        });
+
+        if (context.selectedPageId && typeof selectPage === "function") {
+            const selected = pages.find(function (page) {
+                return page.id === context.selectedPageId;
+            });
+            if (selected) selectPage(selected);
+        } else if (typeof pages !== "undefined" && pages.length && typeof selectPage === "function") {
+            selectPage(pages[0]);
+        }
+
+        if (typeof drawLines === "function") drawLines();
+        if (typeof updatePreview === "function") updatePreview();
+        if (settings.markClean && typeof projectChanged !== "undefined") projectChanged = false;
+	if(window.pendingWindowState){
+
+    setTimeout(()=>{
+
+        applyWindowState(
+            window.pendingWindowState
+        );
+
+        window.pendingWindowState=null;
+
+    },500);
+
+}
+
+        runHooks("afterLoad", context);
+        return context.data;
+    }
+
+    function listProjects() {
+        const library = readJSON(STORAGE_KEYS.library, []);
+        return Array.isArray(library) ? library : [];
+    }
+
+    function writeLibrary(library) {
+        return writeJSON(STORAGE_KEYS.library, Array.isArray(library) ? library : []);
+    }
+
+    function getProject(id) {
+        return listProjects().find(function (project) {
+            return project && project.id === id;
+        }) || null;
+    }
+
+    function getActiveProjectId() {
+        return window.state && window.state.currentTab ? window.state.currentTab : null;
+    }
+
+    function setActiveProjectId(id) {
+        window.state = window.state || {};
+        window.state.currentTab = id || null;
+    }
+
+    function projectNameFrom(data, fallback) {
+        const firstPage = Array.isArray(data.pages) ? data.pages[0] : null;
+        const name = firstPage && typeof firstPage.title === "string" ? firstPage.title.trim() : "";
+        return name || fallback || "未命名作品";
+    }
+
+    function updateProjectLabel(name) {
+        const label = document.getElementById("currentProjectName");
+        if (label) label.textContent = "📁 " + name;
+    }
+
+    function saveProject(options) {
+        const settings = Object.assign({
+            silent: false,
+            auto: false
+        }, options || {});
+        const data = serialize({
+            source: settings.auto ? "auto-save" : "manual-save"
+        });
+        const library = listProjects();
+        const activeId = getActiveProjectId();
+        const index = activeId ? library.findIndex(function (project) {
+            return project && project.id === activeId;
+        }) : -1;
+        const now = new Date().toISOString();
+        let project;
+        let created = false;
+
+        if (index >= 0) {
+            project = Object.assign({}, library[index], {
+                name: projectNameFrom(data, library[index].name),
+                data: data,
+                updatedAt: now
+            });
+            library[index] = project;
+        } else {
+            created = true;
+            project = {
+                id: crypto.randomUUID(),
+                name: projectNameFrom(data),
+                data: data,
+                createdAt: now,
+                updatedAt: now
+            };
+            library.push(project);
+            setActiveProjectId(project.id);
+        }
+
+        writeLibrary(library);
+        updateProjectLabel(project.name);
+        if (typeof projectChanged !== "undefined") projectChanged = false;
+
+        if (!settings.silent) {
+            alert(created ? "已建立新專案並儲存。" : "專案已儲存。");
+        }
+        return project;
+    }
+
+    function loadProjectData(projectData, options) {
+        const settings = Object.assign({
+            source: "project-load",
+            resetMissing: true
+        }, options || {});
+        const restored = restore(projectData, settings);
+        if (typeof window.unlockEditor === "function") window.unlockEditor();
+        return restored;
+    }
+
+    function autoBackup() {
+        const backup = serialize({ source: "auto-backup" });
+        backup._backup = {
+            savedAt: Date.now(),
+            label: "自動備份"
+        };
+        writeJSON(STORAGE_KEYS.backup, backup);
+        lastBackupAt = Date.now();
+        return backup;
+    }
+
+    function restoreAutoBackup() {
+        const backup = readJSON(STORAGE_KEYS.backup, null);
+        if (!backup || !isPlainObject(backup)) {
+            alert("目前沒有可用的自動備份紀錄。");
+            return false;
+        }
+
+        const savedAt = backup._backup && backup._backup.savedAt
+            ? new Date(backup._backup.savedAt).toLocaleString()
+            : "未知時間";
+        const pageCount = Array.isArray(backup.pages) ? backup.pages.length : 0;
+        if (!confirm("找到一份自動備份（" + savedAt + "，共 " + pageCount + " 頁）。\n還原後會覆蓋目前畫布內容，確定要還原嗎？")) {
+            return false;
+        }
+
+        loadProjectData(backup, {
+            source: "auto-backup-restore",
+            resetMissing: true
+        });
+        alert("已還原自動備份。");
+        return true;
+    }
+
+    function downloadJSON() {
+        const data = serialize({ source: "json-export" });
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json;charset=utf-8"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const project = getProject(getActiveProjectId());
+        const baseName = (project ? project.name : projectNameFrom(data))
+            .replace(/[\\/:*?"<>|]+/g, "_")
+            .slice(0, 80) || "project";
+
+        link.href = url;
+        link.download = baseName + ".json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () {
+            URL.revokeObjectURL(url);
+        }, 0);
+    }
+
+    function importJSONFile(file) {
+        if (!file) return Promise.resolve(false);
+        return file.text()
+            .then(function (text) {
+                const data = JSON.parse(text);
+                loadProjectData(data, {
+                    source: "json-import",
+                    resetMissing: true
+                });
+                alert("JSON 匯入完成。");
+                return true;
+            })
+            .catch(function (error) {
+                console.error("[ProjectDataCenter] JSON 匯入失敗", error);
+                alert("匯入失敗，請確認 JSON 檔案格式是否正確。");
+                return false;
+            });
+    }
+
+    function bindPrimarySaveButton() {
+        const oldButton = document.getElementById("saveProject");
+        if (!oldButton || oldButton.dataset.projectDataCenterBound === "true") return;
+
+        const button = oldButton.cloneNode(true);
+        button.dataset.projectDataCenterBound = "true";
+        oldButton.replaceWith(button);
+        button.addEventListener("click", function () {
+            saveProject({ silent: false });
+        });
+    }
+
+    function bindJsonTools() {
+        const tools = document.getElementById("plugin-custom-tools");
+        if (!tools) return;
+
+        const buttons = tools.querySelectorAll("button");
+        const exportButton = buttons[0];
+        const importButton = buttons[1];
+        const input = tools.querySelector("input[type='file']");
+
+        if (exportButton) {
+            exportButton.onclick = downloadJSON;
+        }
+        if (input) {
+            input.accept = ".json,application/json";
+            input.onchange = function (event) {
+                const file = event.target.files && event.target.files[0];
+                importJSONFile(file).finally(function () {
+                    input.value = "";
+                });
+            };
+        }
+        if (importButton && input) {
+            importButton.onclick = function () {
+                input.click();
+            };
+        }
+    }
+
+    function bindLegacyJsonInput() {
+        const oldInput = document.querySelector("header input[type='file'][accept='.json']");
+        if (!oldInput || oldInput.dataset.projectDataCenterBound === "true") return;
+
+        // 舊版用 addEventListener 綁定讀檔；以 cloneNode 移除它，避免新舊流程各跑一次。
+        const legacyInput = oldInput.cloneNode(true);
+        legacyInput.dataset.projectDataCenterBound = "true";
+        oldInput.replaceWith(legacyInput);
+        legacyInput.onchange = function (event) {
+            const file = event.target.files && event.target.files[0];
+            importJSONFile(file).finally(function () {
+                legacyInput.value = "";
+            });
+        };
+    }
+
+    function synchronizeTabSelection() {
+        const legacySwitchTab = window.switchTab;
+        if (typeof legacySwitchTab === "function" && !legacySwitchTab.__projectDataCenterWrapped) {
+            function wrappedSwitchTab(id) {
+                setActiveProjectId(id);
+                return legacySwitchTab.apply(this, arguments);
+            }
+            wrappedSwitchTab.__projectDataCenterWrapped = true;
+            window.switchTab = wrappedSwitchTab;
+        }
+
+        const legacyLoadProject = window.loadProject;
+        if (typeof legacyLoadProject === "function" && !legacyLoadProject.__projectDataCenterWrapped) {
+            function wrappedLoadProject(index) {
+                const project = listProjects()[Number(index)];
+                if (project) setActiveProjectId(project.id);
+                return legacyLoadProject.apply(this, arguments);
+            }
+            wrappedLoadProject.__projectDataCenterWrapped = true;
+            window.loadProject = wrappedLoadProject;
+        }
+    }
+
+    function applyWindowState(state) {
+        if (!isPlainObject(state)) return;
+        window.lastWindowState = clone(state, {});
+
+        setTimeout(function () {
+            // 舊編輯器的 restoreWindowState() 仍可沿用；名稱刻意與本函式區隔，避免遞迴。
+            if (typeof window.restoreWindowState === "function") {
+                window.restoreWindowState(state);
+            }
+
+            Object.keys(state).forEach(function (id) {
+                const element = document.getElementById(id);
+                const saved = state[id];
+                if (!element || !isPlainObject(saved)) return;
+
+                ["left", "top", "right", "bottom", "width", "height", "display"].forEach(function (property) {
+                    if (typeof saved[property] === "string") {
+                        element.style[property] = saved[property];
+                    }
+                });
+                if (typeof saved.className === "string") {
+                    element.className = saved.className;
+                }
+            });
+        }, 0);
+    }
+
+    const api = {
+        format: FORMAT,
+        version: FORMAT_VERSION,
+        keys: STORAGE_KEYS,
+        register: register,
+        unregister: unregister,
+        has: function (key) { return adapters.has(key); },
+        listFeatures: function () {
+            return Array.from(adapters.entries()).map(function (entry) {
+                return {
+                    key: entry[0],
+                    description: entry[1].description || "",
+                    resetOnMissing: Boolean(entry[1].resetOnMissing)
+                };
+            });
+        },
+        on: on,
+        serialize: serialize,
+        restore: restore,
+        saveProject: saveProject,
+        loadProjectData: loadProjectData,
+        autoBackup: autoBackup,
+        restoreAutoBackup: restoreAutoBackup,
+        exportJSON: downloadJSON,
+        importJSONFile: importJSONFile,
+        library: {
+            list: listProjects,
+            write: writeLibrary,
+            get: getProject
+        },
+        getActiveProjectId: getActiveProjectId,
+        setActiveProjectId: setActiveProjectId
+    };
+
+    // -------- 內建資料欄位：後續新功能只要仿照此格式 register 一次 --------
+    register("chapterStyle", {
+        description: "章節標題格式設定",
+        save: function () {
+            return typeof chapterStyle === "undefined" ? undefined : {
+                enabled: Boolean(chapterStyle.enabled),
+                prefix: chapterStyle.prefix || "",
+                suffix: chapterStyle.suffix || ""
+            };
+        },
+        load: function (value) {
+            if (typeof chapterStyle === "undefined" || !isPlainObject(value)) return;
+            chapterStyle.enabled = value.enabled !== false;
+            chapterStyle.prefix = value.prefix || "";
+            chapterStyle.suffix = value.suffix || "";
+        }
+    });
+
+    register("pages", {
+        description: "故事頁面、節點、分支與群組",
+        defaultValue: function () { return []; },
+        resetOnMissing: true,
+        save: function () {
+            if (typeof pages === "undefined" || !Array.isArray(pages)) return [];
+            return pages.map(function (page) {
+                return {
+                    id: page.id,
+                    title: page.title || "",
+                    text: page.text || "",
+                    note: page.note || "",
+                    groupId: page.groupId || null,
+                    groupColor: page.groupColor || null,
+                    options: clone(page.options || [], []),
+                    x: Number.isFinite(page.x) ? page.x : 100,
+                    y: Number.isFinite(page.y) ? page.y : 100
+                };
+            });
+        },
+        load: function (items) {
+            if (typeof pages === "undefined" || !Array.isArray(pages)) return;
+            const source = Array.isArray(items) ? items : [];
+            const canvas = document.getElementById("flowCanvas");
+
+            pages.splice(0, pages.length);
+            if (canvas) canvas.innerHTML = "";
+
+            source.forEach(function (item) {
+                const page = new NovelPage();
+                page.id = item && item.id ? item.id : crypto.randomUUID();
+                page.title = item && typeof item.title === "string" ? item.title : "";
+                page.text = item && typeof item.text === "string" ? item.text : "";
+                page.note = item && typeof item.note === "string" ? item.note : "";
+                page.groupId = item && item.groupId ? item.groupId : null;
+                page.groupColor = item && item.groupColor ? item.groupColor : null;
+                page.options = item && Array.isArray(item.options) ? clone(item.options, []) : [];
+                page.x = item && Number.isFinite(item.x) ? item.x : 100;
+                page.y = item && Number.isFinite(item.y) ? item.y : 100;
+                pages.push(page);
+
+                if (typeof createFlowNode === "function") createFlowNode(page);
+                if (page.groupId && page.element) {
+                    page.element.dataset.groupId = page.groupId;
+                    page.element.style.setProperty("--groupColor", page.groupColor || "#999");
+                }
+            });
+        }
+    });
+
+    register("notes", {
+        description: "便利貼與圖片釘選",
+        defaultValue: function () { return []; },
+        resetOnMissing: true,
+        save: function () {
+            return clone(window.allNotes || [], []);
+        },
+        load: function (value) {
+            window.allNotes = Array.isArray(value) ? clone(value, []) : [];
+            if (typeof window.renderNotes === "function") window.renderNotes();
+        }
+    });
+
+    register("drawings", {
+        description: "自由畫筆筆劃",
+        defaultValue: function () { return []; },
+        resetOnMissing: true,
+        save: function () {
+            return clone(window.allDrawings || [], []);
+        },
+        load: function (value) {
+            window.allDrawings = Array.isArray(value) ? clone(value, []) : [];
+            if (typeof window.renderDrawings === "function") window.renderDrawings();
+        }
+    });
+
+    register("windowState", {
+        description: "浮動視窗位置、尺寸與顯示狀態",
+        save: function () {
+            if (typeof window.collectWindowState === "function") {
+                return window.collectWindowState();
+            }
+            if (typeof getWindowState === "function") {
+                return getWindowState();
+            }
+            return clone(window.lastWindowState || {}, {});
+        },
+       load: function (value) {
+
+    window.pendingWindowState = value;
+
+}
+    });
+
+    register("editorSelection", {
+        description: "目前選取的故事頁面",
+        save: function () {
+            return {
+                currentPageId: typeof currentPage !== "undefined" && currentPage ? currentPage.id : null
+            };
+        },
+        load: function (value, context) {
+            context.selectedPageId = value && value.currentPageId ? value.currentPageId : null;
+        }
+    });
+
+    window.ProjectDataCenter = api;
+    window.registerProjectFeature = register;
+    window.importProjectData = function (projectData, options) {
+        return loadProjectData(projectData, options);
+    };
+    window.saveProject = saveProject;
+    window.autoBackupProject = autoBackup;
+    window.restoreAutoBackup = restoreAutoBackup;
+
+    bindPrimarySaveButton();
+    bindJsonTools();
+    bindLegacyJsonInput();
+    synchronizeTabSelection();
+
+    // 舊的 interval 仍會保留；新版在其後覆寫同一份備份，確保欄位一致。
+    setInterval(function () {
+        if (Date.now() - lastBackupAt >= 55000) autoBackup();
+    }, 60000);
+
+    console.info("[ProjectDataCenter] 已啟用。新增功能請使用 ProjectDataCenter.register() 註冊。", api.listFeatures());
+})();
+
+
+
+(function(){
+
+if(!window.ProjectDataCenter){
+    return;
+}
+
+
+// ======================================
+// 測試資料
+// ======================================
+
+window.authorStatus = {
+
+    mood:"😀 很有靈感",
+
+    days:1
+
+};
+
+
+// ======================================
+// 註冊
+// ======================================
+
+ProjectDataCenter.register(
+
+"authorStatus",
+
+{
+
+    description:"作者心情",
+
+    defaultValue:{
+
+        mood:"😴 沒靈感",
+
+        days:0
+
+    },
+
+    resetOnMissing:true,
+
+
+    save:function(){
+
+        return window.authorStatus;
+
+    },
+
+
+    load:function(value){
+
+        window.authorStatus = value;
+
+        updateAuthorButton();
+
+    }
+
+}
+
+);
+
+
+// ======================================
+// 更新按鈕文字
+// ======================================
+
+function updateAuthorButton(){
+
+    const btn =
+    document.getElementById(
+        "authorMoodBtn"
+    );
+
+    if(!btn)
+        return;
+
+    btn.textContent =
+        window.authorStatus.mood +
+        " (" +
+        window.authorStatus.days +
+        "天)";
+
+}
+
+
+// ======================================
+// 點按鈕測試
+// ======================================
+
+document.addEventListener(
+
+"DOMContentLoaded",
+
+function(){
+
+    const btn =
+    document.getElementById(
+        "authorMoodBtn"
+    );
+
+    if(!btn)
+        return;
+
+
+    updateAuthorButton();
+
+
+    btn.onclick=function(){
+
+        window.authorStatus.days++;
+
+        const moods=[
+
+            "😀 很有靈感",
+
+            "😎 狀態很好",
+
+            "🤔 思考中",
+
+            "😪 想睡",
+
+            "🔥 爆肝中"
+
+        ];
+
+        window.authorStatus.mood=
+
+            moods[
+                Math.floor(
+                    Math.random()*moods.length
+                )
+            ];
+
+        updateAuthorButton();
+
+    };
+
+});
 
 })();
 
