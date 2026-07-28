@@ -19517,8 +19517,92 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
         const output = tools.querySelector("output");
         const picker = tools.querySelector('input[type="file"]');
         let scale = 1;
-        let wallpaperUrl = "";
+        let wallpaperState = {vaultId:"", name:"", updatedAt:""};
         window.__flowCanvasScale = scale;
+
+        function applyWallpaper(data){
+            if(!data){
+                panel.style.removeProperty("background-image");
+                panel.style.removeProperty("background-size");
+                panel.style.removeProperty("background-position");
+                return;
+            }
+            panel.style.backgroundImage =
+                'linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)),url("' +
+                String(data).replace(/"/g,"%22") + '")';
+            panel.style.backgroundSize = "auto, cover";
+            panel.style.backgroundPosition = "0 0, center";
+            panel.style.backgroundRepeat = "no-repeat";
+        }
+
+        async function restoreWallpaper(){
+            if(!wallpaperState.vaultId || !window.LocalImageVault){
+                applyWallpaper("");
+                return;
+            }
+            try{
+                const data = await LocalImageVault.getImage(wallpaperState.vaultId);
+                applyWallpaper(data || "");
+            }catch(error){
+                console.warn("畫布桌布讀取失敗", error);
+                applyWallpaper("");
+            }
+        }
+
+        function notifyWallpaperChanged(reason){
+            if(window.GamebookCore && typeof GamebookCore.notifyChange === "function"){
+                GamebookCore.notifyChange(reason || "canvas-wallpaper");
+            }
+            if(typeof window.markDirty === "function") window.markDirty();
+            if(typeof projectChanged !== "undefined") projectChanged = true;
+        }
+
+        function registerWallpaperStorage(){
+            if(!window.ProjectDataCenter || typeof ProjectDataCenter.register !== "function"){
+                setTimeout(registerWallpaperStorage, 300);
+                return;
+            }
+            try{
+                ProjectDataCenter.register("canvasWallpaper", {
+                    description:"畫布桌布圖片",
+                    defaultValue:{vaultId:"",name:"",updatedAt:""},
+                    resetOnMissing:true,
+                    save:function(){
+                        return {
+                            vaultId:wallpaperState.vaultId || "",
+                            name:wallpaperState.name || "",
+                            updatedAt:wallpaperState.updatedAt || ""
+                        };
+                    },
+                    load:function(value){
+                        wallpaperState = value && typeof value === "object"
+                            ? {
+                                vaultId:value.vaultId || "",
+                                name:value.name || "",
+                                updatedAt:value.updatedAt || ""
+                            }
+                            : {vaultId:"",name:"",updatedAt:""};
+                        restoreWallpaper();
+                    }
+                });
+                const activeId = ProjectDataCenter.getActiveProjectId &&
+                    ProjectDataCenter.getActiveProjectId();
+                const activeProject = activeId && ProjectDataCenter.library &&
+                    ProjectDataCenter.library.get(activeId);
+                const savedData = activeProject && (activeProject.data || activeProject);
+                if(savedData && savedData.canvasWallpaper){
+                    wallpaperState = {
+                        vaultId:savedData.canvasWallpaper.vaultId || "",
+                        name:savedData.canvasWallpaper.name || "",
+                        updatedAt:savedData.canvasWallpaper.updatedAt || ""
+                    };
+                    restoreWallpaper();
+                }
+            }catch(error){
+                console.warn("畫布桌布專案儲存註冊失敗", error);
+            }
+        }
+        registerWallpaperStorage();
 
         function setScale(value, clientX, clientY){
             const next = Math.max(.4, Math.min(2, value));
@@ -19548,11 +19632,9 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
             if(action === "reset") setScale(1);
             if(action === "wallpaper") picker.click();
             if(action === "clear"){
-                panel.style.removeProperty("background-image");
-                panel.style.removeProperty("background-size");
-                panel.style.removeProperty("background-position");
-                if(wallpaperUrl) URL.revokeObjectURL(wallpaperUrl);
-                wallpaperUrl = "";
+                wallpaperState = {vaultId:"",name:"",updatedAt:new Date().toISOString()};
+                applyWallpaper("");
+                notifyWallpaperChanged("canvas-wallpaper-cleared");
             }
         });
 
@@ -19585,20 +19667,48 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
             if(event.touches.length < 2) pinchDistance = 0;
         }, {passive:true});
 
-        picker.addEventListener("change", function(){
+        picker.addEventListener("change", async function(){
             const file = picker.files && picker.files[0];
             if(!file) return;
             if(!file.type.startsWith("image/")){
                 alert("請選擇圖片檔案。");
+                picker.value = "";
                 return;
             }
-            if(wallpaperUrl) URL.revokeObjectURL(wallpaperUrl);
-            wallpaperUrl = URL.createObjectURL(file);
-            panel.style.backgroundImage =
-                'linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)),url("' + wallpaperUrl + '")';
-            panel.style.backgroundSize = "auto, cover";
-            panel.style.backgroundPosition = "0 0, center";
-            picker.value = "";
+            if(file.size > 30 * 1024 * 1024){
+                alert("圖片超過 30 MB，請改用稍小的圖片。");
+                picker.value = "";
+                return;
+            }
+            picker.disabled = true;
+            try{
+                const result = window.LocalImageTools
+                    ? await LocalImageTools.compress(file,{maxSide:1920,maxBytes:700*1024,quality:.86})
+                    : {dataUrl:await new Promise(function(resolve,reject){
+                        const reader=new FileReader();
+                        reader.onload=function(){resolve(reader.result)};
+                        reader.onerror=reject;
+                        reader.readAsDataURL(file);
+                    })};
+                if(!window.LocalImageVault) throw new Error("IndexedDB 圖片庫尚未就緒");
+                const vaultId = await LocalImageVault.putImage(result.dataUrl,{
+                    name:file.name || "畫布桌布",
+                    mime:"image/webp"
+                });
+                wallpaperState = {
+                    vaultId:vaultId,
+                    name:file.name || "畫布桌布",
+                    updatedAt:new Date().toISOString()
+                };
+                applyWallpaper(result.dataUrl);
+                notifyWallpaperChanged("canvas-wallpaper-changed");
+            }catch(error){
+                console.error(error);
+                alert("桌布保存失敗，請換一張圖片再試。");
+            }finally{
+                picker.disabled = false;
+                picker.value = "";
+            }
         });
     }
     if(document.readyState === "loading"){
