@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>重構繪圖板</title>
+<title>重構繪圖板 V4.1｜可調投影間距</title>
 <style>
 :root{
   color-scheme:dark;
+  --topbar-h:54px;
+  --mobile-tools-h:0px;
   --bg:#17191d;--panel:#23262d;--panel2:#2c3038;--line:#3b404a;
   --text:#f1f3f5;--muted:#aeb4bf;--accent:#62a8ff;--danger:#ff7272;
 }
@@ -23,11 +25,11 @@ button.danger{color:#ffb3b3}
 input[type="number"]{width:70px}
 input[type="range"]{width:110px}
 .topbar{
-  height:54px;display:flex;align-items:center;gap:8px;padding:8px 12px;
+  height:var(--topbar-h);display:flex;align-items:center;gap:8px;padding:8px 12px;
   background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto
 }
 .spacer{flex:1}
-.app{height:calc(100% - 54px);display:grid;grid-template-columns:76px 1fr 238px}
+.app{height:calc(100% - var(--topbar-h));display:grid;grid-template-columns:76px 1fr 238px}
 .tools,.sidebar{background:var(--panel);padding:10px;border-color:var(--line);overflow:auto}
 .tools{border-right:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .tools button{width:54px;min-height:48px;padding:4px;font-size:12px}
@@ -66,14 +68,54 @@ input[type="range"]{width:110px}
 .layer-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hint{font-size:12px;line-height:1.55;color:var(--muted);margin-top:14px}
 .status{font-size:12px;color:var(--muted);white-space:nowrap}
-.mobile-layer-toggle{display:none}
+.mobile-layer-toggle,.mobile-more-toggle{display:none}
 @media(max-width:760px){
-  .app{grid-template-columns:64px 1fr}
-  .sidebar{position:absolute;right:0;top:54px;bottom:0;width:238px;z-index:2000;transform:translateX(100%);transition:.2s}
+  :root{--topbar-h:48px;--mobile-tools-h:66px}
+  .topbar{padding:5px 7px;gap:5px;overflow:visible}
+  .topbar>button,.topbar>.menu-wrap>button{padding:6px 8px;min-height:36px;font-size:13px}
+  .topbar .spacer{min-width:0}
+  .topbar .status{display:none}
+
+  /* 手機頂列只保留最常用動作，其他項目收進「更多」 */
+  #openImageBtn,#imageMenuBtn,#saveAsProjectBtn,#loadProjectBtn,#exportProjectBtn,
+  #importPsdBtn,#exportPsdBtn,#exportBtn{display:none}
+  #imageMenuBtn + .menu-pop{display:none!important}
+  #newBtn{max-width:82px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #projectLibraryBtn{max-width:72px}
+  #saveProjectBtn{max-width:58px}
+  #undoBtn,#redoBtn{width:40px;padding-inline:5px;font-size:0}
+  #undoBtn::before{content:'↶';font-size:21px}
+  #redoBtn::before{content:'↷';font-size:21px}
+  .mobile-layer-toggle,.mobile-more-toggle{display:inline-block}
+
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) var(--mobile-tools-h)}
+  .workspace{grid-column:1;grid-row:1;min-width:0;min-height:0}
+  .tools{
+    grid-column:1;grid-row:2;border-right:0;border-top:1px solid var(--line);
+    padding:6px 8px;display:flex;flex-direction:row;align-items:center;gap:6px;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:thin
+  }
+  .tools button{flex:0 0 52px;width:52px;min-height:52px;padding:3px 2px;font-size:10px}
+  .tools .icon{font-size:19px;line-height:1.05}
+
+  .sidebar{
+    position:fixed;right:0;top:var(--topbar-h);bottom:var(--mobile-tools-h);
+    width:min(86vw,320px);z-index:2000;transform:translateX(105%);transition:transform .2s;
+    box-shadow:-12px 0 30px rgba(0,0,0,.35);padding-bottom:calc(14px + env(safe-area-inset-bottom))
+  }
   .sidebar.open{transform:none}
-  .mobile-layer-toggle{display:inline-block}
-  .tools{padding:7px}
-  .tools button{width:48px}
+  .mobile-menu-pop{right:6px;left:auto;top:44px;max-height:calc(100vh - 62px);overflow:auto;min-width:210px}
+  .viewport{inset:0}
+}
+@media(max-width:430px){
+  #newBtn{max-width:62px}
+  #projectLibraryBtn{font-size:0;width:40px;padding-inline:4px}
+  #projectLibraryBtn::before{content:'▦';font-size:19px}
+  #saveProjectBtn{font-size:0;width:40px;padding-inline:4px}
+  #saveProjectBtn::before{content:'💾';font-size:16px}
+  .mobile-layer-toggle,.mobile-more-toggle{font-size:0;width:40px;padding-inline:4px}
+  .mobile-layer-toggle::before{content:'▤';font-size:19px}
+  .mobile-more-toggle::before{content:'⋯';font-size:23px}
 }
 
 .p3d-modal{
@@ -83,13 +125,13 @@ input[type="range"]{width:110px}
 }
 .p3d-modal.open{display:flex}
 .p3d-dialog{
-  width:min(920px,100%);max-height:94vh;overflow:auto;
+  width:min(98vw,1500px);height:min(96vh,980px);max-height:96vh;overflow:hidden;display:flex;flex-direction:column;
   background:#20242b;border:1px solid #4a505b;border-radius:14px;
   padding:14px;color:#eef1f5
 }
-.p3d-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px}
+.p3d-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;min-height:0;flex:1}
 .p3d-preview-wrap{
-  min-height:320px;display:grid;place-items:center;
+  min-height:0;height:100%;display:grid;place-items:center;
   overflow:hidden;border-radius:10px;
   background:
     linear-gradient(45deg,#252a31 25%,transparent 25%),
@@ -99,8 +141,29 @@ input[type="range"]{width:110px}
   background-size:24px 24px;
   background-position:0 0,0 12px,12px -12px,-12px 0
 }
-#pseudo3dCanvas{max-width:100%;height:auto;touch-action:none}
-.p3d-controls{display:flex;flex-direction:column;gap:10px}
+#pseudo3dCanvas{width:100%;height:100%;max-width:none;max-height:none;touch-action:none;cursor:default}
+#pseudo3dCanvas.node-edit{cursor:crosshair}
+.p3d-canvas-stack{position:relative;display:block;width:100%;height:100%;max-width:none;line-height:0}
+#p3dPaintCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;pointer-events:none}
+#p3dPaintCanvas.active{pointer-events:auto}
+.p3d-paint-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px;border:1px solid var(--line);border-radius:9px;background:#181b20}
+.p3d-paint-tools button.active{background:#194c7d;border-color:var(--accent)}
+.p3d-live-hint{position:absolute;left:12px;top:12px;z-index:3;padding:8px 11px;border-radius:9px;background:rgba(15,18,22,.82);border:1px solid #56606d;color:#fff;font-size:12px;line-height:1.45;pointer-events:none;backdrop-filter:blur(5px)}
+.p3d-live-hint strong{color:#79bdff}.p3d-canvas-stack.rotating #p3dPaintCanvas{cursor:grabbing}
+.p3d-paint-tools label{display:flex;align-items:center;gap:5px;font-size:12px}
+.p3d-library{border-top:1px solid var(--line);padding-top:8px}
+.p3d-library-head{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.p3d-library-head strong{flex:1}
+.p3d-library-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:190px;overflow:auto}
+.p3d-asset{border:1px solid var(--line);border-radius:8px;padding:6px;background:#15181d}
+.p3d-asset img{display:block;width:100%;aspect-ratio:4/3;object-fit:contain;background:#0e1013;border-radius:5px}
+.p3d-asset-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:5px 0}
+.p3d-asset-actions{display:flex;gap:4px}.p3d-asset-actions button{flex:1;padding:4px;font-size:11px}
+.p3d-presets,.p3d-node-actions,.p3d-viewer-actions{display:flex;gap:6px;flex-wrap:wrap}
+.p3d-presets button,.p3d-node-actions button,.p3d-viewer-actions button{flex:1;min-width:72px;padding:6px 7px;font-size:12px}
+.p3d-viewer-actions button.active{background:#194c7d;border-color:var(--accent)}
+.p3d-node-status{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#181b20;color:var(--muted);font-size:12px;line-height:1.45}
+.p3d-controls{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto;padding-right:4px}
 .p3d-row{display:grid;grid-template-columns:88px 1fr 48px;align-items:center;gap:8px}
 .p3d-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .p3d-actions button{flex:1;min-width:110px}
@@ -108,6 +171,40 @@ input[type="range"]{width:110px}
   .p3d-layout{grid-template-columns:1fr}
   .p3d-preview-wrap{min-height:260px}
 }
+
+
+/* 動畫工作室 */
+.animation-modal{position:fixed;left:50%;bottom:10px;z-index:4600;display:none;width:min(860px,calc(100vw - 340px));transform:translateX(-50%);pointer-events:none;background:transparent}
+.animation-modal.open{display:block}
+.animation-dialog{pointer-events:auto;width:100%;max-height:32vh;overflow:hidden;background:rgba(35,38,45,.98);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 24px rgba(0,0,0,.42);display:grid;grid-template-rows:auto auto auto minmax(72px,1fr)}
+.animation-modal.collapsed .animation-controls,.animation-modal.collapsed .animation-export-note,.animation-modal.collapsed .animation-progress{display:none!important}
+.animation-modal.collapsed .animation-dialog{max-height:112px;grid-template-rows:auto minmax(64px,1fr)}
+.animation-modal.collapsed #animationCollapseBtn{background:#194c7d;border-color:var(--accent)}
+#animationBtn.active{background:#194c7d;border-color:var(--accent)}
+.animation-head,.animation-controls{display:flex;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.animation-head{cursor:grab;user-select:none;touch-action:none}
+.animation-head.dragging{cursor:grabbing}
+.animation-head button,.animation-head input,.animation-head select,.animation-head label{cursor:auto;user-select:auto;touch-action:auto}
+.animation-head strong{font-size:14px}.animation-head .spacer{flex:1}.animation-head button{padding:5px 8px}
+.animation-controls{max-height:88px;overflow:auto}.animation-controls label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}.animation-controls button{padding:5px 7px;font-size:12px}
+.animation-controls input[type="number"]{width:56px;background:#181b20;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:4px}
+.timeline-wrap{overflow:auto;padding:7px;background:#1b1e23}
+.timeline{display:flex;gap:6px;align-items:stretch;min-height:62px}
+.frame-card{position:relative;flex:0 0 82px;border:2px solid transparent;border-radius:8px;background:#292d34;padding:4px;cursor:pointer;color:var(--text)}
+.frame-card.active{border-color:var(--accent);background:#24384f}
+.frame-card img{display:block;width:100%;height:42px;object-fit:contain;background:repeating-conic-gradient(#30343c 0 25%,#24272d 0 50%) 50%/14px 14px;border-radius:6px}
+.frame-card span{display:block;text-align:center;font-size:10px;margin-top:3px}
+.frame-card .duration-badge{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.68);padding:2px 5px;border-radius:5px;font-size:10px}
+.frame-card.dragging{opacity:.42}.frame-card.drag-over{outline:2px solid var(--accent);outline-offset:2px}
+.animation-controls .wide-number{width:86px!important}
+.animation-export-note{display:none;padding:0 9px 6px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--line)}
+.animation-empty{padding:28px;color:var(--muted);text-align:center;width:100%}
+.animation-progress{display:none;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.animation-progress.show{display:flex}
+.animation-progress progress{flex:1;min-width:120px;height:12px}
+.animation-progress button{padding:4px 8px}
+.animation-controls select{background:#181b20;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px}
+@media(max-width:760px){.animation-modal{left:0;bottom:var(--mobile-tools-h);width:100%;transform:none}.animation-dialog{border-radius:12px 12px 0 0;max-height:38vh}.animation-modal.collapsed .animation-dialog{max-height:104px}.frame-card{flex-basis:76px}.frame-card img{height:40px}.animation-head .status:last-of-type{display:none}}
 
 .project-modal{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72)}
 .project-modal.open{display:flex}
@@ -123,12 +220,69 @@ input[type="range"]{width:110px}
 .project-actions{display:flex;gap:6px;flex-wrap:wrap}.project-actions button{flex:1;padding:6px}
 .project-empty{grid-column:1/-1;padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
 
+/* 文件與尺寸對話框 */
+.doc-modal{position:fixed;inset:0;z-index:4200;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72)}
+.doc-modal.open{display:flex}
+.doc-dialog{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.doc-dialog h2{font-size:19px;margin:0 0 16px}
+.doc-form{display:grid;gap:14px}
+.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.doc-field{display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.doc-field input,.doc-field select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:#181b20;color:var(--text);padding:9px 10px}
+.doc-choice{display:flex;gap:14px;flex-wrap:wrap;color:var(--text)}
+.doc-choice label{display:flex;align-items:center;gap:6px}
+.doc-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.doc-note{font-size:12px;color:var(--muted);line-height:1.5}
+.menu-wrap{position:relative}
+.menu-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:3500;display:none;min-width:190px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.menu-pop.open{display:grid;gap:3px}
+.menu-pop button{text-align:left;border-color:transparent;background:transparent}
+.menu-pop button:hover{background:var(--panel2);border-color:var(--line)}
+.zoom-reset{padding-inline:8px}
+@media(max-width:560px){.doc-grid{grid-template-columns:1fr}.topbar{gap:6px}.topbar>button,.topbar>.menu-wrap>button{padding:7px 8px}}
+
+
+
+/* V2.4 手機筆刷、套索選取、右鍵選單 */
+.brush-preset-select{width:128px;max-width:52%;background:#181b20;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px}
+.context-menu{position:fixed;z-index:9000;display:none;min-width:190px;padding:6px;background:rgba(35,38,45,.98);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.48);backdrop-filter:blur(8px)}
+.context-menu.open{display:grid;gap:3px}
+.context-menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border-color:transparent;background:transparent;padding:8px 10px}
+.context-menu button:hover,.context-menu button:focus{background:var(--panel2);border-color:var(--line);outline:none}
+.context-menu .separator{height:1px;background:var(--line);margin:3px 2px}
+@media(max-width:760px){.context-menu{min-width:210px}.brush-preset-select{width:150px}}
+
+
+
+/* V4.0 大型自由投影工作區 */
+.p3d-workspace-toolbar{display:none;position:absolute;left:14px;bottom:14px;z-index:8;gap:6px;align-items:center;flex-wrap:wrap;padding:8px;border:1px solid #536070;border-radius:10px;background:rgba(18,21,26,.88);backdrop-filter:blur(6px)}
+.p3d-workspace-toolbar button{padding:6px 10px}
+.p3d-workspace-toolbar .readout{min-width:58px;text-align:center;font-size:12px;color:#dce8f5}
+.p3d-dialog.workspace-mode .p3d-layout{grid-template-columns:minmax(0,1fr)}
+.p3d-dialog.workspace-mode .p3d-controls{display:none}
+.p3d-dialog.workspace-mode .p3d-workspace-toolbar{display:flex}
+.p3d-dialog.workspace-mode .p3d-preview-wrap{border:1px solid #536070}
+.p3d-dialog.workspace-mode .p3d-live-hint{top:14px;left:14px}
+.p3d-dialog.workspace-mode{padding:10px}
+.p3d-canvas-stack.panning #p3dPaintCanvas{cursor:grabbing}
+.p3d-flat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.p3d-flat-tabs button.active{background:#194c7d;border-color:var(--accent)}
+.p3d-flat-stage{height:min(68vh,720px);display:grid;place-items:center;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#101216;padding:12px}
+#p3dFlatCanvas{max-width:100%;max-height:100%;background:repeating-conic-gradient(#252a31 0 25%,#1d2127 0 50%) 50%/20px 20px;touch-action:none;cursor:crosshair;box-shadow:0 10px 35px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
 <header class="topbar">
-  <button id="newBtn">新增</button>
+  <button id="newBtn">新增專案</button>
   <button id="openImageBtn">匯入圖片</button>
+  <div class="menu-wrap">
+    <button id="imageMenuBtn" type="button">影像 ▾</button>
+    <div id="imageMenu" class="menu-pop">
+      <button id="canvasSizeBtn" type="button">畫布大小…</button>
+      <button id="imageSizeBtn" type="button">影像大小…</button>
+      <button id="fitZoomBtn" type="button">符合視窗</button>
+      <button id="actualZoomBtn" type="button">實際像素（100%）</button>
+    </div>
+  </div>
   <button id="projectLibraryBtn">專案庫</button>
   <button id="saveProjectBtn">儲存</button>
   <button id="saveAsProjectBtn">另存新專案</button>
@@ -141,7 +295,23 @@ input[type="range"]{width:110px}
   <button id="redoBtn">重做</button>
   <span class="spacer"></span>
   <span id="status" class="status">就緒</span>
-  <button class="mobile-layer-toggle" id="mobileLayerBtn">圖層</button>
+  <button class="mobile-layer-toggle" id="mobileLayerBtn" type="button">圖層</button>
+  <div class="menu-wrap">
+    <button class="mobile-more-toggle" id="mobileMoreBtn" type="button" aria-expanded="false">更多</button>
+    <div id="mobileMoreMenu" class="menu-pop mobile-menu-pop">
+      <button type="button" data-forward="openImageBtn">匯入圖片</button>
+      <button type="button" data-forward="canvasSizeBtn">畫布大小…</button>
+      <button type="button" data-forward="imageSizeBtn">影像大小…</button>
+      <button type="button" data-forward="fitZoomBtn">符合視窗</button>
+      <button type="button" data-forward="actualZoomBtn">實際像素（100%）</button>
+      <button type="button" data-forward="saveAsProjectBtn">另存新專案</button>
+      <button type="button" data-forward="loadProjectBtn">匯入專案</button>
+      <button type="button" data-forward="exportProjectBtn">匯出專案</button>
+      <button type="button" data-forward="importPsdBtn">匯入 PSD</button>
+      <button type="button" data-forward="exportPsdBtn">匯出 PSD</button>
+      <button type="button" data-forward="exportBtn">匯出 PNG</button>
+    </div>
+  </div>
 </header>
 
 <div class="app">
@@ -150,9 +320,11 @@ input[type="range"]{width:110px}
     <button data-tool="eraser"><span class="icon">🧽</span>橡皮</button>
     <button data-tool="bucket"><span class="icon">🪣</span>油漆桶</button>
     <button data-tool="wand"><span class="icon">🪄</span>魔術棒</button>
-    <button data-tool="select"><span class="icon">⬚</span>選取</button>
+    <button data-tool="select"><span class="icon">⬚</span>矩形選取</button>
+    <button data-tool="lasso"><span class="icon">〰️</span>手繪選取</button>
     <button data-tool="move"><span class="icon">✥</span>變形</button>
-    <button id="pseudo3dBtn"><span class="icon">🌐</span>偽3D</button>
+    <button id="pseudo3dBtn"><span class="icon">🌐</span>3D工作室</button>
+    <button id="animationBtn"><span class="icon">🎞️</span>動畫</button>
     <button id="cutBtn"><span class="icon">✂️</span>剪下</button>
     <button id="copyBtn"><span class="icon">📄</span>複製</button>
     <button id="pasteBtn"><span class="icon">📋</span>貼上</button>
@@ -176,9 +348,12 @@ input[type="range"]{width:110px}
     <div class="panel-title">工具設定</div>
     <div class="control"><label>顏色</label><input id="colorInput" type="color" value="#111111"></div>
     <div class="control"><label>筆刷大小</label><input id="sizeInput" type="range" min="1" max="100" value="8"><span id="sizeLabel">8</span></div>
+    <div class="control"><label>筆刷樣式</label><select id="brushPreset" class="brush-preset-select">
+      <option value="round">圓筆</option><option value="ink">G筆／沾水筆</option><option value="pencil">鉛筆</option><option value="marker">麥克筆</option><option value="airbrush">噴槍</option><option value="pixel">像素筆</option><option value="sparkle">閃光素材</option><option value="leaf">葉片素材</option><option value="dots">圓點素材</option>
+    </select></div>
     <div class="control"><label>不透明度</label><input id="opacityInput" type="range" min="1" max="100" value="100"><span id="opacityLabel">100%</span></div>
     <div class="control"><label>顏色容差</label><input id="toleranceInput" type="range" min="0" max="100" value="24"><span id="toleranceLabel">24</span></div>
-    <div class="control"><label>縮放</label><input id="zoomInput" type="range" min="25" max="300" value="100"><span id="zoomLabel">100%</span></div>
+    <div class="control"><label>縮放</label><input id="zoomInput" type="range" min="10" max="800" value="100"><span id="zoomLabel">100%</span><button id="zoomResetBtn" class="zoom-reset" type="button" title="回到 100%">1:1</button></div>
 
     <div class="panel-title" style="margin-top:18px">圖層</div>
     <div class="layer-controls">
@@ -195,7 +370,8 @@ input[type="range"]{width:110px}
     <div id="layerList" class="layer-list"></div>
 
     <div class="hint">
-      選取工具拖出矩形後，切到「變形」即可拖動。拖曳四角可縮放。<br>
+      矩形選取可拖出方框；手繪選取可沿著物件外緣圈選，完成後會自動切到變形。四角與四邊皆可縮放。<br>
+      控制點可跨越另一側繼續拖曳，直接形成水平／垂直鏡射；Shift 保持比例，Alt 從中心縮放。<br>
       「水平鏡射」可左右翻轉，「垂直鏡射」可上下翻轉。<br>
       Enter 套用，Esc 取消，Delete 清除選取內容。<br>
       油漆桶填滿相連顏色；魔術棒選取相連的近似顏色。<br>
@@ -204,15 +380,83 @@ input[type="range"]{width:110px}
       貼上後可移動、縮放、鏡射；按套用完成，按取消丟棄。<br>      「偽3D」可將目前選取或圖層內容套上簡易曲面網格，並輸出到新圖層。<br>
       點眼睛顯示／隱藏圖層，點鎖頭鎖定／解鎖。<br>
       圖層可上下移動，並可調整不透明度。<br>
+      滑鼠滾輪可縮放；觸控裝置可用雙指縮放與移動畫布。手機筆刷會用移動速度模擬壓感，並支援素材筆刷。長按畫布可開啟操作選單。<br>
       Ctrl/Cmd+Z 復原，Ctrl/Cmd+Y 重做。
     </div>
   </aside>
+</div>
+
+
+<div id="canvasContextMenu" class="context-menu" role="menu" aria-hidden="true">
+  <button type="button" data-context-action="brush">✏️ 切換筆刷</button>
+  <button type="button" data-context-action="eraser">🧽 切換橡皮擦</button>
+  <button type="button" data-context-action="lasso">〰️ 手繪選取</button>
+  <div class="separator"></div>
+  <button type="button" data-context-action="cut">✂️ 剪下</button>
+  <button type="button" data-context-action="copy">📄 複製</button>
+  <button type="button" data-context-action="paste">📋 貼上</button>
+  <button type="button" data-context-action="deselect">◇ 取消選取</button>
+  <div class="separator"></div>
+  <button type="button" data-context-action="flipH">↔ 水平鏡射</button>
+  <button type="button" data-context-action="flipV">↕ 垂直鏡射</button>
+  <button type="button" data-context-action="addLayer">＋ 新增圖層</button>
+  <button type="button" data-context-action="animation">🎞️ 動畫工作室</button>
 </div>
 
 <input id="imageFile" type="file" accept="image/*" hidden>
 <input id="projectFile" type="file" accept=".json,.drawproj,application/json" hidden>
 <input id="psdFile" type="file" accept=".psd,image/vnd.adobe.photoshop" hidden>
 
+
+
+<div id="newDocumentModal" class="doc-modal" aria-hidden="true">
+  <div class="doc-dialog" role="dialog" aria-modal="true" aria-labelledby="newDocumentTitle">
+    <h2 id="newDocumentTitle">建立新專案</h2>
+    <div class="doc-form">
+      <label class="doc-field">專案名稱<input id="newProjectName" type="text" value="未命名專案" maxlength="80"></label>
+      <div class="doc-grid">
+        <label class="doc-field">寬度（px）<input id="newDocumentWidth" type="number" min="1" max="16384" value="1000"></label>
+        <label class="doc-field">高度（px）<input id="newDocumentHeight" type="number" min="1" max="16384" value="700"></label>
+      </div>
+      <div class="doc-field"><span>背景</span><div class="doc-choice">
+        <label><input type="radio" name="newDocumentBackground" value="white" checked> 白色</label>
+        <label><input type="radio" name="newDocumentBackground" value="transparent"> 透明</label>
+      </div></div>
+      <div class="doc-note">建立後會成為新的 IndexedDB 專案；第一次按下儲存時寫入專案庫。</div>
+      <div class="doc-actions"><button id="cancelNewDocumentBtn" type="button">取消</button><button id="confirmNewDocumentBtn" type="button">建立</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="canvasSizeModal" class="doc-modal" aria-hidden="true">
+  <div class="doc-dialog" role="dialog" aria-modal="true" aria-labelledby="canvasSizeTitle">
+    <h2 id="canvasSizeTitle">畫布大小</h2>
+    <div class="doc-form">
+      <div class="doc-grid">
+        <label class="doc-field">寬度（px）<input id="canvasSizeWidth" type="number" min="1" max="16384"></label>
+        <label class="doc-field">高度（px）<input id="canvasSizeHeight" type="number" min="1" max="16384"></label>
+      </div>
+      <label class="doc-field">內容位置<select id="canvasAnchor"><option value="center">置中</option><option value="top-left">左上</option></select></label>
+      <div class="doc-note">只改變畫布範圍，不縮放圖層內容。縮小時，超出範圍的內容會被裁掉。</div>
+      <div class="doc-actions"><button id="cancelCanvasSizeBtn" type="button">取消</button><button id="confirmCanvasSizeBtn" type="button">套用</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="imageSizeModal" class="doc-modal" aria-hidden="true">
+  <div class="doc-dialog" role="dialog" aria-modal="true" aria-labelledby="imageSizeTitle">
+    <h2 id="imageSizeTitle">影像大小</h2>
+    <div class="doc-form">
+      <div class="doc-grid">
+        <label class="doc-field">寬度（px）<input id="imageSizeWidth" type="number" min="1" max="16384"></label>
+        <label class="doc-field">高度（px）<input id="imageSizeHeight" type="number" min="1" max="16384"></label>
+      </div>
+      <label class="doc-choice"><input id="keepAspectRatio" type="checkbox" checked> 保持長寬比例</label>
+      <div class="doc-note">會重新取樣所有圖層，整張作品跟著縮放。線稿或像素圖重複縮放仍可能降低畫質。</div>
+      <div class="doc-actions"><button id="cancelImageSizeBtn" type="button">取消</button><button id="confirmImageSizeBtn" type="button">套用</button></div>
+    </div>
+  </div>
+</div>
 
 
 <div id="projectModal" class="project-modal" aria-hidden="true">
@@ -229,16 +473,70 @@ input[type="range"]{width:110px}
 
 <div id="pseudo3dModal" class="p3d-modal" aria-hidden="true">
   <div class="p3d-dialog">
-    <div class="panel-title">簡單偽 3D 網格變形</div>
+    <div class="panel-title">3D 工作室 V4.1｜可調投影間距</div>
     <div class="p3d-layout">
       <div class="p3d-preview-wrap">
-        <canvas id="pseudo3dCanvas" width="640" height="480"></canvas>
+        <div class="p3d-canvas-stack">
+          <div class="p3d-live-hint"><strong>左鍵／觸控筆：</strong>直接畫在目前看見的表面<br><strong>右鍵或 Alt＋拖曳：</strong>旋轉模型，放開後繼續畫</div>
+          <div class="p3d-workspace-toolbar" id="p3dWorkspaceToolbar">
+            <button id="p3dWorkspaceZoomOut" type="button">－</button>
+            <span id="p3dWorkspaceZoomReadout" class="readout">100%</span>
+            <button id="p3dWorkspaceZoomIn" type="button">＋</button>
+            <button id="p3dWorkspaceFit" type="button">符合視窗</button>
+            <button id="p3dWorkspaceCenter" type="button">置中</button>
+            <button id="p3dWorkspaceExit" type="button">返回控制面板</button>
+          </div>
+          <canvas id="pseudo3dCanvas" width="1200" height="820"></canvas>
+          <canvas id="p3dPaintCanvas" width="1200" height="820"></canvas>
+        </div>
       </div>
       <div class="p3d-controls">
-        <div class="p3d-row"><label for="p3dYaw">左右旋轉</label><input id="p3dYaw" type="range" min="-75" max="75" value="0"><span id="p3dYawV">0°</span></div>
-        <div class="p3d-row"><label for="p3dPitch">上下旋轉</label><input id="p3dPitch" type="range" min="-70" max="70" value="0"><span id="p3dPitchV">0°</span></div>
+        <div class="p3d-presets">
+          <button type="button" data-p3d-view="front">正面</button><button type="button" data-p3d-view="left">左側</button><button type="button" data-p3d-view="right">右側</button><button type="button" data-p3d-view="back">背面</button>
+        </div>
+        <div class="p3d-row"><label for="p3dYaw">水平 360°</label><input id="p3dYaw" type="range" min="-180" max="180" value="0"><span id="p3dYawV">0°</span></div>
+        <div class="p3d-row"><label for="p3dPitch">垂直 360°</label><input id="p3dPitch" type="range" min="-180" max="180" value="0"><span id="p3dPitchV">0°</span></div>
         <div class="p3d-row"><label for="p3dRoll">平面旋轉</label><input id="p3dRoll" type="range" min="-180" max="180" value="0"><span id="p3dRollV">0°</span></div>
-        <div class="p3d-row"><label for="p3dCurve">曲面凸度</label><input id="p3dCurve" type="range" min="0" max="100" value="28"><span id="p3dCurveV">28</span></div>
+        <div class="p3d-row"><label for="p3dCurve">曲面凹凸</label><input id="p3dCurve" type="range" min="-100" max="100" value="28"><span id="p3dCurveV">+28</span></div>
+        <div class="p3d-row"><label for="p3dDepth">模型厚度</label><input id="p3dDepth" type="range" min="0" max="100" value="28"><span id="p3dDepthV">28%</span></div>
+        <div class="p3d-row"><label for="p3dProjectionGap">投影間距</label><input id="p3dProjectionGap" type="range" min="0" max="200" value="100"><span id="p3dProjectionGapV">100%</span></div>
+        <div class="p3d-row" style="display:none"><label for="p3dRoundness">曲面圓滑</label><input id="p3dRoundness" type="range" min="0" max="100" value="0"><span id="p3dRoundnessV">0%</span></div>
+        <div class="p3d-row" style="display:none"><label for="p3dEdgeSegments">過渡密度</label><input id="p3dEdgeSegments" type="range" min="1" max="10" value="1"><span id="p3dEdgeSegmentsV">1</span></div>
+        <div id="p3dSurfaceStatus" class="p3d-node-status">六個外表面皆為獨立大型方形畫布。三角形只負責顯示，不參與畫筆選面。</div>
+        <div class="p3d-viewer-actions">
+          <button id="p3dWorkspaceBtn" type="button">🖌 大型自由工作區</button>
+          <button id="p3dFlatEditorBtn" type="button">🖼 平面畫布編輯</button>
+          <button id="p3dAddEarBtn" type="button">＋ 耳朵特殊網格</button>
+          <button id="p3dRemovePatchBtn" type="button">移除特殊網格</button>
+        </div>
+        <div id="p3dPatchControls" class="p3d-node-status" style="display:none">
+          <label>位置 <select id="p3dPatchSide"><option value="left">左耳</option><option value="right">右耳</option></select></label><br>
+          <label>垂直位置 <input id="p3dPatchY" type="range" min="-70" max="70" value="-10"></label><br>
+          <label>大小 <input id="p3dPatchSize" type="range" min="10" max="55" value="28"></label><br>
+          <label>凸出 <input id="p3dPatchDepth" type="range" min="0" max="80" value="35"></label>
+        </div>
+        <div class="p3d-viewer-actions">
+          <button id="p3dViewerBtn" type="button">🖐 拖曳賞玩</button>
+          <button id="p3dAutoRotateBtn" type="button">▶ 自動旋轉</button>
+          <button id="p3dExportHtmlBtn" type="button">匯出互動 HTML</button>
+        </div>
+        <div class="p3d-paint-tools">
+          <button id="p3dPaintModeBtn" type="button">✏️ 所見即得繪製</button>
+          <button id="p3dPaintEraserBtn" type="button">橡皮擦</button>
+          <button id="p3dPaintEyedropperBtn" type="button">滴管</button>
+          <label>顏色 <input id="p3dPaintColor" type="color" value="#111111"></label>
+          <label>尺寸 <input id="p3dPaintSize" type="range" min="1" max="50" value="6"></label>
+          <button id="p3dPaintUndoBtn" type="button">↶ 復原</button>
+          <button id="p3dPaintRedoBtn" type="button">↷ 重做</button>
+          <button id="p3dPaintFillBtn" type="button">填滿目前表面</button>
+          <button id="p3dPaintClearSurfaceBtn" type="button">清除目前表面</button>
+          <button id="p3dPaintClearBtn" type="button">清除全部表面</button>
+          <button id="p3dSendCanvasBtn" type="button">送回本體畫布</button>
+        </div>
+        <label><input id="p3dNodeEdit" type="checkbox" checked> 節點變形模式</label>
+        <div id="p3dNodeStatus" class="p3d-node-status">拖曳藍色節點可校正透視；點選節點後可調整前後深度。</div>
+        <div class="p3d-row"><label for="p3dNodeDepth">節點深度</label><input id="p3dNodeDepth" type="range" min="-100" max="100" value="0"><span id="p3dNodeDepthV">0</span></div>
+        <div class="p3d-node-actions"><button id="p3dStraightenBtn" type="button">擺正節點</button><button id="p3dResetNodesBtn" type="button">重設節點</button></div>
         <div class="p3d-row"><label for="p3dCamera">鏡頭距離</label><input id="p3dCamera" type="range" min="280" max="1200" value="650"><span id="p3dCameraV">650</span></div>
         <div class="p3d-row"><label for="p3dGrid">網格密度</label><input id="p3dGrid" type="range" min="3" max="14" value="7"><span id="p3dGridV">7</span></div>
         <label><input id="p3dShowGrid" type="checkbox" checked> 顯示網格線</label>
@@ -250,12 +548,56 @@ input[type="range"]{width:110px}
           <button id="p3dApplyBtn" type="button">✓ 套用變形</button>
           <button id="p3dCloseBtn" type="button">取消</button>
         </div>
-        <div class="hint">固定尺寸重寫版：輸出尺寸與位置永遠等於原始選取範圍，不再依旋轉後包圍盒縮放。像素／線稿清晰模式會關閉平滑取樣；一般插畫可取消勾選。</div>
+        <div class="p3d-library">
+          <div class="p3d-library-head"><strong>3D 工作室檔案庫</strong><button id="p3dSaveAssetBtn" type="button">儲存目前工作</button></div>
+          <div id="p3dLibraryGrid" class="p3d-library-grid"></div>
+        </div>
+        <div class="hint">大型繪製區採所見即得操作：左鍵或觸控筆畫在眼前最前方的表面；繪製模式中仍可按右鍵或 Alt 拖曳旋轉模型。「模型厚度」控制物件本身的厚薄；「投影間距」只控制前後表面在旋轉投影時拉開多少。若畫一個圓後看到前後兩個圓距離太遠，可降低投影間距，且不必重畫側面紋理。轉到側面時仍可直接在厚度表面繪製，轉到背面則寫入獨立背面紋理。按「送回本體畫布」可擷取目前角度；檔案庫會保存原始紋理、表面繪製、網格與角度。</div>
       </div>
     </div>
   </div>
 </div>
 
+
+<div id="animationModal" class="animation-modal" aria-hidden="true">
+  <section class="animation-dialog" role="region" aria-labelledby="animationTitle">
+    <div class="animation-head">
+      <strong id="animationTitle" title="拖曳此標題列可移動視窗">🎞️ 動畫工作室 <small style="font-weight:400;color:var(--muted)">拖曳標題列可移動</small></strong>
+      <span id="animationFrameStatus" class="status">影格 1 / 1</span>
+      <span class="spacer"></span>
+      <span class="status">可直接在上方畫布繪圖</span>
+      <button id="animationCollapseBtn" type="button" title="只保留時間軸">縮小</button>
+      <button id="animationCloseBtn" type="button">關閉</button>
+    </div>
+    <div class="animation-controls">
+      <button id="animationPrevBtn" type="button" title="上一格">◀</button>
+      <button id="animationPlayBtn" type="button">▶ 播放</button>
+      <button id="animationNextBtn" type="button" title="下一格">▶</button>
+      <label>預設 FPS <input id="animationFps" type="number" min="1" max="60" value="6"></label>
+      <label>目前格停留 <input id="animationDuration" class="wide-number" type="number" min="20" max="10000" step="10" value="250"> ms</label>
+      <label><input id="animationLoop" type="checkbox" checked> 循環</label>
+      <label><input id="animationOnion" type="checkbox"> 洋蔥皮</label>
+      <label>前格 <input id="animationOnionPrev" type="number" min="0" max="5" value="1"></label>
+      <label>後格 <input id="animationOnionNext" type="number" min="0" max="5" value="0"></label>
+      <label>透明度 <input id="animationOnionOpacity" type="range" min="5" max="80" value="25"></label>
+      <button id="animationAddBtn" type="button">＋ 空白影格</button>
+      <button id="animationDuplicateNextBtn" type="button" title="複製目前影格並自動切到下一格（Ctrl+Enter）">＋ 下一格（複製）</button>
+      <button id="animationDuplicateBtn" type="button">⧉ 複製影格</button>
+      <button id="animationDeleteBtn" type="button" class="danger">－ 刪除影格</button>
+      <span class="spacer"></span>
+      <label>GIF 品質 <select id="animationGifQuality"><option value="5">高</option><option value="10" selected>標準</option><option value="20">快速</option></select></label>
+      <button id="animationGifBtn" type="button">匯出 GIF</button>
+      <button id="animationWebmBtn" type="button">匯出 WebM</button>
+      <button id="animationPngSequenceBtn" type="button">匯出 PNG 序列</button>
+      <button id="animationPngBtn" type="button">匯出目前 PNG</button>
+    </div>
+    <div class="animation-export-note">工作室開啟時仍可直接操作畫布。快捷鍵：←／→ 切換影格、Ctrl+Enter 複製並前進、Space 播放／暫停、Home／End 跳到首尾格。播放與 GIF／WebM 匯出會使用每一格自己的停留時間；拖曳影格卡片可重新排序。</div>
+    <div id="animationProgress" class="animation-progress"><span id="animationProgressText">準備中…</span><progress id="animationProgressBar" max="100" value="0"></progress><button id="animationCancelExportBtn" type="button">取消</button></div>
+    <div class="timeline-wrap"><div id="animationTimeline" class="timeline"></div></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <script>
 (() => {
 'use strict';
@@ -266,14 +608,23 @@ const overlay = $('#overlay');
 const octx = overlay.getContext('2d');
 const viewport = $('#viewport');
 const statusEl = $('#status');
+const onionOverlay=document.createElement('canvas');
+onionOverlay.className='overlay';onionOverlay.style.zIndex='998';onionOverlay.style.pointerEvents='none';
+canvasWrap.insertBefore(onionOverlay,overlay);
+const onionCtx=onionOverlay.getContext('2d');
 
 const state = {
   width: 1000,
   height: 700,
   zoom: 1,
+  panX: 0,
+  panY: 0,
+  pointers: new Map(),
+  pinch: null,
   tool: 'brush',
   color: '#111111',
   size: 8,
+  brushPreset: 'round',
   opacity: 1,
   tolerance: 24,
   clipboard: null,
@@ -284,6 +635,7 @@ const state = {
   last: null,
   selection: null,
   interaction: null,
+  snapGuides: {x:[],y:[]},
   history: [],
   historyIndex: -1,
   restoring: false,
@@ -438,53 +790,78 @@ function syncLayerControls(){
   $('#layerOpacityLabel').textContent=value+'%';
 }
 
-function resizeDocument(width,height){
+function resizeDocument(width,height,anchor='top-left'){
+  width=Math.max(1,Math.min(16384,Math.round(width)));
+  height=Math.max(1,Math.min(16384,Math.round(height)));
+  const oldWidth=state.width, oldHeight=state.height;
+  const offsetX=anchor==='center'?Math.round((width-oldWidth)/2):0;
+  const offsetY=anchor==='center'?Math.round((height-oldHeight)/2):0;
   state.width=width; state.height=height;
   canvasWrap.style.width=width+'px'; canvasWrap.style.height=height+'px';
-  configureCanvas(overlay);
+  configureCanvas(overlay); configureCanvas(onionOverlay);
   state.layers.forEach(layer => {
     const old=document.createElement('canvas');
     old.width=layer.canvas.width; old.height=layer.canvas.height;
     old.getContext('2d').drawImage(layer.canvas,0,0);
     configureCanvas(layer.canvas);
-    layer.canvas.getContext('2d').drawImage(old,0,0);
+    layer.canvas.getContext('2d').drawImage(old,offsetX,offsetY);
   });
+  state.selection=null;
   updateZoom();
   render();
 }
 
-function newDocument(){
-  const w = Math.max(1, Number(prompt('畫布寬度',1000)) || 1000);
-  const h = Math.max(1, Number(prompt('畫布高度',700)) || 700);
-  const useWhiteBackground = confirm('使用白色背景？\n按「確定」建立白色鎖定背景；按「取消」建立透明畫布。');
-
-  state.layers.forEach(l=>l.canvas.remove());
-  state.layers=[];
+function scaleDocument(width,height){
+  width=Math.max(1,Math.min(16384,Math.round(width)));
+  height=Math.max(1,Math.min(16384,Math.round(height)));
+  const oldWidth=state.width, oldHeight=state.height;
+  state.width=width; state.height=height;
+  canvasWrap.style.width=width+'px'; canvasWrap.style.height=height+'px';
+  configureCanvas(overlay); configureCanvas(onionOverlay);
+  state.layers.forEach(layer=>{
+    const old=document.createElement('canvas');
+    old.width=layer.canvas.width; old.height=layer.canvas.height;
+    old.getContext('2d').drawImage(layer.canvas,0,0);
+    configureCanvas(layer.canvas);
+    const ctx=layer.canvas.getContext('2d');
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(old,0,0,oldWidth,oldHeight,0,0,width,height);
+  });
   state.selection=null;
-  state.history=[];
-  state.historyIndex=-1;
-  state.width=w;
-  state.height=h;
-
-  canvasWrap.style.width=w+'px';
-  canvasWrap.style.height=h+'px';
-  configureCanvas(overlay);
-
-  if(useWhiteBackground){
-    createLayer('背景',null,{
-      fill:'#ffffff',
-      locked:true,
-      background:true
-    });
-    createLayer('圖層 1');
-  }else{
-    createLayer('圖層 1');
-  }
-
   updateZoom();
+  render();
+}
+
+function createNewDocument({name='未命名專案',width=1000,height=700,background='white'}={}){
+  const w=Math.max(1,Math.min(16384,Math.round(Number(width)||1000)));
+  const h=Math.max(1,Math.min(16384,Math.round(Number(height)||700)));
+  state.currentProjectId=null;
+  state.currentProjectName=(name||'未命名專案').trim()||'未命名專案';
+  state.layers.forEach(l=>l.canvas.remove());
+  state.layers=[]; state.selection=null; state.history=[]; state.historyIndex=-1;
+  if(typeof animationResetForNewDocument==='function') animationResetForNewDocument();
+  state.width=w; state.height=h; state.panX=0; state.panY=0;
+  canvasWrap.style.width=w+'px'; canvasWrap.style.height=h+'px'; configureCanvas(overlay); configureCanvas(onionOverlay);
+  if(background==='white'){
+    createLayer('背景',null,{fill:'#ffffff',locked:true,background:true});
+    createLayer('圖層 1');
+  }else createLayer('圖層 1');
+  fitZoomToViewport();
   saveHistory('新增文件');
   render();
+  setStatus('已建立「'+state.currentProjectName+'」');
 }
+
+function openNewDocumentDialog(){
+  $('#newProjectName').value=state.currentProjectId?state.currentProjectName:'未命名專案';
+  $('#newDocumentWidth').value=state.width;
+  $('#newDocumentHeight').value=state.height;
+  openDocModal('newDocumentModal');
+  setTimeout(()=>$('#newProjectName').select(),0);
+}
+
+function newDocument(){ openNewDocumentDialog(); }
 
 function pointFromEvent(e){
   const r=overlay.getBoundingClientRect();
@@ -666,36 +1043,93 @@ function magicWandSelect(p){
   setStatus('魔術棒已選取相連顏色區域');
 }
 
+
+function brushPressure(e,p){
+  if(e.pointerType==='pen' && e.pressure>0) return Math.max(.08,e.pressure);
+  if(e.pointerType==='touch'){
+    const now=performance.now();
+    const prev=state.brushMotion;
+    state.brushMotion={x:p.x,y:p.y,t:now};
+    if(!prev)return .72;
+    const speed=Math.hypot(p.x-prev.x,p.y-prev.y)/Math.max(1,now-prev.t);
+    return Math.max(.3,Math.min(1,1.05-speed*.8));
+  }
+  return 1;
+}
+function drawMaterialStamp(ctx,x,y,size,preset,angle=0){
+  ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+  if(preset==='sparkle'){
+    ctx.beginPath();ctx.moveTo(0,-size*.62);ctx.lineTo(size*.14,-size*.14);ctx.lineTo(size*.62,0);ctx.lineTo(size*.14,size*.14);ctx.lineTo(0,size*.62);ctx.lineTo(-size*.14,size*.14);ctx.lineTo(-size*.62,0);ctx.lineTo(-size*.14,-size*.14);ctx.closePath();ctx.fill();
+  }else if(preset==='leaf'){
+    ctx.beginPath();ctx.moveTo(-size*.55,0);ctx.quadraticCurveTo(0,-size*.55,size*.58,0);ctx.quadraticCurveTo(0,size*.55,-size*.55,0);ctx.fill();
+    ctx.globalCompositeOperation='destination-out';ctx.fillRect(-size*.04,-size*.38,size*.08,size*.76);
+  }else{
+    ctx.beginPath();ctx.arc(0,0,size*.42,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBrushSegment(layer,a,b,e,isDot=false){
+  const ctx=layer.canvas.getContext('2d');
+  const preset=state.brushPreset||'round';
+  const pressure=brushPressure(e,b);
+  const base=Math.max(1,state.size*pressure);
+  ctx.save();
+  ctx.globalAlpha=state.opacity;
+  ctx.globalCompositeOperation=state.tool==='eraser'?'destination-out':'source-over';
+  ctx.strokeStyle=state.color;ctx.fillStyle=state.color;
+  if(['sparkle','leaf','dots'].includes(preset) && state.tool!=='eraser'){
+    const distance=Math.max(.01,Math.hypot(b.x-a.x,b.y-a.y));
+    const spacing=Math.max(5,base*1.1);
+    const count=isDot?1:Math.max(1,Math.floor(distance/spacing));
+    const angle=Math.atan2(b.y-a.y,b.x-a.x);
+    for(let i=0;i<=count;i++){
+      const t=count?i/count:0;
+      drawMaterialStamp(ctx,a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,base,preset,angle);
+    }
+  }else if(preset==='airbrush' && state.tool!=='eraser'){
+    const distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+    const steps=Math.max(1,Math.ceil(distance/Math.max(2,base*.2)));
+    ctx.globalAlpha=state.opacity*.08;
+    for(let i=0;i<=steps;i++){
+      const t=i/steps,cx=a.x+(b.x-a.x)*t,cy=a.y+(b.y-a.y)*t;
+      for(let n=0;n<14;n++){
+        const ang=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*base*.8;
+        ctx.beginPath();ctx.arc(cx+Math.cos(ang)*r,cy+Math.sin(ang)*r,Math.max(.5,base*.06),0,Math.PI*2);ctx.fill();
+      }
+    }
+  }else if(preset==='pixel'){
+    const distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+    const step=Math.max(1,Math.round(base*.45));
+    const count=Math.max(1,Math.ceil(distance/step));
+    const px=Math.max(1,Math.round(base));
+    for(let i=0;i<=count;i++){const t=i/count;ctx.fillRect(Math.round(a.x+(b.x-a.x)*t-px/2),Math.round(a.y+(b.y-a.y)*t-px/2),px,px)}
+  }else{
+    ctx.lineJoin='round';ctx.lineCap=preset==='marker'?'square':'round';
+    ctx.lineWidth=base*(preset==='pencil'?.55:preset==='marker'?1.25:1);
+    if(preset==='pencil')ctx.globalAlpha=state.opacity*.45;
+    if(preset==='marker')ctx.globalAlpha=state.opacity*.55;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x+(isDot?.01:0),b.y+(isDot?.01:0));ctx.stroke();
+    if(preset==='ink' && state.tool!=='eraser'){
+      ctx.globalAlpha=state.opacity*.28;ctx.lineWidth=Math.max(.6,base*.35);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function beginBrush(p,e){
   const layer=activeLayer();
   if(!layer || !layer.visible) return;
-  if(layer.locked){
-    setStatus('目前圖層已鎖定');
-    return;
-  }
-  state.drawing=true; state.last=p;
-  const ctx=layer.canvas.getContext('2d');
-  ctx.save();
-  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=state.size*(e.pressure||1);
-  ctx.globalAlpha=state.opacity;
-  ctx.globalCompositeOperation=state.tool==='eraser'?'destination-out':'source-over';
-  ctx.strokeStyle=state.color;
-  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+.01,p.y+.01); ctx.stroke();
-  ctx.restore();
+  if(layer.locked){ setStatus('目前圖層已鎖定'); return; }
+  state.drawing=true; state.last=p; state.brushMotion=null;
+  drawBrushSegment(layer,p,p,e,true);
 }
 
 function continueBrush(p,e){
   if(!state.drawing) return;
-  const layer=activeLayer(); const ctx=layer.canvas.getContext('2d');
-  ctx.save();
-  ctx.lineCap='round'; ctx.lineJoin='round';
-  const pressure = e.pointerType==='pen' ? Math.max(.1,e.pressure) : 1;
-  ctx.lineWidth=state.size*pressure;
-  ctx.globalAlpha=state.opacity;
-  ctx.globalCompositeOperation=state.tool==='eraser'?'destination-out':'source-over';
-  ctx.strokeStyle=state.color;
-  ctx.beginPath(); ctx.moveTo(state.last.x,state.last.y); ctx.lineTo(p.x,p.y); ctx.stroke();
-  ctx.restore(); state.last=p;
+  const layer=activeLayer();
+  if(!layer)return;
+  drawBrushSegment(layer,state.last,p,e,false);
+  state.last=p;
 }
 
 function normalizeRect(a,b){
@@ -725,6 +1159,25 @@ function detachSelection(rect){
     restoreOnCancel:true
   };
   state.tool='move'; syncToolButtons(); render();
+}
+
+
+function detachLassoSelection(points){
+  if(!points||points.length<3)return;
+  commitSelection();
+  const layer=activeLayer();
+  if(!layer||layer.locked){setStatus('目前圖層已鎖定');return;}
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  points.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y)});
+  const x=Math.max(0,Math.floor(minX)),y=Math.max(0,Math.floor(minY));
+  const w=Math.max(1,Math.ceil(maxX)-x),h=Math.max(1,Math.ceil(maxY)-y);
+  const mask=document.createElement('canvas');mask.width=w;mask.height=h;
+  const mctx=mask.getContext('2d');mctx.fillStyle='#fff';mctx.beginPath();mctx.moveTo(points[0].x-x,points[0].y-y);for(let i=1;i<points.length;i++)mctx.lineTo(points[i].x-x,points[i].y-y);mctx.closePath();mctx.fill();
+  const source=document.createElement('canvas');source.width=w;source.height=h;
+  const sctx=source.getContext('2d');sctx.drawImage(layer.canvas,x,y,w,h,0,0,w,h);sctx.globalCompositeOperation='destination-in';sctx.drawImage(mask,0,0);sctx.globalCompositeOperation='source-over';
+  const ctx=layer.canvas.getContext('2d');ctx.save();ctx.globalCompositeOperation='destination-out';ctx.drawImage(mask,x,y);ctx.restore();
+  state.selection={source,original:{x,y,w,h},box:{x,y,w,h},layerId:layer.id,flipX:false,flipY:false,restoreOnCancel:true};
+  state.tool='move';syncToolButtons();render();setStatus('已建立手繪選取範圍');
 }
 
 function drawTransformedSelection(ctx,s){
@@ -765,7 +1218,7 @@ function commitSelection(){
   if(layer){
     drawTransformedSelection(layer.canvas.getContext('2d'),s);
   }
-  state.selection=null; state.interaction=null; render();
+  state.selection=null; state.interaction=null; clearSnapGuides(); render();
 }
 
 function cancelSelection(){
@@ -779,6 +1232,7 @@ function cancelSelection(){
   }
   state.selection=null;
   state.interaction=null;
+  clearSnapGuides();
   render();
   setStatus('已取消目前操作');
 }
@@ -790,6 +1244,7 @@ function clearSelection(){
   }
   state.selection=null;
   state.interaction=null;
+  clearSnapGuides();
   render();
   saveHistory('清除選取內容');
   setStatus('已清除選取內容');
@@ -848,6 +1303,65 @@ function nonTransparentBounds(canvas){
 
   if(maxX<minX||maxY<minY) return null;
   return {x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};
+}
+
+function buildSnapTargets(excludeLayerId=null){
+  const x=[0,state.width/2,state.width];
+  const y=[0,state.height/2,state.height];
+
+  for(const layer of state.layers){
+    if(!layer.visible || layer.id===excludeLayerId) continue;
+    const b=nonTransparentBounds(layer.canvas);
+    if(!b) continue;
+    x.push(b.x,b.x+b.w/2,b.x+b.w);
+    y.push(b.y,b.y+b.h/2,b.y+b.h);
+  }
+
+  const unique=values=>[...new Set(values.map(v=>Math.round(v*1000)/1000))];
+  return {x:unique(x),y:unique(y)};
+}
+
+function nearestSnap(value,targets,threshold){
+  let best=null;
+  let distance=Infinity;
+  for(const target of targets||[]){
+    const d=Math.abs(value-target);
+    if(d<=threshold && d<distance){
+      best=target;
+      distance=d;
+    }
+  }
+  return best;
+}
+
+function snapMoveBox(box,targets,threshold){
+  let dx=0,dy=0;
+  let guideX=null,guideY=null;
+  let bestX=Infinity,bestY=Infinity;
+  const xs=[box.x,box.x+box.w/2,box.x+box.w];
+  const ys=[box.y,box.y+box.h/2,box.y+box.h];
+
+  for(const edge of xs){
+    const target=nearestSnap(edge,targets.x,threshold);
+    if(target===null) continue;
+    const d=Math.abs(target-edge);
+    if(d<bestX){bestX=d;dx=target-edge;guideX=target;}
+  }
+  for(const edge of ys){
+    const target=nearestSnap(edge,targets.y,threshold);
+    if(target===null) continue;
+    const d=Math.abs(target-edge);
+    if(d<bestY){bestY=d;dy=target-edge;guideY=target;}
+  }
+
+  return {
+    box:{x:box.x+dx,y:box.y+dy,w:box.w,h:box.h},
+    guides:{x:guideX===null?[]:[guideX],y:guideY===null?[]:[guideY]}
+  };
+}
+
+function clearSnapGuides(){
+  state.snapGuides={x:[],y:[]};
 }
 
 function copyToInternalClipboard(){
@@ -956,11 +1470,21 @@ function pasteFromInternalClipboard(){
 }
 
 function handles(box){
+  const x1=box.x;
+  const y1=box.y;
+  const x2=box.x+box.w;
+  const y2=box.y+box.h;
+  const cx=(x1+x2)/2;
+  const cy=(y1+y2)/2;
   return [
-    {name:'nw',x:box.x,y:box.y},
-    {name:'ne',x:box.x+box.w,y:box.y},
-    {name:'sw',x:box.x,y:box.y+box.h},
-    {name:'se',x:box.x+box.w,y:box.y+box.h}
+    {name:'nw',x:x1,y:y1,xDir:-1,yDir:-1},
+    {name:'n', x:cx,y:y1,xDir:0,yDir:-1},
+    {name:'ne',x:x2,y:y1,xDir:1,yDir:-1},
+    {name:'e', x:x2,y:cy,xDir:1,yDir:0},
+    {name:'se',x:x2,y:y2,xDir:1,yDir:1},
+    {name:'s', x:cx,y:y2,xDir:0,yDir:1},
+    {name:'sw',x:x1,y:y2,xDir:-1,yDir:1},
+    {name:'w', x:x1,y:cy,xDir:-1,yDir:0}
   ];
 }
 
@@ -968,11 +1492,8 @@ function hitSelection(p){
   const s=state.selection; if(!s) return null;
   const radius=Math.max(8,14/state.zoom);
   for(const h of handles(s.box)){
-    if(
-      Math.abs(p.x-h.x)<=radius &&
-      Math.abs(p.y-h.y)<=radius
-    ){
-      return {type:'resize',handle:h.name};
+    if(Math.abs(p.x-h.x)<=radius && Math.abs(p.y-h.y)<=radius){
+      return {type:'resize',handle:h.name,xDir:h.xDir,yDir:h.yDir};
     }
   }
   const b=s.box;
@@ -982,51 +1503,130 @@ function hitSelection(p){
   return null;
 }
 
-function beginTransform(p){
+function beginTransform(p,e){
   const hit=hitSelection(p); if(!hit) return;
-  state.interaction={...hit,start:p,initial:{...state.selection.box}};
+  const s=state.selection;
+  state.interaction={
+    ...hit,
+    start:p,
+    initial:{...s.box},
+    initialFlipX:!!s.flipX,
+    initialFlipY:!!s.flipY,
+    ratio:Math.max(0.0001,s.box.w)/Math.max(0.0001,s.box.h),
+    altKey:!!e?.altKey,
+    snapTargets:buildSnapTargets(s.layerId)
+  };
+  clearSnapGuides();
 }
 
-function updateTransform(p){
+function updateTransform(p,e){
   const it=state.interaction, s=state.selection;
   if(!it || !s) return;
 
   const initial=it.initial;
-  const min=4;
-  let left=initial.x;
-  let top=initial.y;
-  let right=initial.x+initial.w;
-  let bottom=initial.y+initial.h;
+  const x1=initial.x, y1=initial.y;
+  const x2=initial.x+initial.w, y2=initial.y+initial.h;
+  const cx=(x1+x2)/2, cy=(y1+y2)/2;
+  const xDir=it.xDir||0, yDir=it.yDir||0;
+  const fromCenter=!!(e?.altKey || it.altKey);
+
+  const snapDisabled=!!(e?.ctrlKey || e?.metaKey);
+  const snapThreshold=8/state.zoom;
 
   if(it.type==='move'){
     const dx=p.x-it.start.x;
     const dy=p.y-it.start.y;
-    left+=dx; right+=dx;
-    top+=dy; bottom+=dy;
-  }else{
-    // 每個角只改變自己所控制的兩條邊
-    if(it.handle==='nw'){
-      left=Math.min(p.x,right-min);
-      top=Math.min(p.y,bottom-min);
-    }else if(it.handle==='ne'){
-      right=Math.max(p.x,left+min);
-      top=Math.min(p.y,bottom-min);
-    }else if(it.handle==='sw'){
-      left=Math.min(p.x,right-min);
-      bottom=Math.max(p.y,top+min);
-    }else if(it.handle==='se'){
-      right=Math.max(p.x,left+min);
-      bottom=Math.max(p.y,top+min);
+    const rawBox={x:x1+dx,y:y1+dy,w:initial.w,h:initial.h};
+    if(snapDisabled){
+      s.box=rawBox;
+      clearSnapGuides();
+    }else{
+      const snapped=snapMoveBox(rawBox,it.snapTargets,snapThreshold);
+      s.box=snapped.box;
+      state.snapGuides=snapped.guides;
+    }
+    setStatus(`移動 X ${Math.round(s.box.x)}｜Y ${Math.round(s.box.y)}`+(state.snapGuides.x.length||state.snapGuides.y.length?'｜已吸附':'')+(snapDisabled?'｜暫停吸附':''));
+    render();
+    return;
+  }
+
+  let dragX=p.x;
+  let dragY=p.y;
+  clearSnapGuides();
+  if(!snapDisabled){
+    if(xDir){
+      const target=nearestSnap(dragX,it.snapTargets.x,snapThreshold);
+      if(target!==null){dragX=target;state.snapGuides.x=[target];}
+    }
+    if(yDir){
+      const target=nearestSnap(dragY,it.snapTargets.y,snapThreshold);
+      if(target!==null){dragY=target;state.snapGuides.y=[target];}
     }
   }
 
-  s.box={
-    x:left,
-    y:top,
-    w:right-left,
-    h:bottom-top
-  };
+  let signedW=initial.w;
+  let signedH=initial.h;
 
+  if(xDir){
+    signedW=fromCenter
+      ? 2*(dragX-cx)*xDir
+      : (xDir>0 ? dragX-x1 : x2-dragX);
+  }
+  if(yDir){
+    signedH=fromCenter
+      ? 2*(dragY-cy)*yDir
+      : (yDir>0 ? dragY-y1 : y2-dragY);
+  }
+
+  // Shift：拖曳角落時保持原比例，同時仍允許跨越中心鏡射。
+  if(e?.shiftKey && xDir && yDir){
+    const signW=signedW<0?-1:1;
+    const signH=signedH<0?-1:1;
+    let aw=Math.abs(signedW);
+    let ah=Math.abs(signedH);
+    if(aw/Math.max(ah,0.0001)>it.ratio) ah=aw/it.ratio;
+    else aw=ah*it.ratio;
+    signedW=aw*signW;
+    signedH=ah*signH;
+  }
+
+  // 不把尺寸鎖死在 0；只避開 Canvas 完全為零的退化狀態。
+  const epsilon=0.01;
+  if(xDir && Math.abs(signedW)<epsilon) signedW=(signedW<0?-1:1)*epsilon;
+  if(yDir && Math.abs(signedH)<epsilon) signedH=(signedH<0?-1:1)*epsilon;
+
+  let left=x1, top=y1;
+  let width=initial.w, height=initial.h;
+
+  if(xDir){
+    width=Math.abs(signedW);
+    if(fromCenter) left=cx-width/2;
+    else if(xDir>0) left=signedW>=0 ? x1 : x1-width;
+    else left=signedW>=0 ? x2-width : x2;
+    s.flipX=it.initialFlipX !== (signedW<0);
+  }
+
+  if(yDir){
+    height=Math.abs(signedH);
+    if(fromCenter) top=cy-height/2;
+    else if(yDir>0) top=signedH>=0 ? y1 : y1-height;
+    else top=signedH>=0 ? y2-height : y2;
+    s.flipY=it.initialFlipY !== (signedH<0);
+  }
+
+  s.box={x:left,y:top,w:width,h:height};
+
+  const mirror=[];
+  if(s.flipX) mirror.push('水平鏡射');
+  if(s.flipY) mirror.push('垂直鏡射');
+  setStatus(
+    `變形 ${Math.round(width)} × ${Math.round(height)}`+
+    (mirror.length ? `｜${mirror.join('＋')}` : '')+
+    (e?.shiftKey ? '｜保持比例' : '')+
+    (fromCenter ? '｜中心縮放' : '')+
+    (state.snapGuides.x.length||state.snapGuides.y.length ? '｜已吸附' : '')+
+    (snapDisabled ? '｜暫停吸附' : '')
+  );
   render();
 }
 
@@ -1046,17 +1646,65 @@ function render(){
       octx.fillRect(h.x-size/2,h.y-size/2,size,size);
       octx.strokeRect(h.x-size/2,h.y-size/2,size,size);
     }
+
+    if(state.snapGuides.x.length||state.snapGuides.y.length){
+      octx.save();
+      octx.strokeStyle='#ff2f92';
+      octx.lineWidth=1/state.zoom;
+      octx.setLineDash([4/state.zoom,3/state.zoom]);
+      for(const gx of state.snapGuides.x){
+        octx.beginPath();octx.moveTo(gx,0);octx.lineTo(gx,state.height);octx.stroke();
+      }
+      for(const gy of state.snapGuides.y){
+        octx.beginPath();octx.moveTo(0,gy);octx.lineTo(state.width,gy);octx.stroke();
+      }
+      octx.restore();
+    }
     octx.restore();
   } else if(state.interaction?.type==='select'){
     const r=normalizeRect(state.interaction.start,state.interaction.current);
     octx.save(); octx.fillStyle='rgba(54,145,255,.12)'; octx.strokeStyle='#168cff';
     octx.lineWidth=1/state.zoom; octx.setLineDash([6/state.zoom,4/state.zoom]);
     octx.fillRect(r.x,r.y,r.w,r.h); octx.strokeRect(r.x,r.y,r.w,r.h); octx.restore();
+  } else if(state.interaction?.type==='lasso'){
+    const pts=state.interaction.points||[];
+    if(pts.length){octx.save();octx.strokeStyle='#37b7ff';octx.fillStyle='rgba(54,145,255,.10)';octx.lineWidth=1.5/state.zoom;octx.setLineDash([5/state.zoom,3/state.zoom]);octx.beginPath();octx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)octx.lineTo(pts[i].x,pts[i].y);octx.stroke();octx.restore();}
   }
+}
+
+function pointerDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function pointerCenter(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+function beginPinch(){
+  const pts=[...state.pointers.values()]; if(pts.length<2)return;
+  if(state.drawing){
+    state.drawing=false;
+    if(state.pinchBackup){
+      const layer=activeLayer();
+      layer.canvas.getContext('2d').clearRect(0,0,state.width,state.height);
+      layer.canvas.getContext('2d').drawImage(state.pinchBackup,0,0);
+    }
+  }
+  state.interaction=null;
+  const a=pts[0],b=pts[1],c=pointerCenter(a,b);
+  state.pinch={distance:pointerDistance(a,b),zoom:state.zoom,center:c,panX:state.panX,panY:state.panY};
+}
+function updatePinch(){
+  if(!state.pinch||state.pointers.size<2)return;
+  const pts=[...state.pointers.values()],a=pts[0],b=pts[1],c=pointerCenter(a,b);
+  const ratio=pointerDistance(a,b)/Math.max(1,state.pinch.distance);
+  state.panX=state.pinch.panX+(c.x-state.pinch.center.x);
+  state.panY=state.pinch.panY+(c.y-state.pinch.center.y);
+  state.zoom=Math.max(.1,Math.min(8,state.pinch.zoom*ratio));
+  applyCanvasTransform();
 }
 
 overlay.addEventListener('pointerdown',e=>{
   e.preventDefault(); overlay.setPointerCapture(e.pointerId);
+  if(e.pointerType==='touch'){
+    state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(state.pointers.size===1){state.pinchBackup=cloneCanvas(activeLayer()?.canvas);}
+    if(state.pointers.size>=2){beginPinch();return;}
+  }
   const p=clampPoint(pointFromEvent(e));
   if(state.tool==='brush'||state.tool==='eraser') beginBrush(p,e);
   else if(state.tool==='bucket') bucketFill(p);
@@ -1065,9 +1713,17 @@ overlay.addEventListener('pointerdown',e=>{
     commitSelection();
     state.interaction={type:'select',start:p,current:p};
     render();
-  }else if(state.tool==='move') beginTransform(p);
+  }else if(state.tool==='lasso'){
+    commitSelection();
+    state.interaction={type:'lasso',points:[p]};
+    render();
+  }else if(state.tool==='move') beginTransform(p,e);
 });
 overlay.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'&&state.pointers.has(e.pointerId)){
+    state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(state.pinch){updatePinch();return;}
+  }
   const p=clampPoint(pointFromEvent(e));
 
   if(!state.interaction && state.tool==='move' && state.selection){
@@ -1078,6 +1734,10 @@ overlay.addEventListener('pointermove',e=>{
       overlay.style.cursor='nwse-resize';
     }else if(hit?.handle==='ne' || hit?.handle==='sw'){
       overlay.style.cursor='nesw-resize';
+    }else if(hit?.handle==='n' || hit?.handle==='s'){
+      overlay.style.cursor='ns-resize';
+    }else if(hit?.handle==='e' || hit?.handle==='w'){
+      overlay.style.cursor='ew-resize';
     }else{
       overlay.style.cursor='default';
     }
@@ -1085,26 +1745,61 @@ overlay.addEventListener('pointermove',e=>{
 
   if(state.drawing) continueBrush(p,e);
   else if(state.interaction?.type==='select'){ state.interaction.current=p; render(); }
-  else if(state.interaction && state.selection) updateTransform(p);
+  else if(state.interaction?.type==='lasso'){
+    const pts=state.interaction.points;const last=pts[pts.length-1];
+    if(!last||Math.hypot(p.x-last.x,p.y-last.y)>=2/state.zoom){pts.push(p);render();}
+  }
+  else if(state.interaction && state.selection) updateTransform(p,e);
 });
-function pointerEnd(){
+function pointerEnd(e){
+  if(e?.pointerType==='touch'){state.pointers.delete(e.pointerId);if(state.pointers.size<2)state.pinch=null;if(state.pointers.size===0)state.pinchBackup=null;}
   if(state.drawing){ state.drawing=false; saveHistory('繪圖'); }
   else if(state.interaction?.type==='select'){
     const r=normalizeRect(state.interaction.start,state.interaction.current);
     state.interaction=null; detachSelection(r);
+  }else if(state.interaction?.type==='lasso'){
+    const points=state.interaction.points||[];state.interaction=null;detachLassoSelection(points);
   }else if(state.interaction && state.selection){
-    state.interaction=null; saveHistory('變形');
+    state.interaction=null; clearSnapGuides(); saveHistory('變形');
   }
 }
 overlay.addEventListener('pointerup',pointerEnd);
 overlay.addEventListener('pointercancel',pointerEnd);
+viewport.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const factor=Math.exp(-e.deltaY*0.0015);
+  setZoom(state.zoom*factor,e.clientX,e.clientY);
+},{passive:false});
+
+const canvasContextMenu=$('#canvasContextMenu');
+function hideCanvasContextMenu(){canvasContextMenu.classList.remove('open');canvasContextMenu.setAttribute('aria-hidden','true');}
+function showCanvasContextMenu(x,y){
+  canvasContextMenu.classList.add('open');canvasContextMenu.setAttribute('aria-hidden','false');
+  const margin=8,w=canvasContextMenu.offsetWidth,h=canvasContextMenu.offsetHeight;
+  canvasContextMenu.style.left=Math.max(margin,Math.min(x,innerWidth-w-margin))+'px';
+  canvasContextMenu.style.top=Math.max(margin,Math.min(y,innerHeight-h-margin))+'px';
+}
+overlay.addEventListener('contextmenu',e=>{e.preventDefault();showCanvasContextMenu(e.clientX,e.clientY);});
+canvasContextMenu.addEventListener('click',e=>{
+  const action=e.target.closest('[data-context-action]')?.dataset.contextAction;if(!action)return;
+  hideCanvasContextMenu();
+  ({brush:()=>setTool('brush'),eraser:()=>setTool('eraser'),lasso:()=>setTool('lasso'),cut:cutToInternalClipboard,copy:copyToInternalClipboard,paste:pasteFromInternalClipboard,deselect:deselectSelection,flipH:()=>flipSelection(true,false),flipV:()=>flipSelection(false,true),addLayer:()=>{createLayer('新圖層');saveHistory('新增圖層')},animation:()=>$('#animationBtn').click() }[action]||(()=>{}))();
+});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#canvasContextMenu'))hideCanvasContextMenu();});
+window.addEventListener('blur',hideCanvasContextMenu);
+// 手機長按畫布也可叫出同一份 HTML 選單
+let contextHoldTimer=null,contextHoldStart=null;
+overlay.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;contextHoldStart={x:e.clientX,y:e.clientY};clearTimeout(contextHoldTimer);contextHoldTimer=setTimeout(()=>showCanvasContextMenu(e.clientX,e.clientY),620);});
+overlay.addEventListener('pointermove',e=>{if(!contextHoldStart)return;if(Math.hypot(e.clientX-contextHoldStart.x,e.clientY-contextHoldStart.y)>10){clearTimeout(contextHoldTimer);contextHoldStart=null;}});
+['pointerup','pointercancel'].forEach(type=>overlay.addEventListener(type,()=>{clearTimeout(contextHoldTimer);contextHoldStart=null;}));
+
 
 function setTool(tool){
   if(pseudo3d?.active && tool!=='move'){
     setStatus('請先在偽3D視窗按「套用變形」或「取消」');
     return;
   }
-  if((tool==='brush'||tool==='eraser'||tool==='bucket'||tool==='wand'||tool==='select') && state.selection) commitSelection();
+  if((tool==='brush'||tool==='eraser'||tool==='bucket'||tool==='wand'||tool==='select'||tool==='lasso') && state.selection) commitSelection();
   state.tool=tool; syncToolButtons();
 }
 function syncToolButtons(){
@@ -1115,11 +1810,13 @@ function syncToolButtons(){
     bucket:'油漆桶',
     wand:'魔術棒',
     select:'矩形選取',
+    lasso:'手繪選取',
     move:'移動／縮放'
   }[state.tool]||'就緒');
 }
 
 document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+$('#brushPreset').addEventListener('change',e=>{state.brushPreset=e.target.value;setStatus('筆刷樣式：'+e.target.options[e.target.selectedIndex].text);});
 $('#cutBtn').onclick=cutToInternalClipboard;
 $('#copyBtn').onclick=copyToInternalClipboard;
 $('#pasteBtn').onclick=pasteFromInternalClipboard;
@@ -1157,6 +1854,7 @@ function snapshot(){
 }
 function saveHistory(label='操作'){
   if(state.restoring) return;
+  if(typeof animationMarkDirty==='function') animationMarkDirty();
   const snap=snapshot();
   state.history.splice(state.historyIndex+1);
   state.history.push(snap);
@@ -1173,7 +1871,7 @@ async function restoreSnapshot(snap){
   
 
 
-canvasWrap.style.width=state.width+'px'; canvasWrap.style.height=state.height+'px'; configureCanvas(overlay);
+canvasWrap.style.width=state.width+'px'; canvasWrap.style.height=state.height+'px'; configureCanvas(overlay); configureCanvas(onionOverlay);
   for(const info of snap.layers){
     const layer=createLayer(info.name,null,{
       visible:info.visible ?? true,
@@ -1199,11 +1897,34 @@ async function redo(){
   state.historyIndex++; await restoreSnapshot(state.history[state.historyIndex]); setStatus('已重做');
 }
 
-function updateZoom(){
-  state.zoom=Number($('#zoomInput').value)/100;
-  canvasWrap.style.transform=`scale(${state.zoom})`;
+function applyCanvasTransform(){
+  canvasWrap.style.transform=`translate3d(${state.panX}px,${state.panY}px,0) scale(${state.zoom})`;
+  $('#zoomInput').value=String(Math.round(state.zoom*100));
   $('#zoomLabel').textContent=Math.round(state.zoom*100)+'%';
   render();
+}
+function setZoom(nextZoom,clientX=null,clientY=null){
+  nextZoom=Math.max(.1,Math.min(8,nextZoom));
+  if(Math.abs(nextZoom-state.zoom)<.0001) return;
+  let anchor=null;
+  if(clientX!=null&&clientY!=null){
+    const r=overlay.getBoundingClientRect();
+    anchor={x:(clientX-r.left)/state.zoom,y:(clientY-r.top)/state.zoom,clientX,clientY};
+  }
+  state.zoom=nextZoom;
+  applyCanvasTransform();
+  if(anchor){
+    const r2=overlay.getBoundingClientRect();
+    state.panX+=anchor.clientX-(r2.left+anchor.x*state.zoom);
+    state.panY+=anchor.clientY-(r2.top+anchor.y*state.zoom);
+    applyCanvasTransform();
+  }
+}
+function updateZoom(){ setZoom(Number($('#zoomInput').value)/100); }
+function fitZoomToViewport(){
+  const pad=48;
+  const z=Math.min((viewport.clientWidth-pad)/state.width,(viewport.clientHeight-pad)/state.height,1);
+  state.panX=0;state.panY=0;state.zoom=Math.max(.1,z||1);applyCanvasTransform();
 }
 
 function compositeCanvas(){
@@ -1332,7 +2053,8 @@ ProjectDataCenter.register('document',{
     cancelSelection();
     state.layers.forEach(l=>l.canvas.remove());state.layers=[];
     state.width=doc.width;state.height=doc.height;
-    canvasWrap.style.width=state.width+'px';canvasWrap.style.height=state.height+'px';configureCanvas(overlay);
+    
+canvasWrap.style.width=state.width+'px';canvasWrap.style.height=state.height+'px';configureCanvas(overlay); configureCanvas(onionOverlay);
     for(const info of doc.layers||[]){
       const layer=createLayer(info.name,null,info);
       layer.id=info.id;
@@ -1454,7 +2176,7 @@ async function importPSD(file){
   const ag=await getAgPsd();
   const psd=ag.readPsd(new Uint8Array(await file.arrayBuffer()),{useImageData:true,skipCompositeImageData:true});
   state.restoring=true;state.layers.forEach(l=>l.canvas.remove());state.layers=[];state.width=psd.width;state.height=psd.height;
-  canvasWrap.style.width=state.width+'px';canvasWrap.style.height=state.height+'px';configureCanvas(overlay);
+  canvasWrap.style.width=state.width+'px';canvasWrap.style.height=state.height+'px';configureCanvas(overlay); configureCanvas(onionOverlay);
   const flat=[];
   const walk=(children,prefix='')=>{for(const child of children||[]){if(child.children)walk(child.children,prefix+(child.name||'群組')+' / ');else flat.push({child,name:prefix+(child.name||'圖層')});}};
   walk(psd.children);
@@ -1514,7 +2236,7 @@ $('#importPsdBtn').onclick=()=>$('#psdFile').click();
 $('#psdFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importPSD(file);}catch(err){console.error(err);alert('PSD 匯入失敗：'+err.message);}e.target.value='';};
 $('#exportPsdBtn').onclick=()=>exportPSD().catch(err=>{console.error(err);alert('PSD 輸出失敗：'+err.message);});
 $('#closeProjectLibraryBtn').onclick=closeProjectLibrary;
-$('#createProjectBtn').onclick=()=>{closeProjectLibrary();state.currentProjectId=null;state.currentProjectName='未命名專案';newDocument();};
+$('#createProjectBtn').onclick=()=>{closeProjectLibrary();openNewDocumentDialog();};
 $('#projectModal').addEventListener('click',e=>{if(e.target===$('#projectModal'))closeProjectLibrary();});
 $('#openImageBtn').onclick=()=>$('#imageFile').click();
 $('#imageFile').onchange=e=>{
@@ -1533,7 +2255,31 @@ $('#imageFile').onchange=e=>{
   };
   img.src=url; e.target.value='';
 };
-$('#newBtn').onclick=()=>{state.currentProjectId=null;state.currentProjectName='未命名專案';newDocument();};
+$('#newBtn').onclick=openNewDocumentDialog;
+function openDocModal(id){const el=$('#'+id);el.classList.add('open');el.setAttribute('aria-hidden','false')}
+function closeDocModal(id){const el=$('#'+id);el.classList.remove('open');el.setAttribute('aria-hidden','true')}
+function bindModalBackdrop(id){$('#'+id).addEventListener('click',e=>{if(e.target===$('#'+id))closeDocModal(id)})}
+['newDocumentModal','canvasSizeModal','imageSizeModal'].forEach(bindModalBackdrop);
+$('#cancelNewDocumentBtn').onclick=()=>closeDocModal('newDocumentModal');
+$('#confirmNewDocumentBtn').onclick=()=>{
+  createNewDocument({name:$('#newProjectName').value,width:$('#newDocumentWidth').value,height:$('#newDocumentHeight').value,background:document.querySelector('input[name="newDocumentBackground"]:checked').value});
+  closeDocModal('newDocumentModal');
+};
+$('#imageMenuBtn').onclick=e=>{e.stopPropagation();$('#imageMenu').classList.toggle('open')};
+document.addEventListener('click',e=>{if(!e.target.closest('.menu-wrap'))$('#imageMenu').classList.remove('open')});
+$('#canvasSizeBtn').onclick=()=>{$('#imageMenu').classList.remove('open');$('#canvasSizeWidth').value=state.width;$('#canvasSizeHeight').value=state.height;openDocModal('canvasSizeModal')};
+$('#cancelCanvasSizeBtn').onclick=()=>closeDocModal('canvasSizeModal');
+$('#confirmCanvasSizeBtn').onclick=()=>{resizeDocument(Number($('#canvasSizeWidth').value),Number($('#canvasSizeHeight').value),$('#canvasAnchor').value);closeDocModal('canvasSizeModal');saveHistory('調整畫布大小')};
+let imageRatio=state.width/state.height;
+$('#imageSizeBtn').onclick=()=>{$('#imageMenu').classList.remove('open');imageRatio=state.width/state.height;$('#imageSizeWidth').value=state.width;$('#imageSizeHeight').value=state.height;openDocModal('imageSizeModal')};
+$('#imageSizeWidth').oninput=()=>{if($('#keepAspectRatio').checked)$('#imageSizeHeight').value=Math.max(1,Math.round(Number($('#imageSizeWidth').value)/imageRatio))};
+$('#imageSizeHeight').oninput=()=>{if($('#keepAspectRatio').checked)$('#imageSizeWidth').value=Math.max(1,Math.round(Number($('#imageSizeHeight').value)*imageRatio))};
+$('#cancelImageSizeBtn').onclick=()=>closeDocModal('imageSizeModal');
+$('#confirmImageSizeBtn').onclick=()=>{scaleDocument(Number($('#imageSizeWidth').value),Number($('#imageSizeHeight').value));closeDocModal('imageSizeModal');saveHistory('調整影像大小')};
+$('#fitZoomBtn').onclick=()=>{$('#imageMenu').classList.remove('open');fitZoomToViewport()};
+$('#actualZoomBtn').onclick=()=>{$('#imageMenu').classList.remove('open');state.panX=0;state.panY=0;setZoom(1)};
+$('#zoomResetBtn').onclick=()=>{state.panX=0;state.panY=0;setZoom(1)};
+
 $('#undoBtn').onclick=undo; $('#redoBtn').onclick=redo;
 $('#addLayerBtn').onclick=()=>{
   commitSelection();
@@ -1559,7 +2305,44 @@ $('#toleranceInput').oninput=e=>{
   $('#toleranceLabel').textContent=e.target.value;
 };
 $('#zoomInput').oninput=updateZoom;
-$('#mobileLayerBtn').onclick=()=>$('#sidebar').classList.toggle('open');
+$('#mobileLayerBtn').onclick=()=>{
+  $('#mobileMoreMenu').classList.remove('open');
+  $('#mobileMoreBtn').setAttribute('aria-expanded','false');
+  $('#sidebar').classList.toggle('open');
+};
+$('#mobileMoreBtn').onclick=e=>{
+  e.stopPropagation();
+  $('#sidebar').classList.remove('open');
+  const menu=$('#mobileMoreMenu');
+  const open=menu.classList.toggle('open');
+  $('#mobileMoreBtn').setAttribute('aria-expanded',String(open));
+};
+$('#mobileMoreMenu').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-forward]');
+  if(!btn)return;
+  const target=document.getElementById(btn.dataset.forward);
+  $('#mobileMoreMenu').classList.remove('open');
+  $('#mobileMoreBtn').setAttribute('aria-expanded','false');
+  if(target)target.click();
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#mobileMoreMenu')&&!e.target.closest('#mobileMoreBtn')){
+    $('#mobileMoreMenu').classList.remove('open');
+    $('#mobileMoreBtn').setAttribute('aria-expanded','false');
+  }
+});
+
+const mobileLayoutQuery=window.matchMedia('(max-width:760px)');
+let mobileFitTimer=0;
+function fitForMobileLayout(force=false){
+  if(!mobileLayoutQuery.matches)return;
+  clearTimeout(mobileFitTimer);
+  mobileFitTimer=setTimeout(()=>{
+    if(force||!state.interaction)fitZoomToViewport();
+  },80);
+}
+window.addEventListener('resize',()=>fitForMobileLayout(false));
+window.addEventListener('orientationchange',()=>fitForMobileLayout(true));
 
 window.addEventListener('keydown',e=>{
   const mod=e.ctrlKey||e.metaKey;
@@ -1606,6 +2389,573 @@ window.addEventListener('keydown',e=>{
 // ===============================
 // 簡單偽 3D 網格變形
 // ===============================
+// ===============================
+// 動畫工作室（逐格動畫）
+// ===============================
+
+const AnimationStudio={
+  fps:6,
+  loop:true,
+  current:0,
+  frames:[],
+  playing:false,
+  timer:null,
+  dirty:false,
+  switching:false,
+  onion:false,
+  onionOpacity:.25,
+  onionPrev:1,
+  onionNext:0,
+  dragIndex:null,
+  gifJob:null,
+  gifWorkerUrl:null,
+  panelPosition:null
+};
+
+function animationMarkDirty(){
+  if(AnimationStudio.switching||state.restoring)return;
+  AnimationStudio.dirty=true;
+}
+
+function animationDefaultDuration(){return Math.max(20,Math.round(1000/Math.max(1,AnimationStudio.fps)));}
+function animationFrameSnapshot(durationMs=null){
+  commitSelection();
+  const snap=snapshot();
+  snap.durationMs=Math.max(20,Number(durationMs)||animationDefaultDuration());
+  return snap;
+}
+function animationFrameDuration(frame){return Math.max(20,Number(frame?.durationMs)||animationDefaultDuration());}
+
+function animationResetForNewDocument(){
+  animationStop();
+  AnimationStudio.fps=6;
+  AnimationStudio.loop=true;
+  AnimationStudio.current=0;
+  AnimationStudio.frames=[];
+  AnimationStudio.dirty=false;
+  if($('#animationFps'))$('#animationFps').value='6';
+  if($('#animationLoop'))$('#animationLoop').checked=true;
+  AnimationStudio.onion=false;AnimationStudio.onionOpacity=.25;AnimationStudio.onionPrev=1;AnimationStudio.onionNext=0;
+  if($('#animationOnion'))$('#animationOnion').checked=false;
+  if($('#animationOnionPrev'))$('#animationOnionPrev').value='1';
+  if($('#animationOnionNext'))$('#animationOnionNext').value='0';
+  if($('#animationOnionOpacity'))$('#animationOnionOpacity').value='25';
+  onionCtx.clearRect(0,0,onionOverlay.width,onionOverlay.height);
+}
+
+function animationEnsureFrame(){
+  if(!AnimationStudio.frames.length){
+    AnimationStudio.frames=[animationFrameSnapshot(animationDefaultDuration())];
+    AnimationStudio.current=0;
+    AnimationStudio.dirty=false;
+  }
+}
+
+function animationStoreCurrent(){
+  animationEnsureFrame();
+  if(AnimationStudio.dirty){
+    const oldDuration=animationFrameDuration(AnimationStudio.frames[AnimationStudio.current]);
+    AnimationStudio.frames[AnimationStudio.current]=animationFrameSnapshot(oldDuration);
+    AnimationStudio.dirty=false;
+  }
+}
+
+function animationCompositeSnapshot(snap){
+  const out=document.createElement('canvas');
+  out.width=snap.width;out.height=snap.height;
+  const ctx=out.getContext('2d');
+  return Promise.all((snap.layers||[]).map(info=>new Promise(resolve=>{
+    if(!info.visible||!info.data){resolve(null);return;}
+    const img=new Image();
+    img.onload=()=>resolve({img,opacity:info.opacity??1});
+    img.onerror=()=>resolve(null);
+    img.src=info.data;
+  }))).then(items=>{
+    for(const item of items){
+      if(!item)continue;
+      ctx.save();ctx.globalAlpha=item.opacity;ctx.drawImage(item.img,0,0);ctx.restore();
+    }
+    return out;
+  });
+}
+
+async function animationRenderOnion(){
+  onionCtx.clearRect(0,0,onionOverlay.width,onionOverlay.height);
+  if(!AnimationStudio.onion||!AnimationStudio.frames.length)return;
+  const jobs=[];
+  for(let step=AnimationStudio.onionPrev;step>=1;step--){
+    const index=AnimationStudio.current-step;
+    if(index>=0)jobs.push({index,distance:step});
+  }
+  for(let step=1;step<=AnimationStudio.onionNext;step++){
+    const index=AnimationStudio.current+step;
+    if(index<AnimationStudio.frames.length)jobs.push({index,distance:step});
+  }
+  for(const job of jobs){
+    const ghost=await animationCompositeSnapshot(AnimationStudio.frames[job.index]);
+    const fade=AnimationStudio.onionOpacity/Math.max(1,job.distance);
+    onionCtx.save();
+    onionCtx.globalAlpha=fade;
+    onionCtx.drawImage(ghost,0,0);
+    onionCtx.restore();
+  }
+}
+async function animationThumbnail(snap){
+  const src=await animationCompositeSnapshot(snap);
+  const thumb=document.createElement('canvas');
+  const scale=Math.min(1,180/src.width,110/src.height);
+  thumb.width=Math.max(1,Math.round(src.width*scale));
+  thumb.height=Math.max(1,Math.round(src.height*scale));
+  thumb.getContext('2d').drawImage(src,0,0,thumb.width,thumb.height);
+  return thumb.toDataURL('image/png');
+}
+
+async function animationRenderTimeline(){
+  const box=$('#animationTimeline');
+  if(!box)return;
+  animationEnsureFrame();
+  box.innerHTML='';
+  const token=uid();box.dataset.renderToken=token;
+  AnimationStudio.frames.forEach((frame,index)=>{
+    const card=document.createElement('button');
+    card.type='button';
+    card.className='frame-card'+(index===AnimationStudio.current?' active':'');
+    const img=document.createElement('img');img.alt=`影格 ${index+1}`;
+    const title=document.createElement('span');title.textContent=`影格 ${index+1}`;
+    const badge=document.createElement('span');badge.className='duration-badge';badge.textContent=(animationFrameDuration(frame)/1000).toFixed(animationFrameDuration(frame)%1000?2:1)+'s';
+    card.append(img,title,badge);
+    card.draggable=true;
+    card.onclick=()=>animationGoTo(index);
+    card.addEventListener('dragstart',()=>{AnimationStudio.dragIndex=index;card.classList.add('dragging');});
+    card.addEventListener('dragend',()=>{AnimationStudio.dragIndex=null;card.classList.remove('dragging');box.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));});
+    card.addEventListener('dragover',e=>{e.preventDefault();card.classList.add('drag-over');});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',async e=>{e.preventDefault();card.classList.remove('drag-over');const from=AnimationStudio.dragIndex;if(from===null||from===index)return;animationStoreCurrent();const [moved]=AnimationStudio.frames.splice(from,1);AnimationStudio.frames.splice(index,0,moved);AnimationStudio.current=index;await animationGoTo(index,{store:false});scheduleAutosave();});
+    box.append(card);
+    animationThumbnail(frame).then(url=>{if(box.dataset.renderToken===token)img.src=url;});
+  });
+  $('#animationFrameStatus').textContent=`影格 ${AnimationStudio.current+1} / ${AnimationStudio.frames.length}`;
+  if($('#animationDuration'))$('#animationDuration').value=String(animationFrameDuration(AnimationStudio.frames[AnimationStudio.current]));
+  requestAnimationFrame(()=>{
+    const active=box.querySelector('.frame-card.active');
+    if(active)active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  });
+}
+
+async function animationGoTo(index,{store=true}={}){
+  animationEnsureFrame();
+  index=Math.max(0,Math.min(AnimationStudio.frames.length-1,index));
+  if(store)animationStoreCurrent();
+  AnimationStudio.switching=true;
+  try{
+    await restoreSnapshot(AnimationStudio.frames[index]);
+    AnimationStudio.current=index;
+    AnimationStudio.dirty=false;
+  }finally{AnimationStudio.switching=false;}
+  await animationRenderOnion();
+  await animationRenderTimeline();
+  setStatus(`動畫影格 ${index+1} / ${AnimationStudio.frames.length}`);
+}
+
+async function animationAddBlank(){
+  animationStoreCurrent();
+  const blank={width:state.width,height:state.height,activeLayerId:null,layers:[],durationMs:animationDefaultDuration()};
+  for(const l of state.layers){
+    const c=document.createElement('canvas');c.width=state.width;c.height=state.height;
+    blank.layers.push({id:uid(),name:l.name,visible:l.visible,locked:l.locked,opacity:l.opacity,background:l.background,data:c.toDataURL()});
+  }
+  blank.activeLayerId=blank.layers.at(-1)?.id||null;
+  AnimationStudio.frames.splice(AnimationStudio.current+1,0,blank);
+  await animationGoTo(AnimationStudio.current+1,{store:false});
+}
+
+async function animationDuplicate(){
+  animationStoreCurrent();
+  const copy=structuredClone?structuredClone(AnimationStudio.frames[AnimationStudio.current]):JSON.parse(JSON.stringify(AnimationStudio.frames[AnimationStudio.current]));
+  copy.layers.forEach(l=>l.id=uid());copy.activeLayerId=copy.layers.at(-1)?.id||null;
+  AnimationStudio.frames.splice(AnimationStudio.current+1,0,copy);
+  await animationGoTo(AnimationStudio.current+1,{store:false});
+}
+
+async function animationDuplicateAndAdvance(){
+  if(AnimationStudio.playing)animationStop();
+  await animationDuplicate();
+  scheduleAutosave();
+  setStatus(`已建立並切換到影格 ${AnimationStudio.current+1}`);
+}
+
+async function animationDelete(){
+  animationEnsureFrame();
+  if(AnimationStudio.frames.length<=1){setStatus('動畫至少要保留一個影格');return;}
+  AnimationStudio.frames.splice(AnimationStudio.current,1);
+  await animationGoTo(Math.min(AnimationStudio.current,AnimationStudio.frames.length-1),{store:false});
+}
+
+function animationStop(){
+  AnimationStudio.playing=false;
+  clearTimeout(AnimationStudio.timer);AnimationStudio.timer=null;
+  const btn=$('#animationPlayBtn');if(btn)btn.textContent='▶ 播放';
+}
+
+async function animationPlay(){
+  animationEnsureFrame();animationStoreCurrent();
+  if(AnimationStudio.playing){animationStop();return;}
+  AnimationStudio.playing=true;$('#animationPlayBtn').textContent='⏸ 暫停';
+  const step=async()=>{
+    if(!AnimationStudio.playing)return;
+    let next=AnimationStudio.current+1;
+    if(next>=AnimationStudio.frames.length){
+      if(!AnimationStudio.loop){animationStop();return;}
+      next=0;
+    }
+    await animationGoTo(next,{store:false});
+    AnimationStudio.timer=setTimeout(step,animationFrameDuration(AnimationStudio.frames[AnimationStudio.current]));
+  };
+  AnimationStudio.timer=setTimeout(step,animationFrameDuration(AnimationStudio.frames[AnimationStudio.current]));
+}
+
+const ANIMATION_PANEL_POSITION_KEY='DrawingEditor_AnimationPanelPosition_V1';
+
+function animationReadPanelPosition(){
+  if(AnimationStudio.panelPosition)return AnimationStudio.panelPosition;
+  try{
+    const value=JSON.parse(localStorage.getItem(ANIMATION_PANEL_POSITION_KEY)||'null');
+    if(value&&Number.isFinite(value.left)&&Number.isFinite(value.top)){
+      AnimationStudio.panelPosition={left:value.left,top:value.top};
+    }
+  }catch(err){}
+  return AnimationStudio.panelPosition;
+}
+
+function animationSavePanelPosition(){
+  const modal=$('#animationModal');
+  if(!modal||!modal.classList.contains('positioned'))return;
+  const rect=modal.getBoundingClientRect();
+  AnimationStudio.panelPosition={left:Math.round(rect.left),top:Math.round(rect.top)};
+  try{localStorage.setItem(ANIMATION_PANEL_POSITION_KEY,JSON.stringify(AnimationStudio.panelPosition));}catch(err){}
+}
+
+function animationClampPanelPosition(left,top){
+  const modal=$('#animationModal');
+  if(!modal)return {left,top};
+  const margin=8;
+  const width=modal.offsetWidth||Math.min(860,window.innerWidth-16);
+  const height=modal.offsetHeight||200;
+  return {
+    left:Math.max(margin,Math.min(left,window.innerWidth-width-margin)),
+    top:Math.max(margin,Math.min(top,window.innerHeight-height-margin))
+  };
+}
+
+function animationApplyPanelPosition(position=animationReadPanelPosition()){
+  const modal=$('#animationModal');
+  if(!modal||!position)return;
+  const p=animationClampPanelPosition(position.left,position.top);
+  modal.classList.add('positioned');
+  modal.style.left=p.left+'px';
+  modal.style.top=p.top+'px';
+  modal.style.right='auto';
+  modal.style.bottom='auto';
+  modal.style.transform='none';
+  AnimationStudio.panelPosition={left:p.left,top:p.top};
+}
+
+function animationInitPanelDrag(){
+  const modal=$('#animationModal');
+  const handle=modal?.querySelector('.animation-head');
+  if(!modal||!handle||handle.dataset.dragReady)return;
+  handle.dataset.dragReady='1';
+  let drag=null;
+
+  handle.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined&&e.button!==0)return;
+    if(e.target.closest('button,input,select,label,a'))return;
+    const rect=modal.getBoundingClientRect();
+    modal.classList.add('positioned');
+    modal.style.left=rect.left+'px';
+    modal.style.top=rect.top+'px';
+    modal.style.right='auto';
+    modal.style.bottom='auto';
+    modal.style.transform='none';
+    drag={pointerId:e.pointerId,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+    handle.classList.add('dragging');
+    handle.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.pointerId)return;
+    const p=animationClampPanelPosition(e.clientX-drag.offsetX,e.clientY-drag.offsetY);
+    modal.style.left=p.left+'px';
+    modal.style.top=p.top+'px';
+    AnimationStudio.panelPosition=p;
+    e.preventDefault();
+  });
+
+  const finish=e=>{
+    if(!drag||e.pointerId!==drag.pointerId)return;
+    drag=null;
+    handle.classList.remove('dragging');
+    try{handle.releasePointerCapture?.(e.pointerId);}catch(err){}
+    animationSavePanelPosition();
+  };
+  handle.addEventListener('pointerup',finish);
+  handle.addEventListener('pointercancel',finish);
+
+  window.addEventListener('resize',()=>{
+    if(!modal.classList.contains('open')||!modal.classList.contains('positioned'))return;
+    animationApplyPanelPosition(AnimationStudio.panelPosition||animationReadPanelPosition());
+    animationSavePanelPosition();
+  });
+}
+
+function openAnimationStudio(){
+  animationEnsureFrame();
+  $('#animationModal').classList.add('open');$('#animationModal').setAttribute('aria-hidden','false');
+  animationInitPanelDrag();
+  requestAnimationFrame(()=>animationApplyPanelPosition());
+  $('#animationBtn')?.classList.add('active');
+  $('#animationFps').value=String(AnimationStudio.fps);$('#animationLoop').checked=AnimationStudio.loop;
+  $('#animationOnion').checked=AnimationStudio.onion;$('#animationOnionPrev').value=String(AnimationStudio.onionPrev);$('#animationOnionNext').value=String(AnimationStudio.onionNext);$('#animationOnionOpacity').value=String(Math.round(AnimationStudio.onionOpacity*100));
+  $('#animationDuration').value=String(animationFrameDuration(AnimationStudio.frames[AnimationStudio.current]));
+  animationRenderTimeline();
+}
+function closeAnimationStudio(){
+  animationStop();animationStoreCurrent();
+  $('#animationModal').classList.remove('open','collapsed');$('#animationModal').setAttribute('aria-hidden','true');
+  $('#animationBtn')?.classList.remove('active');
+  const collapseBtn=$('#animationCollapseBtn');if(collapseBtn)collapseBtn.textContent='縮小';
+  scheduleAutosave();setStatus('動畫資料已保留在專案中');
+}
+function toggleAnimationStudioCollapse(){
+  const modal=$('#animationModal');
+  const collapsed=modal.classList.toggle('collapsed');
+  $('#animationCollapseBtn').textContent=collapsed?'展開':'縮小';
+  setStatus(collapsed?'動畫工作室已縮小，可繼續在畫布繪圖':'動畫工作室已展開');
+}
+
+async function animationExportCurrentPng(){
+  animationStoreCurrent();
+  const canvas=await animationCompositeSnapshot(AnimationStudio.frames[AnimationStudio.current]);
+  const blob=await canvasToBlob(canvas,'image/png');
+  download(`${state.currentProjectName||'animation'}_frame_${String(AnimationStudio.current+1).padStart(3,'0')}.png`,blob);
+}
+
+async function animationExportWebM(){
+  if(typeof MediaRecorder==='undefined'){alert('此瀏覽器不支援 WebM 錄製。');return;}
+  animationStoreCurrent();animationStop();
+  const frames=AnimationStudio.frames;
+  if(!frames.length)return;
+  setStatus('正在輸出 WebM…');
+  const renderCanvas=document.createElement('canvas');renderCanvas.width=frames[0].width;renderCanvas.height=frames[0].height;
+  const rctx=renderCanvas.getContext('2d');
+  const stream=renderCanvas.captureStream(AnimationStudio.fps);
+  const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
+  const chunks=[];recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+  const done=new Promise(resolve=>recorder.onstop=resolve);recorder.start();
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  for(const frame of frames){
+    const canvas=await animationCompositeSnapshot(frame);
+    rctx.clearRect(0,0,renderCanvas.width,renderCanvas.height);rctx.drawImage(canvas,0,0);
+    await delay(animationFrameDuration(frame));
+  }
+  await delay(120);recorder.stop();await done;
+  download(`${state.currentProjectName||'animation'}.webm`,new Blob(chunks,{type:mime||'video/webm'}));
+  setStatus(`已匯出 WebM（${frames.length} 格，使用各格停留時間）`);
+}
+
+
+function animationSetExportProgress(show,text='',value=0){
+  const box=$('#animationProgress');
+  if(!box)return;
+  box.classList.toggle('show',!!show);
+  $('#animationProgressText').textContent=text;
+  $('#animationProgressBar').value=Math.max(0,Math.min(100,Number(value)||0));
+}
+
+async function animationGetGifWorkerUrl(){
+  if(AnimationStudio.gifWorkerUrl)return AnimationStudio.gifWorkerUrl;
+  const workerUrl='https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
+  try{
+    const response=await fetch(workerUrl,{cache:'force-cache'});
+    if(!response.ok)throw new Error('worker HTTP '+response.status);
+    const source=await response.text();
+    AnimationStudio.gifWorkerUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+    return AnimationStudio.gifWorkerUrl;
+  }catch(error){
+    console.warn('無法建立本機 GIF worker，改用 CDN worker。',error);
+    return workerUrl;
+  }
+}
+
+async function animationExportGif(){
+  animationStoreCurrent();
+  animationStop();
+  const frames=AnimationStudio.frames;
+  if(!frames.length)return;
+  if(typeof GIF!=='function'){
+    alert('GIF 編碼器尚未載入。請確認目前有網路連線後重新開啟檔案。');
+    return;
+  }
+
+  const w=frames[0].width;
+  const h=frames[0].height;
+  if(w*h>4000000&&!confirm('畫布很大，GIF 轉檔可能需要較長時間與記憶體。仍要繼續嗎？'))return;
+
+  const button=$('#animationGifBtn');
+  button.disabled=true;
+  animationSetExportProgress(true,'正在準備 GIF…',0);
+  setStatus('正在準備 GIF…');
+
+  try{
+    const workerScript=await animationGetGifWorkerUrl();
+    const quality=Math.max(1,Math.min(30,Number($('#animationGifQuality').value)||10));
+    const gif=new GIF({
+      workers:Math.max(1,Math.min(4,(navigator.hardwareConcurrency||2)-1)),
+      quality,
+      width:w,
+      height:h,
+      repeat:AnimationStudio.loop?0:-1,
+      workerScript,
+      background:'#ffffff'
+    });
+    AnimationStudio.gifJob=gif;
+
+    for(let i=0;i<frames.length;i++){
+      if(AnimationStudio.gifJob!==gif)throw new Error('cancelled');
+      animationSetExportProgress(true,`正在加入影格 ${i+1}/${frames.length}…`,Math.round((i/frames.length)*35));
+      const canvas=await animationCompositeSnapshot(frames[i]);
+      gif.addFrame(canvas,{copy:true,delay:animationFrameDuration(frames[i])});
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+
+    const result=await new Promise((resolve,reject)=>{
+      gif.on('progress',value=>{
+        const percent=35+Math.round(value*65);
+        animationSetExportProgress(true,`正在編碼 GIF… ${Math.round(value*100)}%`,percent);
+        setStatus(`正在編碼 GIF… ${Math.round(value*100)}%`);
+      });
+      gif.on('finished',resolve);
+      gif.on('abort',()=>reject(new Error('cancelled')));
+      try{gif.render();}catch(error){reject(error);}
+    });
+
+    if(!(result instanceof Blob)||result.type!=='image/gif')throw new Error('GIF 編碼器沒有產生有效的 GIF Blob');
+    download(`${state.currentProjectName||'animation'}.gif`,result);
+    animationSetExportProgress(true,'GIF 匯出完成',100);
+    setStatus(`已匯出 GIF（${frames.length} 格）`);
+    setTimeout(()=>animationSetExportProgress(false),1200);
+  }catch(error){
+    if(error?.message==='cancelled'){
+      setStatus('已取消 GIF 匯出');
+      animationSetExportProgress(false);
+    }else{
+      console.error(error);
+      animationSetExportProgress(false);
+      alert('GIF 匯出失敗：'+(error?.message||error));
+      setStatus('GIF 匯出失敗');
+    }
+  }finally{
+    AnimationStudio.gifJob=null;
+    button.disabled=false;
+  }
+}
+
+async function animationExportPngSequence(){
+  animationStoreCurrent();animationStop();if(!confirm(`將依序下載 ${AnimationStudio.frames.length} 張 PNG，瀏覽器可能詢問是否允許多個下載。`))return;
+  for(let i=0;i<AnimationStudio.frames.length;i++){setStatus(`正在匯出 PNG ${i+1}/${AnimationStudio.frames.length}`);const c=await animationCompositeSnapshot(AnimationStudio.frames[i]);const b=await canvasToBlob(c,'image/png');download(`${state.currentProjectName||'animation'}_${String(i+1).padStart(4,'0')}.png`,b);await new Promise(r=>setTimeout(r,180));}
+  setStatus(`已匯出 ${AnimationStudio.frames.length} 張 PNG`);
+}
+
+ProjectDataCenter.register('animation',{
+  async save(){
+    animationStoreCurrent();
+    return {fps:AnimationStudio.fps,loop:AnimationStudio.loop,onion:AnimationStudio.onion,onionOpacity:AnimationStudio.onionOpacity,onionPrev:AnimationStudio.onionPrev,onionNext:AnimationStudio.onionNext,current:AnimationStudio.current,frames:AnimationStudio.frames};
+  },
+  async load(data){
+    animationStop();
+    if(!data?.frames?.length){AnimationStudio.frames=[animationFrameSnapshot(250)];AnimationStudio.current=0;AnimationStudio.fps=6;AnimationStudio.loop=true;}
+    else{AnimationStudio.frames=data.frames;AnimationStudio.current=Math.min(data.current||0,data.frames.length-1);AnimationStudio.fps=Math.max(1,Math.min(60,data.fps||6));AnimationStudio.loop=data.loop!==false;AnimationStudio.onion=!!data.onion;AnimationStudio.onionOpacity=Math.max(.05,Math.min(.8,Number(data.onionOpacity)||.25));AnimationStudio.onionPrev=Math.max(0,Math.min(5,Number(data.onionPrev)??1));AnimationStudio.onionNext=Math.max(0,Math.min(5,Number(data.onionNext)||0));AnimationStudio.frames.forEach(f=>{if(!f.durationMs)f.durationMs=Math.max(20,Math.round(1000/AnimationStudio.fps));});}
+    AnimationStudio.dirty=false;
+    if($('#animationFps'))$('#animationFps').value=String(AnimationStudio.fps);
+    if($('#animationLoop'))$('#animationLoop').checked=AnimationStudio.loop;
+    if($('#animationOnion'))$('#animationOnion').checked=AnimationStudio.onion;
+    if($('#animationOnionPrev'))$('#animationOnionPrev').value=String(AnimationStudio.onionPrev);
+    if($('#animationOnionNext'))$('#animationOnionNext').value=String(AnimationStudio.onionNext);
+    if($('#animationOnionOpacity'))$('#animationOnionOpacity').value=String(Math.round(AnimationStudio.onionOpacity*100));
+  }
+});
+
+animationInitPanelDrag();
+
+$('#animationBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();animationModalIsOpen()?closeAnimationStudio():openAnimationStudio();});
+$('#animationCloseBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();closeAnimationStudio();});
+$('#animationCollapseBtn').addEventListener('click',toggleAnimationStudioCollapse);
+$('#animationPrevBtn').addEventListener('click',()=>animationGoTo(AnimationStudio.current-1));
+$('#animationNextBtn').addEventListener('click',()=>animationGoTo(AnimationStudio.current+1));
+$('#animationPlayBtn').addEventListener('click',animationPlay);
+$('#animationAddBtn').addEventListener('click',animationAddBlank);
+$('#animationDuplicateNextBtn').addEventListener('click',animationDuplicateAndAdvance);
+$('#animationDuplicateBtn').addEventListener('click',animationDuplicate);
+$('#animationDeleteBtn').addEventListener('click',animationDelete);
+$('#animationGifBtn').addEventListener('click',animationExportGif);
+$('#animationWebmBtn').addEventListener('click',animationExportWebM);
+$('#animationPngSequenceBtn').addEventListener('click',animationExportPngSequence);
+$('#animationPngBtn').addEventListener('click',animationExportCurrentPng);
+$('#animationFps').addEventListener('change',e=>{AnimationStudio.fps=Math.max(1,Math.min(60,Number(e.target.value)||6));e.target.value=String(AnimationStudio.fps);scheduleAutosave();});
+$('#animationDuration').addEventListener('change',e=>{animationEnsureFrame();const v=Math.max(20,Math.min(10000,Number(e.target.value)||animationDefaultDuration()));AnimationStudio.frames[AnimationStudio.current].durationMs=v;e.target.value=String(v);animationRenderTimeline();scheduleAutosave();});
+$('#animationOnion').addEventListener('change',e=>{AnimationStudio.onion=e.target.checked;animationRenderOnion();scheduleAutosave();});
+$('#animationOnionPrev').addEventListener('change',e=>{AnimationStudio.onionPrev=Math.max(0,Math.min(5,Number(e.target.value)||0));e.target.value=String(AnimationStudio.onionPrev);animationRenderOnion();scheduleAutosave();});
+$('#animationOnionNext').addEventListener('change',e=>{AnimationStudio.onionNext=Math.max(0,Math.min(5,Number(e.target.value)||0));e.target.value=String(AnimationStudio.onionNext);animationRenderOnion();scheduleAutosave();});
+$('#animationOnionOpacity').addEventListener('input',e=>{AnimationStudio.onionOpacity=Math.max(.05,Math.min(.8,Number(e.target.value)/100));animationRenderOnion();});
+$('#animationLoop').addEventListener('change',e=>{AnimationStudio.loop=e.target.checked;scheduleAutosave();});
+$('#animationCancelExportBtn').addEventListener('click',()=>{const job=AnimationStudio.gifJob;AnimationStudio.gifJob=null;if(job&&typeof job.abort==='function')job.abort();animationSetExportProgress(false);setStatus('已取消 GIF 匯出');});
+
+function animationModalIsOpen(){
+  return $('#animationModal')?.classList.contains('open');
+}
+
+function animationShortcutBlocked(target){
+  if(!target)return false;
+  return target.matches?.('input, textarea, select, [contenteditable="true"]');
+}
+
+document.addEventListener('keydown',async e=>{
+  if(!animationModalIsOpen())return;
+  if(e.key==='Escape'){
+    e.preventDefault();
+    closeAnimationStudio();
+    return;
+  }
+  if(AnimationStudio.gifJob||animationShortcutBlocked(e.target))return;
+
+  if(e.ctrlKey&&e.key==='Enter'){
+    e.preventDefault();
+    if(!e.repeat)await animationDuplicateAndAdvance();
+    return;
+  }
+
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+
+  if(e.key==='ArrowLeft'){
+    e.preventDefault();
+    if(!e.repeat)await animationGoTo(AnimationStudio.current-1);
+  }else if(e.key==='ArrowRight'){
+    e.preventDefault();
+    if(!e.repeat)await animationGoTo(AnimationStudio.current+1);
+  }else if(e.key==='Home'){
+    e.preventDefault();
+    if(!e.repeat)await animationGoTo(0);
+  }else if(e.key==='End'){
+    e.preventDefault();
+    if(!e.repeat)await animationGoTo(AnimationStudio.frames.length-1);
+  }else if(e.code==='Space'){
+    e.preventDefault();
+    if(!e.repeat)animationPlay();
+  }
+});
+
 const pseudo3d={
   source:null,
   bounds:null,
@@ -1613,7 +2963,28 @@ const pseudo3d={
   active:false,
   originalSelection:null,
   originalSource:null,
-  layerId:null
+  layerId:null,
+  nodeCols:2,
+  nodeRows:2,
+  nodes:[],
+  selectedNode:-1,
+  dragNode:null,
+  viewerMode:false,
+  dragView:null,
+  autoRotate:false,
+  autoRaf:0,
+  autoLast:0,
+  paintMode:false,
+  paintEraser:false,
+  paintDrag:null,
+  texturePaint:null,
+  textureComposite:null,
+  assetId:null,
+  surfaces:null,
+  activePaintSurface:'front',
+  paintEyedropper:false,
+  paintHistory:[],
+  paintHistoryIndex:-1
 };
 
 function affineTriangle(ctx,img,s0,s1,s2,d0,d1,d2){
@@ -1704,205 +3075,331 @@ function rotate3d(x,y,z,yaw,pitch,roll){
   };
 }
 
+
+function p3dResetNodes(){
+  pseudo3d.nodes=[];
+  for(let j=0;j<=pseudo3d.nodeRows;j++){
+    for(let i=0;i<=pseudo3d.nodeCols;i++){
+      pseudo3d.nodes.push({u:i/pseudo3d.nodeCols,v:j/pseudo3d.nodeRows,dx:0,dy:0,dz:0});
+    }
+  }
+  pseudo3d.selectedNode=4;
+  $('#p3dNodeDepth').value=0;
+}
+function p3dNodeAt(i,j){return pseudo3d.nodes[j*(pseudo3d.nodeCols+1)+i]}
+function p3dNodeInfluence(u,v){
+  const gx=Math.min(pseudo3d.nodeCols-1,Math.floor(u*pseudo3d.nodeCols));
+  const gy=Math.min(pseudo3d.nodeRows-1,Math.floor(v*pseudo3d.nodeRows));
+  const tx=u*pseudo3d.nodeCols-gx,ty=v*pseudo3d.nodeRows-gy;
+  const n00=p3dNodeAt(gx,gy),n10=p3dNodeAt(gx+1,gy),n01=p3dNodeAt(gx,gy+1),n11=p3dNodeAt(gx+1,gy+1);
+  const mix=(k)=>(n00[k]*(1-tx)*(1-ty)+n10[k]*tx*(1-ty)+n01[k]*(1-tx)*ty+n11[k]*tx*ty);
+  return {dx:mix('dx'),dy:mix('dy'),dz:mix('dz')};
+}
+function p3dSelectNode(index){
+  pseudo3d.selectedNode=index;
+  const n=pseudo3d.nodes[index];
+  $('#p3dNodeDepth').value=Math.round(n?.dz||0);
+  $('#p3dNodeDepthV').textContent=Math.round(n?.dz||0);
+  $('#p3dNodeStatus').textContent=n?`節點 ${index+1}：拖曳調整平面位置；深度 ${Math.round(n.dz)}（負值向後、正值向前）`:'尚未選取節點';
+}
+function p3dStraightenNodes(){
+  pseudo3d.nodes.forEach(n=>{n.dx=0;n.dy=0;});
+  updatePseudo3dCanvasPreview();
+}
+
 function updatePseudo3dLabels(){
   $('#p3dYawV').textContent=$('#p3dYaw').value+'°';
   $('#p3dPitchV').textContent=$('#p3dPitch').value+'°';
   $('#p3dRollV').textContent=$('#p3dRoll').value+'°';
-  $('#p3dCurveV').textContent=$('#p3dCurve').value;
+  const curveValue=Number($('#p3dCurve').value);
+  $('#p3dCurveV').textContent=(curveValue>0?'+':'')+curveValue;
+  if($('#p3dDepthV'))$('#p3dDepthV').textContent=$('#p3dDepth').value+'%';
+  if($('#p3dProjectionGapV'))$('#p3dProjectionGapV').textContent=$('#p3dProjectionGap').value+'%';
+  if($('#p3dRoundnessV'))$('#p3dRoundnessV').textContent=$('#p3dRoundness').value+'%';
+  if($('#p3dEdgeSegmentsV'))$('#p3dEdgeSegmentsV').textContent=$('#p3dEdgeSegments').value;
+  $('#p3dNodeDepthV').textContent=$('#p3dNodeDepth').value;
   $('#p3dCameraV').textContent=$('#p3dCamera').value;
   $('#p3dGridV').textContent=$('#p3dGrid').value;
   $('#p3dBackOpacityV').textContent=$('#p3dBackOpacity').value+'%';
 }
 
 
-
-function p3dBuildGeometry(outputW,outputH){
-  const img=pseudo3d.source;
-  if(!img)return null;
-
-  const cols=Math.max(2,Number($('#p3dGrid').value));
-  const rows=cols;
-  const yaw=Number($('#p3dYaw').value)*Math.PI/180;
-  const pitch=Number($('#p3dPitch').value)*Math.PI/180;
-  const roll=Number($('#p3dRoll').value)*Math.PI/180;
-  const curve=Number($('#p3dCurve').value)/100;
-  const camera=Math.max(80,Number($('#p3dCamera').value));
-
-  /*
-    固定尺寸架構：
-    - outputW/outputH 永遠由原始選取框決定
-    - 不依旋轉後包圍盒重新縮放
-    - 中心永遠是輸出畫布中心
-  */
-  const worldW=Math.max(1,img.width);
-  const worldH=Math.max(1,img.height);
-  const centerX=outputW/2;
-  const centerY=outputH/2;
-
-  // 固定基準縮放，只由原圖與輸出框決定。
-  const baseScale=Math.min(
-    outputW/worldW,
-    outputH/worldH
-  );
-
-  const points=[];
-
-  for(let j=0;j<=rows;j++){
-    const row=[];
-
-    for(let i=0;i<=cols;i++){
-      const u=i/cols;
-      const v=j/rows;
-
-      const x=(u-.5)*worldW;
-      const y=(v-.5)*worldH;
-
-      const nx=x/(worldW*.5||1);
-      const ny=y/(worldH*.5||1);
-
-      const z=curve*worldW*.28*
-        (1-Math.min(1,nx*nx*.72+ny*ny*.28));
-
-      const r=rotate3d(x,y,z,yaw,pitch,roll);
-      const denom=Math.max(20,camera-r.z);
-      const perspective=camera/denom;
-
-      row.push({
-        x:centerX+r.x*perspective*baseScale,
-        y:centerY+r.y*perspective*baseScale,
-        z:r.z,
-        sx:u*img.width,
-        sy:v*img.height
-      });
-    }
-
-    points.push(row);
+function p3dNormalizeAngle(value){
+  let n=Number(value)||0;
+  while(n>180)n-=360;
+  while(n<-180)n+=360;
+  return n;
+}
+function p3dSetViewerMode(enabled){
+  pseudo3d.viewerMode=!!enabled;
+  if(enabled&&pseudo3d.paintMode)p3dSetPaintMode(false);
+  if(enabled){
+    $('#p3dNodeEdit').checked=false;
+    pseudo3d.dragNode=null;
   }
-
-  return {
-    img,
-    cols,
-    rows,
-    points,
-    outputW,
-    outputH
+  $('#p3dViewerBtn').classList.toggle('active',pseudo3d.viewerMode);
+  $('#p3dViewerBtn').textContent=pseudo3d.viewerMode?'✓ 拖曳賞玩中':'🖐 拖曳賞玩';
+  $('#pseudo3dCanvas').classList.toggle('node-edit',!pseudo3d.viewerMode&&$('#p3dNodeEdit').checked);
+  $('#pseudo3dCanvas').style.cursor=pseudo3d.viewerMode?'grab':'';
+  renderPseudo3d();
+}
+function p3dStopAutoRotate(){
+  pseudo3d.autoRotate=false;
+  pseudo3d.autoLast=0;
+  if(pseudo3d.autoRaf)cancelAnimationFrame(pseudo3d.autoRaf);
+  pseudo3d.autoRaf=0;
+  const btn=$('#p3dAutoRotateBtn');
+  if(btn){btn.classList.remove('active');btn.textContent='▶ 自動旋轉';}
+}
+function p3dAutoStep(time){
+  if(!pseudo3d.autoRotate||!pseudo3d.active)return p3dStopAutoRotate();
+  if(!pseudo3d.autoLast)pseudo3d.autoLast=time;
+  const delta=Math.min(40,time-pseudo3d.autoLast);
+  pseudo3d.autoLast=time;
+  $('#p3dYaw').value=String(p3dNormalizeAngle(Number($('#p3dYaw').value)+delta*.035));
+  updatePseudo3dLabels();
+  updatePseudo3dCanvasPreview();
+  pseudo3d.autoRaf=requestAnimationFrame(p3dAutoStep);
+}
+function p3dToggleAutoRotate(){
+  if(pseudo3d.autoRotate){p3dStopAutoRotate();return;}
+  p3dSetViewerMode(true);
+  pseudo3d.autoRotate=true;
+  pseudo3d.autoLast=0;
+  const btn=$('#p3dAutoRotateBtn');
+  btn.classList.add('active');btn.textContent='⏸ 停止旋轉';
+  pseudo3d.autoRaf=requestAnimationFrame(p3dAutoStep);
+}
+function p3dEscapeHtmlText(text){
+  return String(text).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function p3dExportViewerHtml(){
+  if(!pseudo3d.source)return;
+  const imageData=pseudo3d.source.toDataURL('image/png');
+  const config={
+    title:state.currentProjectName||'互動 3D 作品',
+    yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value),roll:Number($('#p3dRoll').value),
+    curve:Number($('#p3dCurve').value),camera:Number($('#p3dCamera').value),grid:Number($('#p3dGrid').value),
+    showBack:$('#p3dShowBack').checked,backOpacity:Number($('#p3dBackOpacity').value)/100,
+    pixelMode:$('#p3dPixelMode').checked,nodeCols:pseudo3d.nodeCols,nodeRows:pseudo3d.nodeRows,
+    nodes:pseudo3d.nodes.map(n=>({u:n.u,v:n.v,dx:n.dx,dy:n.dy,dz:n.dz}))
   };
+  const safeTitle=p3dEscapeHtmlText(config.title);
+  const html=`<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${safeTitle}｜互動3D展示</title><style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{display:grid;place-items:center;overflow:hidden;background:#15171b;color:#eef2f6;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;user-select:none}.stage{width:min(94vw,900px);height:min(88vh,760px);display:grid;grid-template-rows:auto 1fr auto;gap:10px}.head{display:flex;align-items:center;gap:8px}.head h1{font-size:16px;margin:0;flex:1}.head button{border:1px solid #48505c;background:#292e36;color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer}.viewer{min-height:0;display:grid;place-items:center;border:1px solid #343a44;border-radius:14px;overflow:hidden;background:repeating-conic-gradient(#252a31 0 25%,#1d2127 0 50%) 50%/24px 24px;box-shadow:0 18px 60px rgba(0,0,0,.35)}canvas{max-width:100%;max-height:100%;touch-action:none;cursor:grab}.hint{text-align:center;font-size:12px;color:#aeb5bf;padding-bottom:env(safe-area-inset-bottom)}button.active{background:#174f83;border-color:#68adff}</style></head><body><main class="stage"><header class="head"><h1>${safeTitle}</h1><button id="auto">▶ 自動旋轉</button><button id="reset">回正</button></header><section class="viewer"><canvas id="c"></canvas></section><div class="hint">拖曳旋轉・手機可滑動・雙擊回正</div></main><script>const CONFIG=${JSON.stringify(config)};const IMAGE=${JSON.stringify(imageData)};const c=document.querySelector('#c'),ctx=c.getContext('2d'),img=new Image();let yaw=CONFIG.yaw,pitch=CONFIG.pitch,drag=null,auto=false,raf=0,last=0;function norm(n){while(n>180)n-=360;while(n<-180)n+=360;return n}function rot(x,y,z,ya,pi,ro){const cy=Math.cos(ya),sy=Math.sin(ya),cx=Math.cos(pi),sx=Math.sin(pi),cz=Math.cos(ro),sz=Math.sin(ro),x1=x*cy+z*sy,z1=-x*sy+z*cy,y1=y,y2=y1*cx-z1*sx,z2=y1*sx+z1*cx,x2=x1;return{x:x2*cz-y2*sz,y:x2*sz+y2*cz,z:z2}}function nodeAt(i,j){return CONFIG.nodes[j*(CONFIG.nodeCols+1)+i]}function influence(u,v){const gx=Math.min(CONFIG.nodeCols-1,Math.floor(u*CONFIG.nodeCols)),gy=Math.min(CONFIG.nodeRows-1,Math.floor(v*CONFIG.nodeRows)),tx=u*CONFIG.nodeCols-gx,ty=v*CONFIG.nodeRows-gy,n00=nodeAt(gx,gy),n10=nodeAt(gx+1,gy),n01=nodeAt(gx,gy+1),n11=nodeAt(gx+1,gy+1),mix=k=>n00[k]*(1-tx)*(1-ty)+n10[k]*tx*(1-ty)+n01[k]*(1-tx)*ty+n11[k]*tx*ty;return{dx:mix('dx'),dy:mix('dy'),dz:mix('dz')}}function affine(s0,s1,s2,d0,d1,d2){const den=s0.x*(s1.y-s2.y)+s1.x*(s2.y-s0.y)+s2.x*(s0.y-s1.y);if(Math.abs(den)<.0001)return;const a=(d0.x*(s1.y-s2.y)+d1.x*(s2.y-s0.y)+d2.x*(s0.y-s1.y))/den,cc=(d0.x*(s2.x-s1.x)+d1.x*(s0.x-s2.x)+d2.x*(s1.x-s0.x))/den,e=(d0.x*(s1.x*s2.y-s2.x*s1.y)+d1.x*(s2.x*s0.y-s0.x*s2.y)+d2.x*(s0.x*s1.y-s1.x*s0.y))/den,b=(d0.y*(s1.y-s2.y)+d1.y*(s2.y-s0.y)+d2.y*(s0.y-s1.y))/den,d=(d0.y*(s2.x-s1.x)+d1.y*(s0.x-s2.x)+d2.y*(s1.x-s0.x))/den,f=(d0.y*(s1.x*s2.y-s2.x*s1.y)+d1.y*(s2.x*s0.y-s0.x*s2.y)+d2.y*(s0.x*s1.y-s1.x*s0.y))/den;ctx.save();ctx.beginPath();ctx.moveTo(d0.x,d0.y);ctx.lineTo(d1.x,d1.y);ctx.lineTo(d2.x,d2.y);ctx.closePath();ctx.clip();ctx.setTransform(a,b,cc,d,e,f);ctx.drawImage(img,0,0);ctx.restore()}function render(){const cols=Math.max(2,CONFIG.grid),rows=cols,w=img.width,h=img.height,ya=yaw*Math.PI/180,pi=pitch*Math.PI/180,ro=CONFIG.roll*Math.PI/180,curve=CONFIG.curve/100,cam=Math.max(80,CONFIG.camera),scale=Math.min(c.width/w,c.height/h),pts=[];for(let j=0;j<=rows;j++){const row=[];for(let i=0;i<=cols;i++){const u=i/cols,v=j/rows,x=(u-.5)*w,y=(v-.5)*h,nx=x/(w*.5||1),ny=y/(h*.5||1),no=influence(u,v),z=curve*w*.28*(1-Math.min(1,nx*nx*.72+ny*ny*.28))+no.dz*w*.004,r=rot(x,y,z,ya,pi,ro),per=cam/Math.max(20,cam-r.z);row.push({x:c.width/2+r.x*per*scale+no.dx,y:c.height/2+r.y*per*scale+no.dy,z:r.z,sx:u*w,sy:v*h})}pts.push(row)}const ts=[];for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=pts[j][i],b=pts[j][i+1],d=pts[j+1][i],e=pts[j+1][i+1],ar1=(b.x-a.x)*(e.y-a.y)-(b.y-a.y)*(e.x-a.x),ar2=(e.x-a.x)*(d.y-a.y)-(e.y-a.y)*(d.x-a.x);ts.push({p:[a,b,e],z:(a.z+b.z+e.z)/3,front:ar1>=0},{p:[a,e,d],z:(a.z+e.z+d.z)/3,front:ar2>=0})}ts.sort((a,b)=>a.z-b.z);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,c.width,c.height);ctx.imageSmoothingEnabled=!CONFIG.pixelMode;for(const t of ts){if(t.front)ctx.globalAlpha=1;else if(CONFIG.showBack)ctx.globalAlpha=CONFIG.backOpacity;else continue;affine({x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2])}ctx.globalAlpha=1}function resize(){const box=c.parentElement.getBoundingClientRect(),ratio=Math.min(2,devicePixelRatio||1);c.width=Math.max(320,Math.floor(box.width*ratio));c.height=Math.max(260,Math.floor(box.height*ratio));render()}c.onpointerdown=e=>{drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch};c.setPointerCapture(e.pointerId);c.style.cursor='grabbing'};c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;yaw=norm(drag.yaw+(e.clientX-drag.x)*.55);pitch=Math.max(-180,Math.min(180,drag.pitch-(e.clientY-drag.y)*.45));render()};function end(e){if(drag&&drag.id===e.pointerId){drag=null;c.style.cursor='grab'}}c.onpointerup=end;c.onpointercancel=end;c.ondblclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#reset').onclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#auto').onclick=()=>{auto=!auto;document.querySelector('#auto').classList.toggle('active',auto);document.querySelector('#auto').textContent=auto?'⏸ 停止旋轉':'▶ 自動旋轉';last=0;if(auto)raf=requestAnimationFrame(step);else cancelAnimationFrame(raf)};function step(t){if(!auto)return;if(!last)last=t;const dt=Math.min(40,t-last);last=t;yaw=norm(yaw+dt*.035);render();raf=requestAnimationFrame(step)};addEventListener('resize',resize);img.onload=resize;img.src=IMAGE;<\/script></body></html>`;
+  download((state.currentProjectName||'interactive-3d')+'_互動3D.html',new Blob([html],{type:'text/html;charset=utf-8'}));
+  setStatus('已匯出可拖曳旋轉的互動 HTML');
 }
 
-function p3dRenderFixed(canvas,options={}){
-  const geometry=p3dBuildGeometry(canvas.width,canvas.height);
-  if(!geometry)return false;
 
-  const ctx=canvas.getContext('2d');
-  const pixelMode=options.pixelMode ??
-    $('#p3dPixelMode').checked;
 
-  ctx.save();
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // 線稿與像素圖採最近鄰取樣，避免多次平滑造成模糊。
-  ctx.imageSmoothingEnabled=!pixelMode;
-  if(!pixelMode && 'imageSmoothingQuality' in ctx){
-    ctx.imageSmoothingQuality='high';
+const P3DAssetDB={
+  name:'SimpleDrawing3DStudioDB',version:1,store:'assets',
+  open(){return new Promise((resolve,reject)=>{const req=indexedDB.open(this.name,this.version);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(this.store)){const st=db.createObjectStore(this.store,{keyPath:'id'});st.createIndex('updatedAt','updatedAt')}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})},
+  async put(value){const db=await this.open();return new Promise((resolve,reject)=>{const tx=db.transaction(this.store,'readwrite');tx.objectStore(this.store).put(value);tx.oncomplete=()=>{db.close();resolve(value)};tx.onerror=()=>{db.close();reject(tx.error)}})},
+  async list(){const db=await this.open();return new Promise((resolve,reject)=>{const req=db.transaction(this.store).objectStore(this.store).getAll();req.onsuccess=()=>{db.close();resolve(req.result.sort((a,b)=>b.updatedAt-a.updatedAt))};req.onerror=()=>{db.close();reject(req.error)}})},
+  async get(id){const db=await this.open();return new Promise((resolve,reject)=>{const req=db.transaction(this.store).objectStore(this.store).get(id);req.onsuccess=()=>{db.close();resolve(req.result)};req.onerror=()=>{db.close();reject(req.error)}})},
+  async delete(id){const db=await this.open();return new Promise((resolve,reject)=>{const tx=db.transaction(this.store,'readwrite');tx.objectStore(this.store).delete(id);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
+};
+window.P3DAssetDB=P3DAssetDB;
+
+function p3dPaintCanvas(){return $('#p3dPaintCanvas')}
+function p3dNewSurfaceCanvas(w,h){
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;return canvas;
+}
+function p3dMakeBackReference(source){
+  const c=p3dNewSurfaceCanvas(source.width,source.height),ctx=c.getContext('2d');
+  ctx.save();ctx.globalAlpha=.16;ctx.translate(c.width,0);ctx.scale(-1,1);ctx.drawImage(source,0,0);ctx.restore();
+  return c;
+}
+function p3dMakeSideBase(source){
+  const c=p3dNewSurfaceCanvas(source.width,source.height),ctx=c.getContext('2d');
+  const edge=Math.max(1,Math.round(source.width*.04));
+  ctx.globalAlpha=.78;
+  ctx.drawImage(source,source.width-edge,0,edge,source.height,0,0,c.width,c.height);
+  ctx.globalAlpha=.22;
+  ctx.drawImage(source,0,0,edge,source.height,0,0,c.width,c.height);
+  return c;
+}
+function p3dCreateSurface(base){
+  const w=base.width,h=base.height;
+  return {base:cloneCanvas(base),paint:p3dNewSurfaceCanvas(w,h),composite:p3dNewSurfaceCanvas(w,h)};
+}
+function p3dInitSurfaces(source){
+  const sideBase=p3dMakeSideBase(source);
+  pseudo3d.surfaces={
+    front:p3dCreateSurface(source),
+    back:p3dCreateSurface(p3dMakeBackReference(source)),
+    left:p3dCreateSurface(sideBase),
+    right:p3dCreateSurface(sideBase),
+    top:p3dCreateSurface(sideBase),
+    bottom:p3dCreateSurface(sideBase)
+  };
+  pseudo3d.patches=[];
+  pseudo3d.activePaintSurface='front';
+  p3dRefreshTexture();
+}
+function p3dEnsureTextureLayers(){
+  if(!pseudo3d.originalSource)return;
+  if(!pseudo3d.surfaces)p3dInitSurfaces(pseudo3d.originalSource);
+  for(const sf of Object.values(pseudo3d.surfaces||{})){
+    if(!sf)continue;
+    if(!sf.paint||sf.paint.width!==sf.base.width||sf.paint.height!==sf.base.height)sf.paint=p3dNewSurfaceCanvas(sf.base.width,sf.base.height);
+    if(!sf.composite||sf.composite.width!==sf.base.width||sf.composite.height!==sf.base.height)sf.composite=p3dNewSurfaceCanvas(sf.base.width,sf.base.height);
   }
-
+  for(const patch of pseudo3d.patches||[]){
+    const sf=patch.surface;if(!sf)continue;
+    if(!sf.paint)sf.paint=p3dNewSurfaceCanvas(sf.base.width,sf.base.height);
+    if(!sf.composite)sf.composite=p3dNewSurfaceCanvas(sf.base.width,sf.base.height);
+  }
+  pseudo3d.texturePaint=pseudo3d.surfaces.front.paint;
+  pseudo3d.textureComposite=pseudo3d.surfaces.front.composite;
+}
+function p3dRefreshTexture(){
+  p3dEnsureTextureLayers();
+  if(!pseudo3d.surfaces)return;
+  const all=[...Object.values(pseudo3d.surfaces),...(pseudo3d.patches||[]).map(p=>p.surface)];
+  for(const sf of all){
+    if(!sf)continue;const ctx=sf.composite.getContext('2d');ctx.clearRect(0,0,sf.composite.width,sf.composite.height);ctx.drawImage(sf.base,0,0);ctx.drawImage(sf.paint,0,0);
+  }
+  pseudo3d.source=pseudo3d.surfaces.front.composite;
+  pseudo3d.texturePaint=pseudo3d.surfaces.front.paint;
+  pseudo3d.textureComposite=pseudo3d.surfaces.front.composite;
+}
+function p3dClearPaint(){
+  p3dEnsureTextureLayers();
+  const all=[...Object.values(pseudo3d.surfaces||{}),...(pseudo3d.patches||[]).map(p=>p.surface)];
+  for(const sf of all)sf.paint.getContext('2d').clearRect(0,0,sf.paint.width,sf.paint.height);
+  p3dRefreshTexture();updatePseudo3dCanvasPreview();
+}
+function p3dSurfaceLabel(key){
+  const names={front:'正面大型畫布',back:'背面',left:'左側',right:'右側',top:'上側',bottom:'下側'};
+  if(String(key).startsWith('patch:'))return '特殊網格（耳朵）';
+  return names[key]||key;
+}
+function p3dSetPaintMode(enabled){
+  pseudo3d.paintMode=!!enabled;
+  if(enabled){p3dStopAutoRotate();p3dSetViewerMode(false);$('#p3dNodeEdit').checked=false}
+  const c=p3dPaintCanvas();c.classList.toggle('active',pseudo3d.paintMode);
+  $('#p3dPaintModeBtn').classList.toggle('active',pseudo3d.paintMode);
+  $('#p3dPaintModeBtn').textContent=pseudo3d.paintMode?'✓ 表面繪製中':'✏️ 表面繪製';
+  $('#pseudo3dCanvas').classList.toggle('node-edit',!pseudo3d.paintMode&&$('#p3dNodeEdit').checked);
+  renderPseudo3d();
+}
+function p3dCompositeCurrent(){
+  return p3dCreateFixedResult();
+}
+function p3dSendToMainCanvas(){
+  if(!pseudo3d.active)return;
+  const out=p3dCompositeCurrent();if(!out)return;
+  const layer=createLayer('3D角度 '+$('#p3dYaw').value+'°');
+  layer.canvas.getContext('2d').drawImage(out,Math.round(pseudo3d.bounds.x),Math.round(pseudo3d.bounds.y));
+  state.activeLayerId=layer.id;renderLayers();render();saveHistory('從3D工作室送回角度圖');
+  setStatus('已把目前3D角度擷取到本體畫布的新圖層');
+}
+function p3dSettingsSnapshot(){return {
+  yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value),roll:Number($('#p3dRoll').value),curve:Number($('#p3dCurve').value),depth:Number($('#p3dDepth').value),projectionGap:Number($('#p3dProjectionGap').value),roundness:Number($('#p3dRoundness').value),edgeSegments:Number($('#p3dEdgeSegments').value),camera:Number($('#p3dCamera').value),grid:Number($('#p3dGrid').value),showGrid:$('#p3dShowGrid').checked,pixelMode:$('#p3dPixelMode').checked,showBack:$('#p3dShowBack').checked,backOpacity:Number($('#p3dBackOpacity').value),nodes:pseudo3d.nodes.map(n=>({...n})),bounds:{...pseudo3d.bounds},surfaceVersion:2
+}}
+async function p3dSaveAsset(){
+  if(!pseudo3d.active)return;
+  try{
+    const originalBlob=await canvasToBlob(pseudo3d.originalSource||pseudo3d.source);
+    p3dEnsureTextureLayers();
+    const paintBlob=await canvasToBlob(pseudo3d.surfaces.front.paint);
+    const sideBaseBlob=await canvasToBlob(pseudo3d.surfaces.side.base),sidePaintBlob=await canvasToBlob(pseudo3d.surfaces.side.paint);
+    const backBaseBlob=await canvasToBlob(pseudo3d.surfaces.back.base),backPaintBlob=await canvasToBlob(pseudo3d.surfaces.back.paint);
+    const previewBlob=await canvasToBlob(p3dCompositeCurrent());
+    const now=Date.now();
+    const name=prompt('3D 工作名稱',state.currentProjectName||('3D作品 '+new Date().toLocaleString()))||'未命名3D作品';
+    const asset={id:pseudo3d.assetId||crypto.randomUUID(),name,createdAt:now,updatedAt:now,originalBlob,paintBlob,sideBaseBlob,sidePaintBlob,backBaseBlob,backPaintBlob,previewBlob,settings:p3dSettingsSnapshot()};
+    pseudo3d.assetId=asset.id;await P3DAssetDB.put(asset);await p3dRenderLibrary();setStatus('已儲存到3D工作室檔案庫');
+  }catch(err){console.error(err);setStatus('儲存3D工作失敗：'+err.message)}
+}
+async function p3dLoadAsset(id){
+  try{
+    const a=await P3DAssetDB.get(id);if(!a)return;
+    const oi=await blobToImage(a.originalBlob);
+    const src=document.createElement('canvas');src.width=oi.naturalWidth;src.height=oi.naturalHeight;src.getContext('2d').drawImage(oi,0,0);
+    pseudo3d.originalSource=cloneCanvas(src);pseudo3d.assetId=a.id;p3dInitSurfaces(src);
+    const drawBlob=async(blob,target)=>{if(!blob)return;const im=await blobToImage(blob);target.getContext('2d').clearRect(0,0,target.width,target.height);target.getContext('2d').drawImage(im,0,0,target.width,target.height)};
+    await drawBlob(a.paintBlob,pseudo3d.surfaces.front.paint);
+    await drawBlob(a.sideBaseBlob,pseudo3d.surfaces.side.base);await drawBlob(a.sidePaintBlob,pseudo3d.surfaces.side.paint);
+    await drawBlob(a.backBaseBlob,pseudo3d.surfaces.back.base);await drawBlob(a.backPaintBlob,pseudo3d.surfaces.back.paint);
+    const st=a.settings||{};['yaw','pitch','roll','curve','depth','projectionGap','roundness','edgeSegments','camera','grid','backOpacity'].forEach(k=>{const el=$('#p3d'+k[0].toUpperCase()+k.slice(1));if(el&&st[k]!==undefined)el.value=st[k]});
+    if(st.showGrid!==undefined)$('#p3dShowGrid').checked=st.showGrid;if(st.pixelMode!==undefined)$('#p3dPixelMode').checked=st.pixelMode;if(st.showBack!==undefined)$('#p3dShowBack').checked=st.showBack;
+    if(Array.isArray(st.nodes))pseudo3d.nodes=st.nodes.map(n=>({...n}));
+    p3dRefreshTexture();pseudo3d.paintHistory=[];pseudo3d.paintHistoryIndex=-1;p3dPushPaintHistory();updatePseudo3dLabels();updatePseudo3dCanvasPreview();setStatus('已載入3D工作：'+a.name);
+  }catch(err){console.error(err);setStatus('載入3D工作失敗：'+err.message)}
+}
+async function p3dRenderLibrary(){
+  const grid=$('#p3dLibraryGrid');if(!grid)return;grid.innerHTML='<div class="hint">讀取中…</div>';
+  try{const list=await P3DAssetDB.list();grid.innerHTML='';if(!list.length){grid.innerHTML='<div class="hint">尚無3D工作檔案</div>';return}
+    for(const a of list){const card=document.createElement('div');card.className='p3d-asset';const url=URL.createObjectURL(a.previewBlob);card.innerHTML='<img alt=""><div class="p3d-asset-name"></div><div class="p3d-asset-actions"><button data-act="load">載入</button><button data-act="insert">放回畫布</button><button data-act="delete">刪除</button></div>';card.querySelector('img').src=url;card.querySelector('img').onload=()=>URL.revokeObjectURL(url);card.querySelector('.p3d-asset-name').textContent=a.name;card.querySelector('[data-act="load"]').onclick=()=>p3dLoadAsset(a.id);card.querySelector('[data-act="insert"]').onclick=async()=>{const im=await blobToImage(a.previewBlob);const layer=createLayer('3D素材 '+a.name);const b=a.settings?.bounds||{x:0,y:0,w:im.naturalWidth,h:im.naturalHeight};layer.canvas.getContext('2d').drawImage(im,b.x,b.y,b.w,b.h);state.activeLayerId=layer.id;renderLayers();render();saveHistory('插入3D素材');setStatus('已把3D素材放回本體畫布')};card.querySelector('[data-act="delete"]').onclick=async()=>{if(confirm('刪除「'+a.name+'」？')){await P3DAssetDB.delete(a.id);if(pseudo3d.assetId===a.id)pseudo3d.assetId=null;p3dRenderLibrary()}};grid.appendChild(card)}
+  }catch(err){console.error(err);grid.innerHTML='<div class="hint">檔案庫讀取失敗</div>'}
+}
+function p3dBuildGeometry(outputW,outputH){
+  p3dEnsureTextureLayers();if(!pseudo3d.surfaces)return null;
+  const div=Math.max(1,Math.min(8,Number($('#p3dGrid').value)||4));
+  const yaw=Number($('#p3dYaw').value)*Math.PI/180,pitch=Number($('#p3dPitch').value)*Math.PI/180,roll=Number($('#p3dRoll').value)*Math.PI/180;
+  const camera=Math.max(80,Number($('#p3dCamera').value));
+  const W=Math.max(1,pseudo3d.originalSource.width),H=Math.max(1,pseudo3d.originalSource.height);
+  const textureDepth=Math.max(2,Number($('#p3dDepth').value)/100)*Math.min(W,H)*.9;
+  // V4.1：模型厚度與畫面投影間距分離。
+  // 100% 維持原本距離；0% 可讓前後面幾乎重合；200% 則加倍拉開。
+  const projectionGap=Math.max(0,Number($('#p3dProjectionGap').value)||0)/100;
+  const D=textureDepth*projectionGap;
+  const workspace=pseudo3d.workspace||{zoom:1,panX:0,panY:0};
+  const centerX=outputW/2+(workspace.panX||0),centerY=outputH/2+(workspace.panY||0);
+  const baseScale=Math.min(outputW/(W+D*1.5),outputH/(H+D*1.5))*Math.max(.2,Math.min(8,workspace.zoom||1));
+  const project=(x,y,z)=>{const r=rotate3d(x,y,z,yaw,pitch,roll),perspective=camera/Math.max(20,camera-r.z);return{x:centerX+r.x*perspective*baseScale,y:centerY+r.y*perspective*baseScale,z:r.z}};
   const triangles=[];
-
-  for(let j=0;j<geometry.rows;j++){
-    for(let i=0;i<geometry.cols;i++){
-      const p00=geometry.points[j][i];
-      const p10=geometry.points[j][i+1];
-      const p01=geometry.points[j+1][i];
-      const p11=geometry.points[j+1][i+1];
-
-      const area1=(p10.x-p00.x)*(p11.y-p00.y)-
-        (p10.y-p00.y)*(p11.x-p00.x);
-
-      const area2=(p11.x-p00.x)*(p01.y-p00.y)-
-        (p11.y-p00.y)*(p01.x-p00.x);
-
-      triangles.push({
-        p:[p00,p10,p11],
-        z:(p00.z+p10.z+p11.z)/3,
-        front:area1>=0
-      });
-
-      triangles.push({
-        p:[p00,p11,p01],
-        z:(p00.z+p11.z+p01.z)/3,
-        front:area2>=0
-      });
+  const addFace=(key,map,cols,rows)=>{
+    const sf=pseudo3d.surfaces[key];if(!sf)return;
+    const pts=[];
+    for(let j=0;j<=rows;j++){const row=[];for(let i=0;i<=cols;i++){
+      const u=i/cols,v=j/rows,w=map(u,v),p=project(w.x,w.y,w.z);
+      row.push({...p,sx:u*sf.composite.width,sy:v*sf.composite.height,u,v,surface:key,kind:'outer'});
+    }pts.push(row)}
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+      const a=pts[j][i],b=pts[j][i+1],c=pts[j+1][i+1],d=pts[j+1][i];
+      triangles.push({p:[a,b,c],z:(a.z+b.z+c.z)/3,surface:key,img:sf.composite,kind:'outer'});
+      triangles.push({p:[a,c,d],z:(a.z+c.z+d.z)/3,surface:key,img:sf.composite,kind:'outer'});
     }
+  };
+  const zf=D/2,zb=-D/2;
+  addFace('front',(u,v)=>{const no=p3dNodeInfluence(u,v),x=(u-.5)*W+no.dx/baseScale,y=(v-.5)*H+no.dy/baseScale,curve=Number($('#p3dCurve').value)/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
+  addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
+  addFace('left',(u,v)=>({x:-W/2,y:(v-.5)*H,z:zb+u*D}),Math.max(1,Math.ceil(div/2)),div);
+  addFace('right',(u,v)=>({x:W/2,y:(v-.5)*H,z:zf-u*D}),Math.max(1,Math.ceil(div/2)),div);
+  addFace('top',(u,v)=>({x:(u-.5)*W,y:-H/2,z:zb+v*D}),div,Math.max(1,Math.ceil(div/2)));
+  addFace('bottom',(u,v)=>({x:(u-.5)*W,y:H/2,z:zf-v*D}),div,Math.max(1,Math.ceil(div/2)));
+  for(const patch of pseudo3d.patches||[]){
+    const sf=patch.surface,key='patch:'+patch.id;const side=patch.side||'left';
+    const size=Math.min(W,H)*(patch.size||.28),ph=size*1.25,pw=size*.72,py=(patch.y||-.1)*H;
+    const baseX=side==='left'?-W/2:W/2,sign=side==='left'?-1:1,forward=D/2+(patch.depth||.35)*Math.min(W,H)*.35;
+    const pts=[];
+    for(let j=0;j<=3;j++){const row=[];for(let i=0;i<=2;i++){
+      const u=i/2,v=j/3;const x=baseX+sign*(u*pw),y=py+(v-.5)*ph,z=forward+Math.sin(u*Math.PI)*pw*.22;
+      const p=project(x,y,z);row.push({...p,sx:u*sf.composite.width,sy:v*sf.composite.height,u,v,surface:key,kind:'outer'});
+    }pts.push(row)}
+    for(let j=0;j<3;j++)for(let i=0;i<2;i++){const a=pts[j][i],b=pts[j][i+1],c=pts[j+1][i+1],d=pts[j+1][i];triangles.push({p:[a,b,c],z:(a.z+b.z+c.z)/3,surface:key,img:sf.composite,kind:'outer'});triangles.push({p:[a,c,d],z:(a.z+c.z+d.z)/3,surface:key,img:sf.composite,kind:'outer'});}
   }
-
+  for(const t of triangles){const a=t.p[0],b=t.p[1],c=t.p[2];t.front=((b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x))>=0;}
   triangles.sort((a,b)=>a.z-b.z);
-
-  const showBack=options.showBack ??
-    $('#p3dShowBack').checked;
-
-  const backOpacity=options.backOpacity ??
-    Number($('#p3dBackOpacity').value)/100;
-
-  for(const t of triangles){
-    if(t.front){
-      ctx.globalAlpha=1;
-    }else if(showBack){
-      ctx.globalAlpha=backOpacity;
-    }else{
-      continue;
-    }
-
-    affineTriangle(
-      ctx,
-      geometry.img,
-      {x:t.p[0].sx,y:t.p[0].sy},
-      {x:t.p[1].sx,y:t.p[1].sy},
-      {x:t.p[2].sx,y:t.p[2].sy},
-      t.p[0],
-      t.p[1],
-      t.p[2]
-    );
-  }
-
-  ctx.globalAlpha=1;
-
-  if(options.showGrid){
-    ctx.save();
-    ctx.strokeStyle='rgba(110,190,255,.82)';
-    ctx.lineWidth=1;
-
-    for(let j=0;j<=geometry.rows;j++){
-      ctx.beginPath();
-
-      geometry.points[j].forEach((p,i)=>{
-        if(i)ctx.lineTo(p.x,p.y);
-        else ctx.moveTo(p.x,p.y);
-      });
-
-      ctx.stroke();
-    }
-
-    for(let i=0;i<=geometry.cols;i++){
-      ctx.beginPath();
-
-      for(let j=0;j<=geometry.rows;j++){
-        const p=geometry.points[j][i];
-
-        if(j)ctx.lineTo(p.x,p.y);
-        else ctx.moveTo(p.x,p.y);
-      }
-
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  ctx.restore();
-  return true;
+  const controlPoints=pseudo3d.nodes.map(n=>{const x=(n.u-.5)*W,y=(n.v-.5)*H,p=project(x,y,zf);return{...p}});
+  return{cols:div,rows:div,points:[],frontPoints:[],backPoints:[],triangles,controlPoints,outputW,outputH};
 }
-
+function p3dRenderFixed(canvas,options={}){
+  const g=p3dBuildGeometry(canvas.width,canvas.height);if(!g)return false;
+  const ctx=canvas.getContext('2d'),pixelMode=options.pixelMode??$('#p3dPixelMode').checked;
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=!pixelMode;if(!pixelMode&&'imageSmoothingQuality'in ctx)ctx.imageSmoothingQuality='high';
+  const showBack=options.showBack??$('#p3dShowBack').checked,backOpacity=options.backOpacity??Number($('#p3dBackOpacity').value)/100;
+  for(const t of g.triangles){if(!t.front&&!showBack)continue;ctx.globalAlpha=t.front?1:backOpacity;affineTriangle(ctx,t.img,{x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2]);}
+  ctx.globalAlpha=1;
+  if(options.showGrid){ctx.save();ctx.strokeStyle='rgba(110,190,255,.82)';ctx.lineWidth=1;for(const t of g.triangles){if(!t.front&&!showBack)continue;ctx.beginPath();ctx.moveTo(t.p[0].x,t.p[0].y);ctx.lineTo(t.p[1].x,t.p[1].y);ctx.lineTo(t.p[2].x,t.p[2].y);ctx.closePath();ctx.stroke()}ctx.restore()}
+  if(options.showNodes&&$('#p3dNodeEdit').checked){ctx.save();g.controlPoints.forEach((p,index)=>{const active=index===pseudo3d.selectedNode;ctx.beginPath();ctx.arc(p.x,p.y,active?7:5,0,Math.PI*2);ctx.fillStyle=active?'rgba(255,210,90,.96)':'rgba(90,180,255,.96)';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='rgba(10,20,30,.9)';ctx.stroke()});ctx.restore()}
+  ctx.restore();return true;
+}
 function renderPseudo3d(){
   if(!pseudo3d.source)return;
 
@@ -1915,7 +3412,8 @@ function renderPseudo3d(){
   p3dRenderFixed(canvas,{
     showGrid:$('#p3dShowGrid').checked,
     showBack:$('#p3dShowBack').checked,
-    pixelMode:$('#p3dPixelMode').checked
+    pixelMode:$('#p3dPixelMode').checked,
+    showNodes:true
   });
 
   pseudo3d.result=canvas;
@@ -1974,22 +3472,32 @@ function openPseudo3d(){
     return;
   }
 
-  pseudo3d.source=data.canvas;
   pseudo3d.originalSource=cloneCanvas(data.canvas);
+  p3dInitSurfaces(pseudo3d.originalSource);
   pseudo3d.bounds={...data.bounds};
   pseudo3d.layerId=data.layerId;
   pseudo3d.originalSelection=data.originalSelection;
+  pseudo3d.assetId=null;
+  p3dClearPaint();
+  pseudo3d.paintHistory=[];pseudo3d.paintHistoryIndex=-1;p3dPushPaintHistory();
+  p3dResetNodes();
   pseudo3d.active=true;
+  p3dStopAutoRotate();
+  p3dSetViewerMode(false);
 
   $('#pseudo3dModal').classList.add('open');
+  $('#pseudo3dCanvas').classList.toggle('node-edit',$('#p3dNodeEdit').checked);
   $('#pseudo3dModal').setAttribute('aria-hidden','false');
 
   updatePseudo3dLabels();
   updatePseudo3dCanvasPreview();
-  setStatus('偽3D變形中：主畫布可移動或縮放，按套用完成');
+  p3dRenderLibrary();
+  setStatus('3D工作室 V3.0.1 已開啟：側面與接縫改用寬鬆可視命中');
 }
 
 function closePseudo3d(){
+  p3dStopAutoRotate();
+  p3dSetPaintMode(false);
   if(!pseudo3d.active){
     $('#pseudo3dModal').classList.remove('open');
     return;
@@ -2022,6 +3530,9 @@ function closePseudo3d(){
   pseudo3d.active=false;
   pseudo3d.source=null;
   pseudo3d.originalSource=null;
+  pseudo3d.texturePaint=null;
+  pseudo3d.textureComposite=null;
+  pseudo3d.surfaces=null;
   pseudo3d.originalSelection=null;
 
   $('#pseudo3dModal').classList.remove('open');
@@ -2031,6 +3542,8 @@ function closePseudo3d(){
 }
 
 function applyPseudo3d(){
+  p3dStopAutoRotate();
+  p3dSetPaintMode(false);
   if(!pseudo3d.active)return;
 
   const layer=state.layers.find(l=>l.id===pseudo3d.layerId);
@@ -2069,6 +3582,9 @@ function applyPseudo3d(){
   pseudo3d.active=false;
   pseudo3d.source=null;
   pseudo3d.originalSource=null;
+  pseudo3d.texturePaint=null;
+  pseudo3d.textureComposite=null;
+  pseudo3d.surfaces=null;
   pseudo3d.originalSelection=null;
 
   $('#pseudo3dModal').classList.remove('open');
@@ -2088,26 +3604,244 @@ function applyPseudo3d(){
 }
 
 function resetPseudo3d(){
+  p3dStopAutoRotate();
   $('#p3dYaw').value=0;
   $('#p3dPitch').value=0;
   $('#p3dRoll').value=0;
   $('#p3dCurve').value=28;
+  $('#p3dDepth').value=28;
+  $('#p3dProjectionGap').value=100;
+  $('#p3dRoundness').value=58;
+  $('#p3dEdgeSegments').value=5;
   $('#p3dCamera').value=650;
   $('#p3dGrid').value=7;
   $('#p3dShowGrid').checked=true;
   $('#p3dPixelMode').checked=true;
   $('#p3dShowBack').checked=true;
   $('#p3dBackOpacity').value=42;
+  p3dResetNodes();
+  p3dSelectNode(4);
   updatePseudo3dLabels();
   updatePseudo3dCanvasPreview();
 }
+
+
+function p3dCanvasPoint(e){
+  const c=$('#pseudo3dCanvas'),r=c.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height};
+}
+function p3dHitNode(p){
+  const g=p3dBuildGeometry($('#pseudo3dCanvas').width,$('#pseudo3dCanvas').height);
+  if(!g)return -1;
+  let best=-1,dist=14;
+  g.controlPoints.forEach((n,i)=>{const d=Math.hypot(p.x-n.x,p.y-n.y);if(d<dist){dist=d;best=i}});
+  return best;
+}
+const p3dCanvas=$('#pseudo3dCanvas');
+p3dCanvas.addEventListener('pointerdown',e=>{
+  if(!pseudo3d.active)return;
+  if(pseudo3d.viewerMode){
+    p3dStopAutoRotate();
+    e.preventDefault();p3dCanvas.setPointerCapture(e.pointerId);
+    pseudo3d.dragView={pointerId:e.pointerId,x:e.clientX,y:e.clientY,yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value)};
+    p3dCanvas.style.cursor='grabbing';
+    return;
+  }
+  if(!$('#p3dNodeEdit').checked)return;
+  const p=p3dCanvasPoint(e),index=p3dHitNode(p);if(index<0)return;
+  e.preventDefault();p3dCanvas.setPointerCapture(e.pointerId);p3dSelectNode(index);
+  const n=pseudo3d.nodes[index];pseudo3d.dragNode={pointerId:e.pointerId,start:p,dx:n.dx,dy:n.dy};
+});
+p3dCanvas.addEventListener('pointermove',e=>{
+  const view=pseudo3d.dragView;
+  if(view&&view.pointerId===e.pointerId){
+    $('#p3dYaw').value=String(p3dNormalizeAngle(view.yaw+(e.clientX-view.x)*.55));
+    $('#p3dPitch').value=String(Math.max(-180,Math.min(180,view.pitch-(e.clientY-view.y)*.45)));
+    updatePseudo3dLabels();updatePseudo3dCanvasPreview();return;
+  }
+  const d=pseudo3d.dragNode;if(!d||d.pointerId!==e.pointerId)return;
+  const p=p3dCanvasPoint(e),n=pseudo3d.nodes[pseudo3d.selectedNode];
+  n.dx=d.dx+(p.x-d.start.x);n.dy=d.dy+(p.y-d.start.y);
+  updatePseudo3dCanvasPreview();
+});
+function p3dEndDrag(e){
+  if(pseudo3d.dragNode?.pointerId===e.pointerId)pseudo3d.dragNode=null;
+  if(pseudo3d.dragView?.pointerId===e.pointerId){pseudo3d.dragView=null;p3dCanvas.style.cursor=pseudo3d.viewerMode?'grab':'';}
+}
+p3dCanvas.addEventListener('pointerup',p3dEndDrag);p3dCanvas.addEventListener('pointercancel',p3dEndDrag);
+p3dCanvas.addEventListener('dblclick',()=>{if(pseudo3d.viewerMode){$('#p3dYaw').value=0;$('#p3dPitch').value=0;updatePseudo3dLabels();updatePseudo3dCanvasPreview();}});
+
+const p3dPaint=p3dPaintCanvas();
+function p3dPaintPoint(e){const r=p3dPaint.getBoundingClientRect();return{x:(e.clientX-r.left)*p3dPaint.width/r.width,y:(e.clientY-r.top)*p3dPaint.height/r.height}}
+function p3dBarycentric(p,a,b,c,tolerance=.018){
+  const den=(b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y);
+  if(Math.abs(den)<1e-7)return null;
+  const w1=((b.y-c.y)*(p.x-c.x)+(c.x-b.x)*(p.y-c.y))/den;
+  const w2=((c.y-a.y)*(p.x-c.x)+(a.x-c.x)*(p.y-c.y))/den;
+  const w3=1-w1-w2;
+  // 接縫與狹窄側面保留少量容差，避免因像素誤差形成不可畫的縫。
+  if(w1<-tolerance||w2<-tolerance||w3<-tolerance)return null;
+  return [w1,w2,w3];
+}
+function p3dCollectPaintHits(g,p,tolerance=.018){
+  const hits=[];
+  for(const tri of g.triangles){
+    // 不再用三角形繞向 front 篩掉側面。
+    // 同一位置最後只取 z 最靠近鏡頭的外表面，因此仍不會穿透畫到後方。
+    if(tri.kind==='inner')continue;
+    const w=p3dBarycentric(p,tri.p[0],tri.p[1],tri.p[2],tolerance);if(!w)continue;
+    hits.push({
+      surface:tri.surface,
+      x:tri.p[0].sx*w[0]+tri.p[1].sx*w[1]+tri.p[2].sx*w[2],
+      y:tri.p[0].sy*w[0]+tri.p[1].sy*w[1]+tri.p[2].sy*w[2],
+      z:tri.p[0].z*w[0]+tri.p[1].z*w[1]+tri.p[2].z*w[2],
+      screen:{x:p.x,y:p.y}
+    });
+  }
+  hits.sort((a,b)=>b.z-a.z);
+  return hits;
+}
+function p3dScreenToTexture(p){
+  const g=p3dBuildGeometry(p3dPaint.width,p3dPaint.height);if(!g)return null;
+
+  // 先做精確命中；這裡接受所有外表面，再由深度挑出真正可見的最前面。
+  let hits=p3dCollectPaintHits(g,p,.018);
+  if(hits.length)return hits[0];
+
+  // 狹窄側面、圓角和三角接縫在畫面上可能只有幾個像素。
+  // 找不到時於游標周圍做小範圍補捉，但仍只回傳最靠近鏡頭的表面。
+  const offsets=[[2,0],[-2,0],[0,2],[0,-2],[3,3],[-3,3],[3,-3],[-3,-3],[5,0],[-5,0],[0,5],[0,-5]];
+  let best=null;
+  for(const [dx,dy] of offsets){
+    hits=p3dCollectPaintHits(g,{x:p.x+dx,y:p.y+dy},.025);
+    if(!hits.length)continue;
+    const hit=hits[0];
+    const score=hit.z-Math.hypot(dx,dy)*.02;
+    if(!best||score>best.score)best={...hit,screen:{x:p.x,y:p.y},score};
+  }
+  if(best){delete best.score;return best;}
+  return null;
+}
+function p3dPaintTarget(p){
+  p3dEnsureTextureLayers();if(!p)return null;
+  if(String(p.surface).startsWith('patch:')){const id=String(p.surface).slice(6);return (pseudo3d.patches||[]).find(x=>x.id===id)?.surface.paint||null;}
+  return pseudo3d.surfaces?.[p.surface]?.paint;
+}
+function p3dUpdateSurfaceStatus(surface,prefix='目前繪製：'){
+  pseudo3d.activePaintSurface=surface||pseudo3d.activePaintSurface;const st=$('#p3dSurfaceStatus');if(st)st.textContent=prefix+p3dSurfaceLabel(pseudo3d.activePaintSurface)+'｜六面方形表面命中';
+}
+function p3dDrawTextureDot(p){const target=p3dPaintTarget(p);if(!target)return;const ctx=target.getContext('2d');ctx.save();ctx.globalCompositeOperation=pseudo3d.paintEraser?'destination-out':'source-over';ctx.fillStyle=$('#p3dPaintColor').value;ctx.beginPath();ctx.arc(p.x,p.y,Number($('#p3dPaintSize').value)/2,0,Math.PI*2);ctx.fill();ctx.restore();p3dUpdateSurfaceStatus(p.surface);}
+function p3dDrawTextureLine(a,b){if(!a||!b)return;if(a.surface!==b.surface){p3dDrawTextureDot(b);return}const target=p3dPaintTarget(b);if(!target)return;const ctx=target.getContext('2d');ctx.save();ctx.globalCompositeOperation=pseudo3d.paintEraser?'destination-out':'source-over';ctx.strokeStyle=$('#p3dPaintColor').value;ctx.lineWidth=Number($('#p3dPaintSize').value);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.restore();p3dUpdateSurfaceStatus(b.surface);}
+function p3dDrawAcrossVisibleSurface(aScreen,bScreen,lastHit){
+  const dist=Math.hypot(bScreen.x-aScreen.x,bScreen.y-aScreen.y),steps=Math.max(1,Math.ceil(dist/2));let prev=lastHit;
+  for(let i=1;i<=steps;i++){
+    const t=i/steps,screen={x:aScreen.x+(bScreen.x-aScreen.x)*t,y:aScreen.y+(bScreen.y-aScreen.y)*t},hit=p3dScreenToTexture(screen);
+    if(!hit){prev=null;continue}
+    if(prev&&prev.surface===hit.surface)p3dDrawTextureLine(prev,hit);else p3dDrawTextureDot(hit);
+    prev=hit;
+  }
+  return prev;
+}
+function p3dPaintSnapshot(){
+  p3dEnsureTextureLayers();if(!pseudo3d.surfaces)return null;const snap={surfaces:{},patches:{}};
+  for(const [key,sf] of Object.entries(pseudo3d.surfaces))snap.surfaces[key]=sf.paint.getContext('2d').getImageData(0,0,sf.paint.width,sf.paint.height);
+  for(const p of pseudo3d.patches||[])snap.patches[p.id]=p.surface.paint.getContext('2d').getImageData(0,0,p.surface.paint.width,p.surface.paint.height);
+  return snap;
+}
+function p3dPushPaintHistory(){
+  const snap=p3dPaintSnapshot();if(!snap)return;
+  pseudo3d.paintHistory=pseudo3d.paintHistory.slice(0,pseudo3d.paintHistoryIndex+1);pseudo3d.paintHistory.push(snap);
+  if(pseudo3d.paintHistory.length>20)pseudo3d.paintHistory.shift();pseudo3d.paintHistoryIndex=pseudo3d.paintHistory.length-1;
+}
+function p3dRestorePaintHistory(index){
+  const snap=pseudo3d.paintHistory[index];if(!snap)return;
+  for(const [key,data] of Object.entries(snap.surfaces||{})){const c=pseudo3d.surfaces?.[key]?.paint;if(c)c.getContext('2d').putImageData(data,0,0)}
+  for(const [id,data] of Object.entries(snap.patches||{})){const c=(pseudo3d.patches||[]).find(p=>p.id===id)?.surface.paint;if(c)c.getContext('2d').putImageData(data,0,0)}
+  pseudo3d.paintHistoryIndex=index;p3dRefreshTexture();updatePseudo3dCanvasPreview();
+}
+function p3dUndoPaint(){if(pseudo3d.paintHistoryIndex>0)p3dRestorePaintHistory(pseudo3d.paintHistoryIndex-1)}
+function p3dRedoPaint(){if(pseudo3d.paintHistoryIndex<pseudo3d.paintHistory.length-1)p3dRestorePaintHistory(pseudo3d.paintHistoryIndex+1)}
+function p3dSampleSurfaceColor(hit){
+  const sf=pseudo3d.surfaces?.[hit.surface];if(!sf)return;
+  const d=sf.composite.getContext('2d').getImageData(Math.max(0,Math.min(sf.composite.width-1,Math.round(hit.x))),Math.max(0,Math.min(sf.composite.height-1,Math.round(hit.y))),1,1).data;
+  const hex='#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');$('#p3dPaintColor').value=hex;
+  pseudo3d.paintEyedropper=false;$('#p3dPaintEyedropperBtn').classList.remove('active');p3dUpdateSurfaceStatus(hit.surface,'已取樣 '+hex+'｜');
+}
+function p3dFillCurrentSurface(){
+  p3dEnsureTextureLayers();const target=p3dPaintTarget({surface:pseudo3d.activePaintSurface});if(!target)return;const ctx=target.getContext('2d');ctx.save();ctx.globalCompositeOperation='source-over';ctx.fillStyle=$('#p3dPaintColor').value;ctx.fillRect(0,0,target.width,target.height);ctx.restore();p3dRefreshTexture();p3dPushPaintHistory();updatePseudo3dCanvasPreview();
+}
+function p3dClearCurrentSurface(){
+  p3dEnsureTextureLayers();const target=p3dPaintTarget({surface:pseudo3d.activePaintSurface});if(!target)return;target.getContext('2d').clearRect(0,0,target.width,target.height);p3dRefreshTexture();p3dPushPaintHistory();updatePseudo3dCanvasPreview();
+}
+p3dPaint.addEventListener('contextmenu',e=>e.preventDefault());
+p3dPaint.addEventListener('pointerdown',e=>{
+  if(!pseudo3d.paintMode)return;
+  e.preventDefault();
+
+  // 繪製模式中，右鍵或 Alt＋拖曳直接旋轉，不必來回切換工具。
+  if(e.button===2||e.altKey){
+    p3dPaint.setPointerCapture(e.pointerId);
+    pseudo3d.liveRotate={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value)};
+    p3dPaint.parentElement.classList.add('rotating');
+    return;
+  }
+
+  if(e.button!==0&&e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+  const screen=p3dPaintPoint(e),uv=p3dScreenToTexture(screen);if(!uv)return;
+  if(pseudo3d.paintEyedropper){p3dSampleSurfaceColor(uv);return;}
+  p3dPaint.setPointerCapture(e.pointerId);pseudo3d.paintDrag={id:e.pointerId,last:uv,lastScreen:screen};
+  p3dDrawTextureDot(uv);p3dRefreshTexture();updatePseudo3dCanvasPreview();
+});
+p3dPaint.addEventListener('pointermove',e=>{
+  const r=pseudo3d.liveRotate;
+  if(r&&r.id===e.pointerId){
+    $('#p3dYaw').value=String(p3dNormalizeAngle(r.yaw+(e.clientX-r.x)*.55));
+    $('#p3dPitch').value=String(Math.max(-180,Math.min(180,r.pitch-(e.clientY-r.y)*.45)));
+    updatePseudo3dLabels();updatePseudo3dCanvasPreview();
+    return;
+  }
+  const d=pseudo3d.paintDrag;if(!d||d.id!==e.pointerId)return;
+  const screen=p3dPaintPoint(e);d.last=p3dDrawAcrossVisibleSurface(d.lastScreen,screen,d.last);d.lastScreen=screen;
+  p3dRefreshTexture();updatePseudo3dCanvasPreview();
+});
+function p3dPaintEnd(e){
+  if(pseudo3d.liveRotate?.id===e.pointerId){pseudo3d.liveRotate=null;p3dPaint.parentElement.classList.remove('rotating');}
+  if(pseudo3d.paintDrag?.id===e.pointerId){pseudo3d.paintDrag=null;p3dPushPaintHistory();}
+}
+p3dPaint.addEventListener('pointerup',p3dPaintEnd);p3dPaint.addEventListener('pointercancel',p3dPaintEnd);
+$('#p3dPaintModeBtn').addEventListener('click',()=>p3dSetPaintMode(!pseudo3d.paintMode));
+$('#p3dPaintEraserBtn').addEventListener('click',()=>{pseudo3d.paintEraser=!pseudo3d.paintEraser;$('#p3dPaintEraserBtn').classList.toggle('active',pseudo3d.paintEraser)});
+$('#p3dPaintEyedropperBtn').addEventListener('click',()=>{pseudo3d.paintEyedropper=!pseudo3d.paintEyedropper;$('#p3dPaintEyedropperBtn').classList.toggle('active',pseudo3d.paintEyedropper)});
+$('#p3dPaintUndoBtn').addEventListener('click',p3dUndoPaint);
+$('#p3dPaintRedoBtn').addEventListener('click',p3dRedoPaint);
+$('#p3dPaintFillBtn').addEventListener('click',p3dFillCurrentSurface);
+$('#p3dPaintClearSurfaceBtn').addEventListener('click',p3dClearCurrentSurface);
+$('#p3dPaintClearBtn').addEventListener('click',()=>{if(confirm('清除這個3D素材的全部表面繪製？')){p3dClearPaint();p3dPushPaintHistory();}});
+$('#p3dSendCanvasBtn').addEventListener('click',p3dSendToMainCanvas);
+$('#p3dSaveAssetBtn').addEventListener('click',p3dSaveAsset);
+$('#p3dNodeEdit').addEventListener('change',()=>{if($('#p3dNodeEdit').checked)p3dSetViewerMode(false);p3dCanvas.classList.toggle('node-edit',$('#p3dNodeEdit').checked);renderPseudo3d()});
+$('#p3dViewerBtn').addEventListener('click',()=>p3dSetViewerMode(!pseudo3d.viewerMode));
+$('#p3dAutoRotateBtn').addEventListener('click',p3dToggleAutoRotate);
+$('#p3dExportHtmlBtn').addEventListener('click',p3dExportViewerHtml);
+$('#p3dNodeDepth').addEventListener('input',()=>{
+  const n=pseudo3d.nodes[pseudo3d.selectedNode];if(!n)return;
+  n.dz=Number($('#p3dNodeDepth').value);p3dSelectNode(pseudo3d.selectedNode);updatePseudo3dCanvasPreview();
+});
+$('#p3dResetNodesBtn').addEventListener('click',()=>{p3dResetNodes();p3dSelectNode(4);updatePseudo3dCanvasPreview()});
+$('#p3dStraightenBtn').addEventListener('click',p3dStraightenNodes);
+document.querySelectorAll('[data-p3d-view]').forEach(btn=>btn.addEventListener('click',()=>{
+  const view=btn.dataset.p3dView;
+  const presets={front:[0,0],left:[-90,0],right:[90,0],back:[180,0]};
+  const [yaw,pitch]=presets[view];$('#p3dYaw').value=yaw;$('#p3dPitch').value=pitch;
+  updatePseudo3dLabels();updatePseudo3dCanvasPreview();
+}));
 
 $('#pseudo3dBtn').addEventListener('click',openPseudo3d);
 $('#p3dCloseBtn').addEventListener('click',closePseudo3d);
 $('#p3dApplyBtn').addEventListener('click',applyPseudo3d);
 $('#p3dResetBtn').addEventListener('click',resetPseudo3d);
 
-['p3dYaw','p3dPitch','p3dRoll','p3dCurve','p3dCamera','p3dGrid','p3dBackOpacity'].forEach(id=>{
+['p3dYaw','p3dPitch','p3dRoll','p3dCurve','p3dDepth','p3dProjectionGap','p3dRoundness','p3dEdgeSegments','p3dCamera','p3dGrid','p3dBackOpacity'].forEach(id=>{
   $('#'+id).addEventListener('input',()=>{
     updatePseudo3dLabels();
     updatePseudo3dCanvasPreview();
@@ -2118,12 +3852,32 @@ $('#p3dShowGrid').addEventListener('change',()=>renderPseudo3d());
 $('#p3dPixelMode').addEventListener('change',()=>updatePseudo3dCanvasPreview());
 $('#p3dShowBack').addEventListener('change',()=>updatePseudo3dCanvasPreview());
 
+
+// V3.2：讓所見即得繪製區真正占滿彈出視窗。
+function p3dResizeLiveStudio(){
+  const wrap=document.querySelector('#pseudo3dModal .p3d-preview-wrap');
+  const view=$('#pseudo3dCanvas'),paint=$('#p3dPaintCanvas');
+  if(!wrap||!view||!paint||!$('#pseudo3dModal').classList.contains('open'))return;
+  const r=wrap.getBoundingClientRect();
+  const dpr=Math.min(1.5,window.devicePixelRatio||1);
+  const w=Math.max(640,Math.floor(r.width*dpr));
+  const h=Math.max(480,Math.floor(r.height*dpr));
+  if(view.width===w&&view.height===h)return;
+  view.width=paint.width=w;view.height=paint.height=h;
+  updatePseudo3dCanvasPreview();
+}
+window.addEventListener('resize',()=>requestAnimationFrame(p3dResizeLiveStudio));
+const p3dOpenObserver=new MutationObserver(()=>{
+  if($('#pseudo3dModal').classList.contains('open'))requestAnimationFrame(()=>requestAnimationFrame(p3dResizeLiveStudio));
+});
+p3dOpenObserver.observe($('#pseudo3dModal'),{attributes:true,attributeFilter:['class']});
+
 $('#pseudo3dModal').addEventListener('click',e=>{
   if(e.target===$('#pseudo3dModal'))closePseudo3d();
 });
 
 canvasWrap.style.width=state.width+'px';canvasWrap.style.height=state.height+'px';
-configureCanvas(overlay);
+configureCanvas(overlay); configureCanvas(onionOverlay);
 createLayer('背景',null,{
   fill:'#ffffff',
   locked:true,
@@ -2132,7 +3886,157 @@ createLayer('背景',null,{
 createLayer('圖層 1');
 updateZoom();
 saveHistory('初始化');
+animationEnsureFrame();
 syncToolButtons();
+requestAnimationFrame(()=>{
+  if(window.matchMedia('(max-width:760px)').matches)fitZoomToViewport();
+});
+})();
+</script>
+
+<div id="p3dFlatModal" class="p3d-modal" aria-hidden="true">
+  <div class="p3d-dialog" style="max-width:1100px">
+    <h2 style="margin-top:0">大型表面畫布</h2>
+    <div class="p3d-flat-tabs" id="p3dFlatTabs"></div>
+    <div class="p3d-flat-stage"><canvas id="p3dFlatCanvas" width="900" height="700"></canvas></div>
+    <div class="p3d-paint-tools" style="margin-top:10px">
+      <button id="p3dFlatBrush" class="active" type="button">畫筆</button>
+      <button id="p3dFlatEraser" type="button">橡皮擦</button>
+      <label>顏色 <input id="p3dFlatColor" type="color" value="#111111"></label>
+      <label>尺寸 <input id="p3dFlatSize" type="range" min="1" max="80" value="8"></label>
+      <button id="p3dFlatClear" type="button">清除目前表面</button>
+      <button id="p3dFlatClose" type="button">完成</button>
+    </div>
+    <div class="hint">正面是一張完整的大型畫布，適合繪製複雜人臉；側面、背面與耳朵各自獨立，不會被接縫三角形搶走筆畫。</div>
+  </div>
+</div>
+
+<script>
+// V3.1：平面畫布與特殊凸出網格
+pseudo3d.patches=[];
+const p3dSurfaceKeys=['front','left','right','top','bottom','back'];
+function p3dAddEarPatch(){
+  p3dEnsureTextureLayers();
+  if(pseudo3d.patches?.length){$('#p3dPatchControls').style.display='block';return;}
+  const base=p3dNewSurfaceCanvas(700,900),ctx=base.getContext('2d');ctx.fillStyle='rgba(205,180,170,.22)';ctx.fillRect(0,0,base.width,base.height);
+  const patch={id:crypto.randomUUID(),name:'耳朵',side:$('#p3dPatchSide')?.value||'left',y:Number($('#p3dPatchY')?.value||-10)/100,size:Number($('#p3dPatchSize')?.value||28)/100,depth:Number($('#p3dPatchDepth')?.value||35)/100,surface:p3dCreateSurface(base)};
+  pseudo3d.patches=[patch];$('#p3dPatchControls').style.display='block';p3dRefreshTexture();updatePseudo3dCanvasPreview();p3dRenderFlatTabs();
+}
+function p3dRemovePatch(){pseudo3d.patches=[];$('#p3dPatchControls').style.display='none';if(String(pseudo3d.activePaintSurface).startsWith('patch:'))pseudo3d.activePaintSurface='front';updatePseudo3dCanvasPreview();p3dRenderFlatTabs();}
+function p3dUpdatePatch(){const p=pseudo3d.patches?.[0];if(!p)return;p.side=$('#p3dPatchSide').value;p.y=Number($('#p3dPatchY').value)/100;p.size=Number($('#p3dPatchSize').value)/100;p.depth=Number($('#p3dPatchDepth').value)/100;updatePseudo3dCanvasPreview();}
+$('#p3dAddEarBtn')?.addEventListener('click',p3dAddEarPatch);$('#p3dRemovePatchBtn')?.addEventListener('click',p3dRemovePatch);
+['p3dPatchSide','p3dPatchY','p3dPatchSize','p3dPatchDepth'].forEach(id=>$('#'+id)?.addEventListener('input',p3dUpdatePatch));
+
+const flat={surface:'front',eraser:false,drag:null,viewScale:1,offX:0,offY:0};
+function p3dGetSurfaceObject(key){if(String(key).startsWith('patch:'))return (pseudo3d.patches||[]).find(p=>'patch:'+p.id===key)?.surface;return pseudo3d.surfaces?.[key]}
+function p3dRenderFlatTabs(){const box=$('#p3dFlatTabs');if(!box)return;box.innerHTML='';const keys=[...p3dSurfaceKeys,...(pseudo3d.patches||[]).map(p=>'patch:'+p.id)];for(const key of keys){const b=document.createElement('button');b.type='button';b.textContent=p3dSurfaceLabel(key);b.classList.toggle('active',flat.surface===key);b.onclick=()=>{flat.surface=key;pseudo3d.activePaintSurface=key;p3dRenderFlatTabs();p3dRenderFlat()};box.appendChild(b)}}
+function p3dRenderFlat(){const c=$('#p3dFlatCanvas'),sf=p3dGetSurfaceObject(flat.surface);if(!c||!sf)return;const maxW=900,maxH=700,ratio=Math.min(maxW/sf.composite.width,maxH/sf.composite.height,1);c.width=Math.max(1,Math.round(sf.composite.width*ratio));c.height=Math.max(1,Math.round(sf.composite.height*ratio));const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.imageSmoothingEnabled=true;ctx.drawImage(sf.composite,0,0,c.width,c.height)}
+function p3dOpenFlat(){p3dEnsureTextureLayers();flat.surface=pseudo3d.activePaintSurface&&p3dGetSurfaceObject(pseudo3d.activePaintSurface)?pseudo3d.activePaintSurface:'front';$('#p3dFlatColor').value=$('#p3dPaintColor').value;$('#p3dFlatSize').value=$('#p3dPaintSize').value;$('#p3dFlatModal').classList.add('open');$('#p3dFlatModal').setAttribute('aria-hidden','false');p3dRenderFlatTabs();p3dRenderFlat()}
+function p3dCloseFlat(){p3dRefreshTexture();updatePseudo3dCanvasPreview();p3dPushPaintHistory();$('#p3dFlatModal').classList.remove('open');$('#p3dFlatModal').setAttribute('aria-hidden','true')}
+$('#p3dFlatEditorBtn')?.addEventListener('click',p3dOpenFlat);$('#p3dFlatClose')?.addEventListener('click',p3dCloseFlat);
+$('#p3dFlatBrush')?.addEventListener('click',()=>{flat.eraser=false;$('#p3dFlatBrush').classList.add('active');$('#p3dFlatEraser').classList.remove('active')});
+$('#p3dFlatEraser')?.addEventListener('click',()=>{flat.eraser=true;$('#p3dFlatEraser').classList.add('active');$('#p3dFlatBrush').classList.remove('active')});
+$('#p3dFlatClear')?.addEventListener('click',()=>{const sf=p3dGetSurfaceObject(flat.surface);if(!sf)return;sf.paint.getContext('2d').clearRect(0,0,sf.paint.width,sf.paint.height);p3dRefreshTexture();p3dRenderFlat()});
+const flatCanvas=$('#p3dFlatCanvas');
+function flatPoint(e){const r=flatCanvas.getBoundingClientRect(),sf=p3dGetSurfaceObject(flat.surface);return{x:(e.clientX-r.left)*sf.paint.width/r.width,y:(e.clientY-r.top)*sf.paint.height/r.height}}
+function flatStroke(a,b){const sf=p3dGetSurfaceObject(flat.surface),ctx=sf.paint.getContext('2d');ctx.save();ctx.globalCompositeOperation=flat.eraser?'destination-out':'source-over';ctx.strokeStyle=$('#p3dFlatColor').value;ctx.lineWidth=Number($('#p3dFlatSize').value);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.restore();p3dRefreshTexture();p3dRenderFlat()}
+flatCanvas?.addEventListener('pointerdown',e=>{const p=flatPoint(e);flat.drag={id:e.pointerId,last:p};flatCanvas.setPointerCapture(e.pointerId);flatStroke(p,p)});
+flatCanvas?.addEventListener('pointermove',e=>{if(!flat.drag||flat.drag.id!==e.pointerId)return;const p=flatPoint(e);flatStroke(flat.drag.last,p);flat.drag.last=p});
+function flatEnd(e){if(flat.drag?.id===e.pointerId)flat.drag=null}flatCanvas?.addEventListener('pointerup',flatEnd);flatCanvas?.addEventListener('pointercancel',flatEnd);
+
+// 開啟工作室時，讓舊三面資料自動升級為六面資料。
+const _oldOpenPseudo3d=window.openPseudo3d;
+</script>
+
+<script>
+// V4.0：大型自由投影工作區。模型只負責投影，使用者可自由縮放、平移、旋轉與直接繪製。
+(() => {
+  pseudo3d.workspace={zoom:1,panX:0,panY:0,mode:false,space:false,panDrag:null};
+  const modal=$('#pseudo3dModal');
+  const dialog=modal.querySelector('.p3d-dialog');
+  const paint=$('#p3dPaintCanvas');
+  const stack=paint.parentElement;
+  const readout=$('#p3dWorkspaceZoomReadout');
+
+  function syncWorkspace(){
+    const w=pseudo3d.workspace;
+    if(readout)readout.textContent=Math.round(w.zoom*100)+'%';
+    updatePseudo3dCanvasPreview();
+  }
+  function setWorkspaceMode(on){
+    pseudo3d.workspace.mode=!!on;
+    dialog.classList.toggle('workspace-mode',!!on);
+    $('#p3dWorkspaceBtn')?.classList.toggle('active',!!on);
+    $('#p3dWorkspaceBtn') && ($('#p3dWorkspaceBtn').textContent=on?'✓ 大型自由工作區':'🖌 大型自由工作區');
+    if(on){
+      p3dSetPaintMode(true);
+      requestAnimationFrame(()=>requestAnimationFrame(p3dResizeLiveStudio));
+    }else{
+      requestAnimationFrame(()=>requestAnimationFrame(p3dResizeLiveStudio));
+    }
+    syncWorkspace();
+  }
+  function setZoom(value){
+    pseudo3d.workspace.zoom=Math.max(.25,Math.min(6,value));
+    syncWorkspace();
+  }
+  function centerWorkspace(){
+    pseudo3d.workspace.panX=0;pseudo3d.workspace.panY=0;syncWorkspace();
+  }
+  function fitWorkspace(){
+    pseudo3d.workspace.zoom=1;pseudo3d.workspace.panX=0;pseudo3d.workspace.panY=0;syncWorkspace();
+  }
+  $('#p3dWorkspaceBtn')?.addEventListener('click',()=>setWorkspaceMode(!pseudo3d.workspace.mode));
+  $('#p3dWorkspaceExit')?.addEventListener('click',()=>setWorkspaceMode(false));
+  $('#p3dWorkspaceZoomIn')?.addEventListener('click',()=>setZoom(pseudo3d.workspace.zoom*1.25));
+  $('#p3dWorkspaceZoomOut')?.addEventListener('click',()=>setZoom(pseudo3d.workspace.zoom/1.25));
+  $('#p3dWorkspaceCenter')?.addEventListener('click',centerWorkspace);
+  $('#p3dWorkspaceFit')?.addEventListener('click',fitWorkspace);
+
+  // 滾輪縮放，不再被模型原始尺寸鎖住。
+  paint.addEventListener('wheel',e=>{
+    if(!pseudo3d.workspace.mode)return;
+    e.preventDefault();
+    const before=pseudo3d.workspace.zoom;
+    const factor=e.deltaY<0?1.12:1/1.12;
+    const after=Math.max(.25,Math.min(6,before*factor));
+    const r=paint.getBoundingClientRect();
+    const px=(e.clientX-r.left)*paint.width/r.width,py=(e.clientY-r.top)*paint.height/r.height;
+    const cx=paint.width/2+pseudo3d.workspace.panX,cy=paint.height/2+pseudo3d.workspace.panY;
+    const ratio=after/before;
+    pseudo3d.workspace.panX += (px-cx)*(1-ratio);
+    pseudo3d.workspace.panY += (py-cy)*(1-ratio);
+    pseudo3d.workspace.zoom=after;syncWorkspace();
+  },{passive:false});
+
+  // Space＋拖曳或中鍵拖曳：移動畫面。以 capture 攔截，避免誤畫。
+  window.addEventListener('keydown',e=>{if(e.code==='Space'&&pseudo3d.workspace.mode){pseudo3d.workspace.space=true;e.preventDefault();}});
+  window.addEventListener('keyup',e=>{if(e.code==='Space')pseudo3d.workspace.space=false;});
+  paint.addEventListener('pointerdown',e=>{
+    if(!pseudo3d.workspace.mode)return;
+    if(e.button===1||pseudo3d.workspace.space){
+      e.preventDefault();e.stopImmediatePropagation();
+      paint.setPointerCapture(e.pointerId);
+      pseudo3d.workspace.panDrag={id:e.pointerId,x:e.clientX,y:e.clientY,panX:pseudo3d.workspace.panX,panY:pseudo3d.workspace.panY};
+      stack.classList.add('panning');
+    }
+  },true);
+  paint.addEventListener('pointermove',e=>{
+    const d=pseudo3d.workspace.panDrag;if(!d||d.id!==e.pointerId)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    const r=paint.getBoundingClientRect();
+    pseudo3d.workspace.panX=d.panX+(e.clientX-d.x)*paint.width/r.width;
+    pseudo3d.workspace.panY=d.panY+(e.clientY-d.y)*paint.height/r.height;
+    syncWorkspace();
+  },true);
+  function endPan(e){
+    const d=pseudo3d.workspace.panDrag;if(!d||d.id!==e.pointerId)return;
+    e.preventDefault();e.stopImmediatePropagation();pseudo3d.workspace.panDrag=null;stack.classList.remove('panning');
+  }
+  paint.addEventListener('pointerup',endPan,true);paint.addEventListener('pointercancel',endPan,true);
+
+  // 雙擊空白處快速回到完整視圖。
+  paint.addEventListener('dblclick',e=>{if(pseudo3d.workspace.mode&&e.button===0)fitWorkspace();});
 })();
 </script>
 </body>
