@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>重構繪圖板 V4.1｜可調投影間距</title>
+<title>重構繪圖板 V4.3.2｜修復白屏匯出</title>
 <style>
 :root{
   color-scheme:dark;
@@ -54,7 +54,7 @@ input[type="range"]{width:110px}
 .control{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:13px}
 .layer-list{display:flex;flex-direction:column;gap:6px}
 .layer-item{
-  display:grid;grid-template-columns:32px 32px 1fr;align-items:center;gap:5px;
+  display:grid;grid-template-columns:32px 32px 32px 1fr;align-items:center;gap:5px;
   padding:7px;border:1px solid var(--line);border-radius:8px;background:#292d34
 }
 .layer-icon{
@@ -362,6 +362,11 @@ input[type="range"]{width:110px}
       <button id="layerUpBtn">上移</button>
       <button id="layerDownBtn">下移</button>
     </div>
+    <div class="layer-controls">
+      <button id="mergeDownBtn" title="將目前圖層合併到下方圖層">合併下層</button>
+      <button id="mergeVisibleBtn" title="將所有可見圖層合併成一層">合併可見</button>
+      <button id="flattenLayersBtn" title="將所有圖層拼合成一層">拼合全部</button>
+    </div>
     <div class="control">
       <label>圖層不透明度</label>
       <input id="layerOpacityInput" type="range" min="0" max="100" value="100">
@@ -377,9 +382,10 @@ input[type="range"]{width:110px}
       油漆桶填滿相連顏色；魔術棒選取相連的近似顏色。<br>
       「顏色容差」越高，選取或填色的顏色範圍越廣。<br>
       剪下、複製、貼上與清除都有手機按鈕，也支援 Ctrl/Cmd+X、C、V。<br>
-      貼上後可移動、縮放、鏡射；按套用完成，按取消丟棄。<br>      「偽3D」可將目前選取或圖層內容套上簡易曲面網格，並輸出到新圖層。<br>
+      貼上後可移動、縮放、鏡射；按套用完成，按取消丟棄。<br>      「偽3D」可將目前選取或圖層內容套上簡易曲面網格，並輸出到新圖層；「網格密度」與「套用／輸出品質」可加密網格並自動抗鋸齒、消除接縫，讓曲面更平滑。<br>
       點眼睛顯示／隱藏圖層，點鎖頭鎖定／解鎖。<br>
       圖層可上下移動，並可調整不透明度。<br>
+      「合併下層」會將目前圖層併入下方圖層（也可點圖層列上的 ⬇ 圖示，或右鍵選單）；「合併可見」只合併目前顯示中的圖層；「拼合全部」會把所有圖層攤平成一層。鎖定中的圖層需先解鎖才能參與合併。<br>
       滑鼠滾輪可縮放；觸控裝置可用雙指縮放與移動畫布。手機筆刷會用移動速度模擬壓感，並支援素材筆刷。長按畫布可開啟操作選單。<br>
       Ctrl/Cmd+Z 復原，Ctrl/Cmd+Y 重做。
     </div>
@@ -400,6 +406,7 @@ input[type="range"]{width:110px}
   <button type="button" data-context-action="flipH">↔ 水平鏡射</button>
   <button type="button" data-context-action="flipV">↕ 垂直鏡射</button>
   <button type="button" data-context-action="addLayer">＋ 新增圖層</button>
+  <button type="button" data-context-action="mergeDown">⬇ 向下合併圖層</button>
   <button type="button" data-context-action="animation">🎞️ 動畫工作室</button>
 </div>
 
@@ -473,7 +480,7 @@ input[type="range"]{width:110px}
 
 <div id="pseudo3dModal" class="p3d-modal" aria-hidden="true">
   <div class="p3d-dialog">
-    <div class="panel-title">3D 工作室 V4.1｜可調投影間距</div>
+    <div class="panel-title">3D 工作室 V4.3.2｜修復白屏匯出</div>
     <div class="p3d-layout">
       <div class="p3d-preview-wrap">
         <div class="p3d-canvas-stack">
@@ -498,11 +505,14 @@ input[type="range"]{width:110px}
         <div class="p3d-row"><label for="p3dPitch">垂直 360°</label><input id="p3dPitch" type="range" min="-180" max="180" value="0"><span id="p3dPitchV">0°</span></div>
         <div class="p3d-row"><label for="p3dRoll">平面旋轉</label><input id="p3dRoll" type="range" min="-180" max="180" value="0"><span id="p3dRollV">0°</span></div>
         <div class="p3d-row"><label for="p3dCurve">曲面凹凸</label><input id="p3dCurve" type="range" min="-100" max="100" value="28"><span id="p3dCurveV">+28</span></div>
-        <div class="p3d-row"><label for="p3dDepth">模型厚度</label><input id="p3dDepth" type="range" min="0" max="100" value="28"><span id="p3dDepthV">28%</span></div>
+        <div class="p3d-row"><label for="p3dMeshType">網格類型</label><select id="p3dMeshType"><option value="wrap" selected>角度包覆曲面</option><option value="box">一般六面幾何</option></select><span id="p3dMeshTypeV">包覆</span></div>
+        <div class="p3d-row"><label for="p3dDepth">模型厚度</label><input id="p3dDepth" type="range" min="0" max="100" value="42"><span id="p3dDepthV">42%</span></div>
+        <div class="p3d-row"><label for="p3dWrapRound">包覆圓度</label><input id="p3dWrapRound" type="range" min="0" max="100" value="82"><span id="p3dWrapRoundV">82%</span></div>
+        <div class="p3d-row"><label for="p3dVerticalTaper">上下收束</label><input id="p3dVerticalTaper" type="range" min="0" max="100" value="42"><span id="p3dVerticalTaperV">42%</span></div>
         <div class="p3d-row"><label for="p3dProjectionGap">投影間距</label><input id="p3dProjectionGap" type="range" min="0" max="200" value="100"><span id="p3dProjectionGapV">100%</span></div>
         <div class="p3d-row" style="display:none"><label for="p3dRoundness">曲面圓滑</label><input id="p3dRoundness" type="range" min="0" max="100" value="0"><span id="p3dRoundnessV">0%</span></div>
         <div class="p3d-row" style="display:none"><label for="p3dEdgeSegments">過渡密度</label><input id="p3dEdgeSegments" type="range" min="1" max="10" value="1"><span id="p3dEdgeSegmentsV">1</span></div>
-        <div id="p3dSurfaceStatus" class="p3d-node-status">六個外表面皆為獨立大型方形畫布。三角形只負責顯示，不參與畫筆選面。</div>
+        <div id="p3dSurfaceStatus" class="p3d-node-status">包覆模式會用正面與背面兩張大型畫布形成封閉曲面；一般幾何仍保留六面畫布。</div>
         <div class="p3d-viewer-actions">
           <button id="p3dWorkspaceBtn" type="button">🖌 大型自由工作區</button>
           <button id="p3dFlatEditorBtn" type="button">🖼 平面畫布編輯</button>
@@ -538,11 +548,13 @@ input[type="range"]{width:110px}
         <div class="p3d-row"><label for="p3dNodeDepth">節點深度</label><input id="p3dNodeDepth" type="range" min="-100" max="100" value="0"><span id="p3dNodeDepthV">0</span></div>
         <div class="p3d-node-actions"><button id="p3dStraightenBtn" type="button">擺正節點</button><button id="p3dResetNodesBtn" type="button">重設節點</button></div>
         <div class="p3d-row"><label for="p3dCamera">鏡頭距離</label><input id="p3dCamera" type="range" min="280" max="1200" value="650"><span id="p3dCameraV">650</span></div>
-        <div class="p3d-row"><label for="p3dGrid">網格密度</label><input id="p3dGrid" type="range" min="3" max="14" value="7"><span id="p3dGridV">7</span></div>
+        <div class="p3d-row"><label for="p3dGrid">網格密度</label><input id="p3dGrid" type="range" min="3" max="48" value="7"><span id="p3dGridV">7</span></div>
         <label><input id="p3dShowGrid" type="checkbox" checked> 顯示網格線</label>
         <label><input id="p3dPixelMode" type="checkbox" checked> 像素／線稿清晰模式</label>
         <label><input id="p3dShowBack" type="checkbox" checked> 顯示背面／內側網格</label>
         <div class="p3d-row"><label for="p3dBackOpacity">背面透明度</label><input id="p3dBackOpacity" type="range" min="10" max="100" value="42"><span id="p3dBackOpacityV">42%</span></div>
+        <div class="p3d-row"><label for="p3dFinalQuality">套用／輸出品質</label><select id="p3dFinalQuality"><option value="standard">標準（最快）</option><option value="high" selected>高品質</option><option value="ultra">極致（較慢）</option></select></div>
+        <div id="p3dQualityStatus" class="p3d-node-status">拖曳滑桿時維持即時反應；停止約 0.2 秒後，或按下「套用變形」／「送回本體畫布」時，會自動用加密網格＋超取樣抗鋸齒重新算一次最終品質（像素／線稿清晰模式會保留銳利邊緣，不做模糊化超取樣）。</div>
         <div class="p3d-actions">
           <button id="p3dResetBtn" type="button">重設</button>
           <button id="p3dApplyBtn" type="button">✓ 套用變形</button>
@@ -552,7 +564,7 @@ input[type="range"]{width:110px}
           <div class="p3d-library-head"><strong>3D 工作室檔案庫</strong><button id="p3dSaveAssetBtn" type="button">儲存目前工作</button></div>
           <div id="p3dLibraryGrid" class="p3d-library-grid"></div>
         </div>
-        <div class="hint">大型繪製區採所見即得操作：左鍵或觸控筆畫在眼前最前方的表面；繪製模式中仍可按右鍵或 Alt 拖曳旋轉模型。「模型厚度」控制物件本身的厚薄；「投影間距」只控制前後表面在旋轉投影時拉開多少。若畫一個圓後看到前後兩個圓距離太遠，可降低投影間距，且不必重畫側面紋理。轉到側面時仍可直接在厚度表面繪製，轉到背面則寫入獨立背面紋理。按「送回本體畫布」可擷取目前角度；檔案庫會保存原始紋理、表面繪製、網格與角度。</div>
+        <div class="hint">大型繪製區採所見即得操作。預設「角度包覆曲面」會以 sin／cos 將正面與背面連成完整一圈，不再把兩張平面硬拉開。「包覆圓度」越高越接近圓形，越低越接近圓角盒；「上下收束」可縮窄頭頂與下巴。一般箱體或書本可切回「一般六面幾何」。</div>
       </div>
     </div>
   </div>
@@ -756,6 +768,18 @@ function renderLayers(){
       saveHistory(layer.locked?'鎖定圖層':'解除鎖定');
     };
 
+    const isBottom = state.layers.findIndex(l=>l.id===layer.id)===0;
+    const merge = document.createElement('button');
+    merge.className='layer-icon'+(isBottom?' off':'');
+    merge.type='button';
+    merge.title=isBottom?'已在最下層':'向下合併圖層';
+    merge.textContent='⬇';
+    merge.disabled=isBottom;
+    merge.onclick = e => {
+      e.stopPropagation();
+      mergeLayerDown(layer.id);
+    };
+
     const name = document.createElement('div');
     name.className='layer-name';
     name.textContent=(layer.background?'背景 · ':'')+layer.name;
@@ -776,7 +800,7 @@ function renderLayers(){
       }
     };
 
-    item.append(eye,lock,name);
+    item.append(eye,lock,merge,name);
     list.append(item);
   });
 
@@ -1783,7 +1807,7 @@ overlay.addEventListener('contextmenu',e=>{e.preventDefault();showCanvasContextM
 canvasContextMenu.addEventListener('click',e=>{
   const action=e.target.closest('[data-context-action]')?.dataset.contextAction;if(!action)return;
   hideCanvasContextMenu();
-  ({brush:()=>setTool('brush'),eraser:()=>setTool('eraser'),lasso:()=>setTool('lasso'),cut:cutToInternalClipboard,copy:copyToInternalClipboard,paste:pasteFromInternalClipboard,deselect:deselectSelection,flipH:()=>flipSelection(true,false),flipV:()=>flipSelection(false,true),addLayer:()=>{createLayer('新圖層');saveHistory('新增圖層')},animation:()=>$('#animationBtn').click() }[action]||(()=>{}))();
+  ({brush:()=>setTool('brush'),eraser:()=>setTool('eraser'),lasso:()=>setTool('lasso'),cut:cutToInternalClipboard,copy:copyToInternalClipboard,paste:pasteFromInternalClipboard,deselect:deselectSelection,flipH:()=>flipSelection(true,false),flipV:()=>flipSelection(false,true),addLayer:()=>{createLayer('新圖層');saveHistory('新增圖層')},mergeDown:()=>mergeLayerDown(),animation:()=>$('#animationBtn').click() }[action]||(()=>{}))();
 });
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#canvasContextMenu'))hideCanvasContextMenu();});
 window.addEventListener('blur',hideCanvasContextMenu);
@@ -2221,6 +2245,80 @@ function moveActiveLayer(direction){
   saveHistory(direction>0?'圖層上移':'圖層下移');
 }
 
+function mergeLayerInto(upper,lower){
+  // 將 upper 的內容（依其不透明度）畫進 lower，並移除 upper
+  const ctx=lower.canvas.getContext('2d');
+  ctx.save();
+  ctx.globalAlpha=upper.opacity;
+  ctx.drawImage(upper.canvas,0,0);
+  ctx.restore();
+  upper.canvas.remove();
+  const idx=state.layers.findIndex(l=>l.id===upper.id);
+  if(idx>-1) state.layers.splice(idx,1);
+}
+
+function mergeLayerDown(targetLayerId){
+  commitSelection();
+  const id=targetLayerId||state.activeLayerId;
+  const i=state.layers.findIndex(l=>l.id===id);
+  if(i<0) return;
+  if(i===0){ setStatus('已在最下層，沒有可合併的圖層'); return; }
+
+  const upper=state.layers[i];
+  const lower=state.layers[i-1];
+  if(upper.locked||lower.locked){
+    alert('請先解除圖層鎖定再合併。');
+    return;
+  }
+
+  mergeLayerInto(upper,lower);
+  state.activeLayerId=lower.id;
+  syncLayerDomOrder();
+  renderLayers();
+  setStatus('已合併到下方圖層「'+lower.name+'」');
+  saveHistory('向下合併圖層');
+}
+
+function mergeVisibleLayers(){
+  commitSelection();
+  const visible=state.layers.filter(l=>l.visible);
+  if(visible.length<=1){ setStatus('沒有足夠的可見圖層可合併'); return; }
+  if(visible.some(l=>l.locked)){
+    alert('請先解除鎖定的可見圖層再合併。');
+    return;
+  }
+
+  const base=visible[0]; // 陣列中位置最低（最底層）的可見圖層
+  visible.slice(1).forEach(l=>mergeLayerInto(l,base));
+  base.opacity=1;
+  applyLayerAppearance(base);
+
+  state.activeLayerId=base.id;
+  syncLayerDomOrder();
+  renderLayers();
+  setStatus('已合併所有可見圖層');
+  saveHistory('合併可見圖層');
+}
+
+function flattenAllLayers(){
+  commitSelection();
+  if(state.layers.length<=1){ setStatus('只有一個圖層，不需要拼合'); return; }
+  if(state.layers.some(l=>l.locked)){
+    alert('請先解除所有鎖定的圖層再拼合。');
+    return;
+  }
+
+  const composed=compositeCanvas();
+  const name=state.layers.find(l=>l.background)?.name || '圖層 1';
+  state.layers.forEach(l=>l.canvas.remove());
+  state.layers=[];
+  const layer=createLayer(name);
+  layer.canvas.getContext('2d').drawImage(composed,0,0);
+  renderLayers();
+  setStatus('已拼合所有圖層');
+  saveHistory('拼合所有圖層');
+}
+
 $('#exportBtn').onclick=()=>compositeCanvas().toBlob(b=>download((state.currentProjectName||'drawing')+'.png',b),'image/png');
 $('#projectLibraryBtn').onclick=openProjectLibrary;
 $('#saveProjectBtn').onclick=()=>saveCurrentProject(false);
@@ -2289,6 +2387,9 @@ $('#addLayerBtn').onclick=()=>{
 $('#deleteLayerBtn').onclick=deleteActiveLayer;
 $('#layerUpBtn').onclick=()=>moveActiveLayer(1);
 $('#layerDownBtn').onclick=()=>moveActiveLayer(-1);
+$('#mergeDownBtn').onclick=()=>mergeLayerDown();
+$('#mergeVisibleBtn').onclick=mergeVisibleLayers;
+$('#flattenLayersBtn').onclick=flattenAllLayers;
 $('#layerOpacityInput').oninput=e=>{
   const layer=activeLayer();
   if(!layer) return;
@@ -2987,7 +3088,22 @@ const pseudo3d={
   paintHistoryIndex:-1
 };
 
-function affineTriangle(ctx,img,s0,s1,s2,d0,d1,d2){
+// V4.4：接縫抗鋸齒修補。
+// 每個三角形各自 clip 再貼圖時，相鄰三角形的邊界會各自做次像素反鋸齒，
+// 兩者疊在一起常常在曲面接縫處留下一條若隱若現的鋸齒／裂縫。
+// 做法：clip 用的多邊形往三角形重心方向外擴一點點（貼圖的仿射矩陣仍用原始頂點計算，
+// 所以外擴出來的範圍會用同一張材質「自然延伸」貼滿，等於讓相鄰三角形微幅重疊，
+// 縫隙就消失了，而不會讓貼圖本身變形或模糊。
+function p3dExpandTriPoints(d0,d1,d2,amount){
+  if(!amount)return[d0,d1,d2];
+  const cx=(d0.x+d1.x+d2.x)/3,cy=(d0.y+d1.y+d2.y)/3;
+  const push=p=>{
+    const dx=p.x-cx,dy=p.y-cy,len=Math.hypot(dx,dy)||1;
+    return{x:p.x+dx/len*amount,y:p.y+dy/len*amount};
+  };
+  return[push(d0),push(d1),push(d2)];
+}
+function affineTriangle(ctx,img,s0,s1,s2,d0,d1,d2,seamFix=0.75){
   const den=s0.x*(s1.y-s2.y)+s1.x*(s2.y-s0.y)+s2.x*(s0.y-s1.y);
   if(Math.abs(den)<0.0001)return;
 
@@ -2998,11 +3114,13 @@ function affineTriangle(ctx,img,s0,s1,s2,d0,d1,d2){
   const d=(d0.y*(s2.x-s1.x)+d1.y*(s0.x-s2.x)+d2.y*(s1.x-s0.x))/den;
   const f=(d0.y*(s1.x*s2.y-s2.x*s1.y)+d1.y*(s2.x*s0.y-s0.x*s2.y)+d2.y*(s0.x*s1.y-s1.x*s0.y))/den;
 
+  const[e0,e1,e2]=p3dExpandTriPoints(d0,d1,d2,seamFix);
+
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(d0.x,d0.y);
-  ctx.lineTo(d1.x,d1.y);
-  ctx.lineTo(d2.x,d2.y);
+  ctx.moveTo(e0.x,e0.y);
+  ctx.lineTo(e1.x,e1.y);
+  ctx.lineTo(e2.x,e2.y);
   ctx.closePath();
   ctx.clip();
   ctx.setTransform(a,b,c,d,e,f);
@@ -3115,6 +3233,9 @@ function updatePseudo3dLabels(){
   $('#p3dCurveV').textContent=(curveValue>0?'+':'')+curveValue;
   if($('#p3dDepthV'))$('#p3dDepthV').textContent=$('#p3dDepth').value+'%';
   if($('#p3dProjectionGapV'))$('#p3dProjectionGapV').textContent=$('#p3dProjectionGap').value+'%';
+  if($('#p3dWrapRoundV'))$('#p3dWrapRoundV').textContent=$('#p3dWrapRound').value+'%';
+  if($('#p3dVerticalTaperV'))$('#p3dVerticalTaperV').textContent=$('#p3dVerticalTaper').value+'%';
+  if($('#p3dMeshTypeV'))$('#p3dMeshTypeV').textContent=$('#p3dMeshType').value==='wrap'?'包覆':'六面';
   if($('#p3dRoundnessV'))$('#p3dRoundnessV').textContent=$('#p3dRoundness').value+'%';
   if($('#p3dEdgeSegmentsV'))$('#p3dEdgeSegmentsV').textContent=$('#p3dEdgeSegments').value;
   $('#p3dNodeDepthV').textContent=$('#p3dNodeDepth').value;
@@ -3175,21 +3296,73 @@ function p3dEscapeHtmlText(text){
 }
 function p3dExportViewerHtml(){
   if(!pseudo3d.source)return;
-  const imageData=pseudo3d.source.toDataURL('image/png');
+  p3dEnsureTextureLayers();
+  p3dRefreshTexture();
+
+  const textureData={};
+  for(const [key,surface] of Object.entries(pseudo3d.surfaces||{})){
+    if(surface?.composite)textureData[key]=surface.composite.toDataURL('image/png');
+  }
+  const patchData=(pseudo3d.patches||[]).map(patch=>({
+    id:patch.id,
+    side:patch.side||'left',
+    y:Number(patch.y||-.1),
+    size:Number(patch.size||.28),
+    depth:Number(patch.depth||.35),
+    texture:patch.surface?.composite?.toDataURL('image/png')||''
+  }));
+
   const config={
     title:state.currentProjectName||'互動 3D 作品',
+    width:pseudo3d.originalSource?.width||pseudo3d.source.width,
+    height:pseudo3d.originalSource?.height||pseudo3d.source.height,
     yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value),roll:Number($('#p3dRoll').value),
     curve:Number($('#p3dCurve').value),camera:Number($('#p3dCamera').value),grid:Number($('#p3dGrid').value),
+    meshType:$('#p3dMeshType')?.value||'wrap',
+    depth:Number($('#p3dDepth').value),projectionGap:Number($('#p3dProjectionGap').value),
+    wrapRound:Number($('#p3dWrapRound')?.value||82),verticalTaper:Number($('#p3dVerticalTaper')?.value||42),
     showBack:$('#p3dShowBack').checked,backOpacity:Number($('#p3dBackOpacity').value)/100,
     pixelMode:$('#p3dPixelMode').checked,nodeCols:pseudo3d.nodeCols,nodeRows:pseudo3d.nodeRows,
-    nodes:pseudo3d.nodes.map(n=>({u:n.u,v:n.v,dx:n.dx,dy:n.dy,dz:n.dz}))
+    nodes:pseudo3d.nodes.map(n=>({u:n.u,v:n.v,dx:n.dx,dy:n.dy,dz:n.dz})),
+    patches:patchData
   };
   const safeTitle=p3dEscapeHtmlText(config.title);
-  const html=`<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${safeTitle}｜互動3D展示</title><style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{display:grid;place-items:center;overflow:hidden;background:#15171b;color:#eef2f6;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;user-select:none}.stage{width:min(94vw,900px);height:min(88vh,760px);display:grid;grid-template-rows:auto 1fr auto;gap:10px}.head{display:flex;align-items:center;gap:8px}.head h1{font-size:16px;margin:0;flex:1}.head button{border:1px solid #48505c;background:#292e36;color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer}.viewer{min-height:0;display:grid;place-items:center;border:1px solid #343a44;border-radius:14px;overflow:hidden;background:repeating-conic-gradient(#252a31 0 25%,#1d2127 0 50%) 50%/24px 24px;box-shadow:0 18px 60px rgba(0,0,0,.35)}canvas{max-width:100%;max-height:100%;touch-action:none;cursor:grab}.hint{text-align:center;font-size:12px;color:#aeb5bf;padding-bottom:env(safe-area-inset-bottom)}button.active{background:#174f83;border-color:#68adff}</style></head><body><main class="stage"><header class="head"><h1>${safeTitle}</h1><button id="auto">▶ 自動旋轉</button><button id="reset">回正</button></header><section class="viewer"><canvas id="c"></canvas></section><div class="hint">拖曳旋轉・手機可滑動・雙擊回正</div></main><script>const CONFIG=${JSON.stringify(config)};const IMAGE=${JSON.stringify(imageData)};const c=document.querySelector('#c'),ctx=c.getContext('2d'),img=new Image();let yaw=CONFIG.yaw,pitch=CONFIG.pitch,drag=null,auto=false,raf=0,last=0;function norm(n){while(n>180)n-=360;while(n<-180)n+=360;return n}function rot(x,y,z,ya,pi,ro){const cy=Math.cos(ya),sy=Math.sin(ya),cx=Math.cos(pi),sx=Math.sin(pi),cz=Math.cos(ro),sz=Math.sin(ro),x1=x*cy+z*sy,z1=-x*sy+z*cy,y1=y,y2=y1*cx-z1*sx,z2=y1*sx+z1*cx,x2=x1;return{x:x2*cz-y2*sz,y:x2*sz+y2*cz,z:z2}}function nodeAt(i,j){return CONFIG.nodes[j*(CONFIG.nodeCols+1)+i]}function influence(u,v){const gx=Math.min(CONFIG.nodeCols-1,Math.floor(u*CONFIG.nodeCols)),gy=Math.min(CONFIG.nodeRows-1,Math.floor(v*CONFIG.nodeRows)),tx=u*CONFIG.nodeCols-gx,ty=v*CONFIG.nodeRows-gy,n00=nodeAt(gx,gy),n10=nodeAt(gx+1,gy),n01=nodeAt(gx,gy+1),n11=nodeAt(gx+1,gy+1),mix=k=>n00[k]*(1-tx)*(1-ty)+n10[k]*tx*(1-ty)+n01[k]*(1-tx)*ty+n11[k]*tx*ty;return{dx:mix('dx'),dy:mix('dy'),dz:mix('dz')}}function affine(s0,s1,s2,d0,d1,d2){const den=s0.x*(s1.y-s2.y)+s1.x*(s2.y-s0.y)+s2.x*(s0.y-s1.y);if(Math.abs(den)<.0001)return;const a=(d0.x*(s1.y-s2.y)+d1.x*(s2.y-s0.y)+d2.x*(s0.y-s1.y))/den,cc=(d0.x*(s2.x-s1.x)+d1.x*(s0.x-s2.x)+d2.x*(s1.x-s0.x))/den,e=(d0.x*(s1.x*s2.y-s2.x*s1.y)+d1.x*(s2.x*s0.y-s0.x*s2.y)+d2.x*(s0.x*s1.y-s1.x*s0.y))/den,b=(d0.y*(s1.y-s2.y)+d1.y*(s2.y-s0.y)+d2.y*(s0.y-s1.y))/den,d=(d0.y*(s2.x-s1.x)+d1.y*(s0.x-s2.x)+d2.y*(s1.x-s0.x))/den,f=(d0.y*(s1.x*s2.y-s2.x*s1.y)+d1.y*(s2.x*s0.y-s0.x*s2.y)+d2.y*(s0.x*s1.y-s1.x*s0.y))/den;ctx.save();ctx.beginPath();ctx.moveTo(d0.x,d0.y);ctx.lineTo(d1.x,d1.y);ctx.lineTo(d2.x,d2.y);ctx.closePath();ctx.clip();ctx.setTransform(a,b,cc,d,e,f);ctx.drawImage(img,0,0);ctx.restore()}function render(){const cols=Math.max(2,CONFIG.grid),rows=cols,w=img.width,h=img.height,ya=yaw*Math.PI/180,pi=pitch*Math.PI/180,ro=CONFIG.roll*Math.PI/180,curve=CONFIG.curve/100,cam=Math.max(80,CONFIG.camera),scale=Math.min(c.width/w,c.height/h),pts=[];for(let j=0;j<=rows;j++){const row=[];for(let i=0;i<=cols;i++){const u=i/cols,v=j/rows,x=(u-.5)*w,y=(v-.5)*h,nx=x/(w*.5||1),ny=y/(h*.5||1),no=influence(u,v),z=curve*w*.28*(1-Math.min(1,nx*nx*.72+ny*ny*.28))+no.dz*w*.004,r=rot(x,y,z,ya,pi,ro),per=cam/Math.max(20,cam-r.z);row.push({x:c.width/2+r.x*per*scale+no.dx,y:c.height/2+r.y*per*scale+no.dy,z:r.z,sx:u*w,sy:v*h})}pts.push(row)}const ts=[];for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=pts[j][i],b=pts[j][i+1],d=pts[j+1][i],e=pts[j+1][i+1],ar1=(b.x-a.x)*(e.y-a.y)-(b.y-a.y)*(e.x-a.x),ar2=(e.x-a.x)*(d.y-a.y)-(e.y-a.y)*(d.x-a.x);ts.push({p:[a,b,e],z:(a.z+b.z+e.z)/3,front:ar1>=0},{p:[a,e,d],z:(a.z+e.z+d.z)/3,front:ar2>=0})}ts.sort((a,b)=>a.z-b.z);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,c.width,c.height);ctx.imageSmoothingEnabled=!CONFIG.pixelMode;for(const t of ts){if(t.front)ctx.globalAlpha=1;else if(CONFIG.showBack)ctx.globalAlpha=CONFIG.backOpacity;else continue;affine({x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2])}ctx.globalAlpha=1}function resize(){const box=c.parentElement.getBoundingClientRect(),ratio=Math.min(2,devicePixelRatio||1);c.width=Math.max(320,Math.floor(box.width*ratio));c.height=Math.max(260,Math.floor(box.height*ratio));render()}c.onpointerdown=e=>{drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch};c.setPointerCapture(e.pointerId);c.style.cursor='grabbing'};c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;yaw=norm(drag.yaw+(e.clientX-drag.x)*.55);pitch=Math.max(-180,Math.min(180,drag.pitch-(e.clientY-drag.y)*.45));render()};function end(e){if(drag&&drag.id===e.pointerId){drag=null;c.style.cursor='grab'}}c.onpointerup=end;c.onpointercancel=end;c.ondblclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#reset').onclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#auto').onclick=()=>{auto=!auto;document.querySelector('#auto').classList.toggle('active',auto);document.querySelector('#auto').textContent=auto?'⏸ 停止旋轉':'▶ 自動旋轉';last=0;if(auto)raf=requestAnimationFrame(step);else cancelAnimationFrame(raf)};function step(t){if(!auto)return;if(!last)last=t;const dt=Math.min(40,t-last);last=t;yaw=norm(yaw+dt*.035);render();raf=requestAnimationFrame(step)};addEventListener('resize',resize);img.onload=resize;img.src=IMAGE;<\/script></body></html>`;
-  download((state.currentProjectName||'interactive-3d')+'_互動3D.html',new Blob([html],{type:'text/html;charset=utf-8'}));
-  setStatus('已匯出可拖曳旋轉的互動 HTML');
+  const html=`<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${safeTitle}｜互動3D展示</title><style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{display:grid;place-items:center;overflow:hidden;background:#15171b;color:#eef2f6;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;user-select:none}.stage{width:min(96vw,1000px);height:min(92vh,820px);display:grid;grid-template-rows:auto 1fr auto;gap:10px}.head{display:flex;align-items:center;gap:8px}.head h1{font-size:16px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.head button{border:1px solid #48505c;background:#292e36;color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer}.viewer{min-height:0;display:grid;place-items:center;border:1px solid #343a44;border-radius:14px;overflow:hidden;background:repeating-conic-gradient(#252a31 0 25%,#1d2127 0 50%) 50%/24px 24px;box-shadow:0 18px 60px rgba(0,0,0,.35)}canvas{width:100%;height:100%;touch-action:none;cursor:grab}.hint{text-align:center;font-size:12px;color:#aeb5bf;padding-bottom:env(safe-area-inset-bottom)}button.active{background:#174f83;border-color:#68adff}</style></head><body><main class="stage"><header class="head"><h1>${safeTitle}</h1><button id="auto">▶ 自動旋轉</button><button id="reset">回正</button></header><section class="viewer"><canvas id="c"></canvas></section><div class="hint">完整表面展示：正面、背面、側面與特殊部件皆會隨模型旋轉・拖曳旋轉・雙擊回正</div></main><script>
+const CONFIG=${JSON.stringify(config)};
+const TEXTURES=${JSON.stringify(textureData)};
+const c=document.querySelector('#c'),ctx=c.getContext('2d');
+const images={};let yaw=CONFIG.yaw,pitch=CONFIG.pitch,drag=null,auto=false,raf=0,last=0,ready=false;
+function norm(n){while(n>180)n-=360;while(n<-180)n+=360;return n}
+function rot(x,y,z,ya,pi,ro){const cy=Math.cos(ya),sy=Math.sin(ya),cx=Math.cos(pi),sx=Math.sin(pi),cz=Math.cos(ro),sz=Math.sin(ro),x1=x*cy+z*sy,z1=-x*sy+z*cy,y1=y,y2=y1*cx-z1*sx,z2=y1*sx+z1*cx,x2=x1;return{x:x2*cz-y2*sz,y:x2*sz+y2*cz,z:z2}}
+function nodeAt(i,j){return CONFIG.nodes[j*(CONFIG.nodeCols+1)+i]||{dx:0,dy:0,dz:0}}
+function influence(u,v){const gx=Math.min(CONFIG.nodeCols-1,Math.max(0,Math.floor(u*CONFIG.nodeCols))),gy=Math.min(CONFIG.nodeRows-1,Math.max(0,Math.floor(v*CONFIG.nodeRows))),tx=u*CONFIG.nodeCols-gx,ty=v*CONFIG.nodeRows-gy,n00=nodeAt(gx,gy),n10=nodeAt(gx+1,gy),n01=nodeAt(gx,gy+1),n11=nodeAt(gx+1,gy+1),mix=k=>n00[k]*(1-tx)*(1-ty)+n10[k]*tx*(1-ty)+n01[k]*(1-tx)*ty+n11[k]*tx*ty;return{dx:mix('dx'),dy:mix('dy'),dz:mix('dz')}}
+function expandTri(d0,d1,d2,amount){const cx=(d0.x+d1.x+d2.x)/3,cy=(d0.y+d1.y+d2.y)/3,push=p=>{const dx=p.x-cx,dy=p.y-cy,len=Math.hypot(dx,dy)||1;return{x:p.x+dx/len*amount,y:p.y+dy/len*amount}};return[push(d0),push(d1),push(d2)]}
+function affine(img,s0,s1,s2,d0,d1,d2){if(!img)return;const den=s0.x*(s1.y-s2.y)+s1.x*(s2.y-s0.y)+s2.x*(s0.y-s1.y);if(Math.abs(den)<.0001)return;const a=(d0.x*(s1.y-s2.y)+d1.x*(s2.y-s0.y)+d2.x*(s0.y-s1.y))/den,cc=(d0.x*(s2.x-s1.x)+d1.x*(s0.x-s2.x)+d2.x*(s1.x-s0.x))/den,e=(d0.x*(s1.x*s2.y-s2.x*s1.y)+d1.x*(s2.x*s0.y-s0.x*s2.y)+d2.x*(s0.x*s1.y-s1.x*s0.y))/den,b=(d0.y*(s1.y-s2.y)+d1.y*(s2.y-s0.y)+d2.y*(s0.y-s1.y))/den,d=(d0.y*(s2.x-s1.x)+d1.y*(s0.x-s2.x)+d2.y*(s1.x-s0.x))/den,f=(d0.y*(s1.x*s2.y-s2.x*s1.y)+d1.y*(s2.x*s0.y-s0.x*s2.y)+d2.x*0+d2.y*(s0.x*s1.y-s1.x*s0.y))/den;const[e0,e1,e2]=expandTri(d0,d1,d2,.75);ctx.save();ctx.beginPath();ctx.moveTo(e0.x,e0.y);ctx.lineTo(e1.x,e1.y);ctx.lineTo(e2.x,e2.y);ctx.closePath();ctx.clip();ctx.setTransform(a,b,cc,d,e,f);ctx.drawImage(img,0,0);ctx.restore()}
+function build(){const W=Math.max(1,CONFIG.width),H=Math.max(1,CONFIG.height),div=Math.max(3,CONFIG.grid),ya=yaw*Math.PI/180,pi=pitch*Math.PI/180,ro=CONFIG.roll*Math.PI/180,cam=Math.max(80,CONFIG.camera),textureDepth=Math.max(2,CONFIG.depth/100)*Math.min(W,H)*.9,D=textureDepth*Math.max(0,CONFIG.projectionGap)/100,scale=Math.min(c.width/(W+D*1.5),c.height/(H+D*1.5)),project=(x,y,z)=>{const r=rot(x,y,z,ya,pi,ro),per=cam/Math.max(20,cam-r.z);return{x:c.width/2+r.x*per*scale,y:c.height/2+r.y*per*scale,z:r.z}},tris=[];
+function addFace(key,map,cols,rows,img=images[key]){if(!img)return;const pts=[];for(let j=0;j<=rows;j++){const row=[];for(let i=0;i<=cols;i++){const u=i/cols,v=j/rows,w=map(u,v),p=project(w.x,w.y,w.z);row.push({...p,sx:u*img.width,sy:v*img.height})}pts.push(row)}for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=pts[j][i],b=pts[j][i+1],cc=pts[j+1][i+1],d=pts[j+1][i];tris.push({p:[a,b,cc],z:(a.z+b.z+cc.z)/3,img},{p:[a,cc,d],z:(a.z+cc.z+d.z)/3,img})}}
+const zf=D/2,zb=-D/2;
+if(CONFIG.meshType==='wrap'){
+ const ringCols=Math.max(12,div*3),rows=Math.max(5,div),round=Math.max(0,Math.min(1,CONFIG.wrapRound/100)),taper=Math.max(0,Math.min(1,CONFIG.verticalTaper/100)),superN=10-8*round,pow=2/superN;
+ function addHalf(key,startTheta,endTheta,flip){const img=images[key];if(!img)return;const pts=[];for(let j=0;j<=rows;j++){const v=j/rows,row=[],bell=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.62),profile=(1-taper)+taper*(.20+.80*bell);for(let i=0;i<=ringCols;i++){const u=i/ringCols,theta=startTheta+(endTheta-startTheta)*u,st=Math.sin(theta),ct=Math.cos(theta),rx=W*.5*profile,rz=Math.max(2,D*.5)*profile,x=Math.sign(st)*Math.pow(Math.abs(st),pow)*rx,z=Math.sign(ct)*Math.pow(Math.abs(ct),pow)*rz,no=key==='front'?influence(u,v):{dx:0,dy:0,dz:0},curve=CONFIG.curve/100,frontWeight=Math.max(0,ct),bump=curve*W*.10*frontWeight*(1-Math.min(1,((u-.5)*2)**2*.7+((v-.5)*2)**2*.3))+no.dz*W*.004,p=project(x+no.dx/scale,(v-.5)*H+no.dy/scale,z+bump),tu=flip?1-u:u;row.push({...p,sx:tu*img.width,sy:v*img.height})}pts.push(row)}for(let j=0;j<rows;j++)for(let i=0;i<ringCols;i++){const a=pts[j][i],b=pts[j][i+1],cc=pts[j+1][i+1],d=pts[j+1][i];tris.push({p:[a,b,cc],z:(a.z+b.z+cc.z)/3,img},{p:[a,cc,d],z:(a.z+cc.z+d.z)/3,img})}}
+ addHalf('front',-Math.PI/2,Math.PI/2,false);addHalf('back',Math.PI/2,Math.PI*1.5,true);
+}else{
+ addFace('front',(u,v)=>{const no=influence(u,v),x=(u-.5)*W+no.dx/scale,y=(v-.5)*H+no.dy/scale,curve=CONFIG.curve/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
+ addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
+ addFace('left',(u,v)=>({x:-W/2,y:(v-.5)*H,z:zb+u*D}),Math.max(1,Math.ceil(div/2)),div);
+ addFace('right',(u,v)=>({x:W/2,y:(v-.5)*H,z:zf-u*D}),Math.max(1,Math.ceil(div/2)),div);
+ addFace('top',(u,v)=>({x:(u-.5)*W,y:-H/2,z:zb+v*D}),div,Math.max(1,Math.ceil(div/2)));
+ addFace('bottom',(u,v)=>({x:(u-.5)*W,y:H/2,z:zf-v*D}),div,Math.max(1,Math.ceil(div/2)));
 }
-
+for(const patch of CONFIG.patches||[]){const img=images['patch:'+patch.id];if(!img)continue;const side=patch.side||'left',size=Math.min(W,H)*(patch.size||.28),ph=size*1.25,pw=size*.72,py=(patch.y||-.1)*H,baseX=side==='left'?-W/2:W/2,sign=side==='left'?-1:1,forward=D/2+(patch.depth||.35)*Math.min(W,H)*.35,pts=[];for(let j=0;j<=3;j++){const row=[];for(let i=0;i<=2;i++){const u=i/2,v=j/3,p=project(baseX+sign*u*pw,py+(v-.5)*ph,forward+Math.sin(u*Math.PI)*pw*.22);row.push({...p,sx:u*img.width,sy:v*img.height})}pts.push(row)}for(let j=0;j<3;j++)for(let i=0;i<2;i++){const a=pts[j][i],b=pts[j][i+1],cc=pts[j+1][i+1],d=pts[j+1][i];tris.push({p:[a,b,cc],z:(a.z+b.z+cc.z)/3,img},{p:[a,cc,d],z:(a.z+cc.z+d.z)/3,img})}}
+for(const t of tris){const[a,b,d]=t.p;t.front=((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x))>=0}tris.sort((a,b)=>a.z-b.z);return tris}
+function render(){if(!ready)return;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,c.width,c.height);ctx.imageSmoothingEnabled=!CONFIG.pixelMode;if(!CONFIG.pixelMode&&'imageSmoothingQuality'in ctx)ctx.imageSmoothingQuality='high';for(const t of build()){if(!t.front&&!CONFIG.showBack)continue;ctx.globalAlpha=t.front?1:CONFIG.backOpacity;affine(t.img,{x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2])}ctx.globalAlpha=1}
+function resize(){const box=c.parentElement.getBoundingClientRect(),ratio=Math.min(2,devicePixelRatio||1);c.width=Math.max(320,Math.floor(box.width*ratio));c.height=Math.max(260,Math.floor(box.height*ratio));render()}
+async function load(){const jobs=[];for(const[key,url]of Object.entries(TEXTURES)){jobs.push(new Promise(resolve=>{const im=new Image();im.onload=()=>{images[key]=im;resolve()};im.onerror=resolve;im.src=url}))}for(const patch of CONFIG.patches||[]){if(!patch.texture)continue;jobs.push(new Promise(resolve=>{const im=new Image();im.onload=()=>{images['patch:'+patch.id]=im;resolve()};im.onerror=resolve;im.src=patch.texture}))}await Promise.all(jobs);ready=true;resize()}
+c.onpointerdown=e=>{drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch};c.setPointerCapture(e.pointerId);c.style.cursor='grabbing'};c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;yaw=norm(drag.yaw+(e.clientX-drag.x)*.55);pitch=Math.max(-180,Math.min(180,drag.pitch-(e.clientY-drag.y)*.45));render()};function end(e){if(drag&&drag.id===e.pointerId){drag=null;c.style.cursor='grab'}}c.onpointerup=end;c.onpointercancel=end;c.ondblclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#reset').onclick=()=>{yaw=0;pitch=0;render()};document.querySelector('#auto').onclick=()=>{auto=!auto;document.querySelector('#auto').classList.toggle('active',auto);document.querySelector('#auto').textContent=auto?'⏸ 停止旋轉':'▶ 自動旋轉';last=0;if(auto)raf=requestAnimationFrame(step);else cancelAnimationFrame(raf)};function step(t){if(!auto)return;if(!last)last=t;const dt=Math.min(40,t-last);last=t;yaw=norm(yaw+dt*.035);render();raf=requestAnimationFrame(step)};addEventListener('resize',resize);load().catch(err=>{console.error(err);ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#fff';ctx.font='16px system-ui';ctx.fillText('互動 3D 載入失敗：'+(err?.message||err),24,40)});
+<\/script></body></html>`;
+  download((state.currentProjectName||'interactive-3d')+'_完整表面互動3D.html',new Blob([html],{type:'text/html;charset=utf-8'}));
+  setStatus('已匯出包含正面、背面、側面與部件的互動 HTML');
+}
 
 
 
@@ -3287,7 +3460,7 @@ function p3dSetPaintMode(enabled){
   renderPseudo3d();
 }
 function p3dCompositeCurrent(){
-  return p3dCreateFixedResult();
+  return p3dCreateFixedResult({final:true});
 }
 function p3dSendToMainCanvas(){
   if(!pseudo3d.active)return;
@@ -3298,7 +3471,7 @@ function p3dSendToMainCanvas(){
   setStatus('已把目前3D角度擷取到本體畫布的新圖層');
 }
 function p3dSettingsSnapshot(){return {
-  yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value),roll:Number($('#p3dRoll').value),curve:Number($('#p3dCurve').value),depth:Number($('#p3dDepth').value),projectionGap:Number($('#p3dProjectionGap').value),roundness:Number($('#p3dRoundness').value),edgeSegments:Number($('#p3dEdgeSegments').value),camera:Number($('#p3dCamera').value),grid:Number($('#p3dGrid').value),showGrid:$('#p3dShowGrid').checked,pixelMode:$('#p3dPixelMode').checked,showBack:$('#p3dShowBack').checked,backOpacity:Number($('#p3dBackOpacity').value),nodes:pseudo3d.nodes.map(n=>({...n})),bounds:{...pseudo3d.bounds},surfaceVersion:2
+  yaw:Number($('#p3dYaw').value),pitch:Number($('#p3dPitch').value),roll:Number($('#p3dRoll').value),curve:Number($('#p3dCurve').value),meshType:$('#p3dMeshType').value,depth:Number($('#p3dDepth').value),wrapRound:Number($('#p3dWrapRound').value),verticalTaper:Number($('#p3dVerticalTaper').value),projectionGap:Number($('#p3dProjectionGap').value),roundness:Number($('#p3dRoundness').value),edgeSegments:Number($('#p3dEdgeSegments').value),camera:Number($('#p3dCamera').value),grid:Number($('#p3dGrid').value),showGrid:$('#p3dShowGrid').checked,pixelMode:$('#p3dPixelMode').checked,showBack:$('#p3dShowBack').checked,backOpacity:Number($('#p3dBackOpacity').value),nodes:pseudo3d.nodes.map(n=>({...n})),bounds:{...pseudo3d.bounds},surfaceVersion:2
 }}
 async function p3dSaveAsset(){
   if(!pseudo3d.active)return;
@@ -3325,7 +3498,8 @@ async function p3dLoadAsset(id){
     await drawBlob(a.paintBlob,pseudo3d.surfaces.front.paint);
     await drawBlob(a.sideBaseBlob,pseudo3d.surfaces.side.base);await drawBlob(a.sidePaintBlob,pseudo3d.surfaces.side.paint);
     await drawBlob(a.backBaseBlob,pseudo3d.surfaces.back.base);await drawBlob(a.backPaintBlob,pseudo3d.surfaces.back.paint);
-    const st=a.settings||{};['yaw','pitch','roll','curve','depth','projectionGap','roundness','edgeSegments','camera','grid','backOpacity'].forEach(k=>{const el=$('#p3d'+k[0].toUpperCase()+k.slice(1));if(el&&st[k]!==undefined)el.value=st[k]});
+    const st=a.settings||{};['yaw','pitch','roll','curve','depth','wrapRound','verticalTaper','projectionGap','roundness','edgeSegments','camera','grid','backOpacity'].forEach(k=>{const el=$('#p3d'+k[0].toUpperCase()+k.slice(1));if(el&&st[k]!==undefined)el.value=st[k]});
+    if(st.meshType!==undefined&&$('#p3dMeshType'))$('#p3dMeshType').value=st.meshType;
     if(st.showGrid!==undefined)$('#p3dShowGrid').checked=st.showGrid;if(st.pixelMode!==undefined)$('#p3dPixelMode').checked=st.pixelMode;if(st.showBack!==undefined)$('#p3dShowBack').checked=st.showBack;
     if(Array.isArray(st.nodes))pseudo3d.nodes=st.nodes.map(n=>({...n}));
     p3dRefreshTexture();pseudo3d.paintHistory=[];pseudo3d.paintHistoryIndex=-1;p3dPushPaintHistory();updatePseudo3dLabels();updatePseudo3dCanvasPreview();setStatus('已載入3D工作：'+a.name);
@@ -3337,9 +3511,12 @@ async function p3dRenderLibrary(){
     for(const a of list){const card=document.createElement('div');card.className='p3d-asset';const url=URL.createObjectURL(a.previewBlob);card.innerHTML='<img alt=""><div class="p3d-asset-name"></div><div class="p3d-asset-actions"><button data-act="load">載入</button><button data-act="insert">放回畫布</button><button data-act="delete">刪除</button></div>';card.querySelector('img').src=url;card.querySelector('img').onload=()=>URL.revokeObjectURL(url);card.querySelector('.p3d-asset-name').textContent=a.name;card.querySelector('[data-act="load"]').onclick=()=>p3dLoadAsset(a.id);card.querySelector('[data-act="insert"]').onclick=async()=>{const im=await blobToImage(a.previewBlob);const layer=createLayer('3D素材 '+a.name);const b=a.settings?.bounds||{x:0,y:0,w:im.naturalWidth,h:im.naturalHeight};layer.canvas.getContext('2d').drawImage(im,b.x,b.y,b.w,b.h);state.activeLayerId=layer.id;renderLayers();render();saveHistory('插入3D素材');setStatus('已把3D素材放回本體畫布')};card.querySelector('[data-act="delete"]').onclick=async()=>{if(confirm('刪除「'+a.name+'」？')){await P3DAssetDB.delete(a.id);if(pseudo3d.assetId===a.id)pseudo3d.assetId=null;p3dRenderLibrary()}};grid.appendChild(card)}
   }catch(err){console.error(err);grid.innerHTML='<div class="hint">檔案庫讀取失敗</div>'}
 }
-function p3dBuildGeometry(outputW,outputH){
+function p3dBuildGeometry(outputW,outputH,options={}){
   p3dEnsureTextureLayers();if(!pseudo3d.surfaces)return null;
-  const div=Math.max(1,Math.min(8,Number($('#p3dGrid').value)||4));
+  // V4.4：網格密度舊版被誤限制在 8，曲面在較高設定下仍會顯示明顯的多邊形稜角。
+  // 這裡放寬到 96，讓「網格密度」滑桿與最終品質倍率都能真正生效。
+  const rawGrid=options.forceGrid||Number($('#p3dGrid').value)||4;
+  const div=Math.max(1,Math.min(96,rawGrid));
   const yaw=Number($('#p3dYaw').value)*Math.PI/180,pitch=Number($('#p3dPitch').value)*Math.PI/180,roll=Number($('#p3dRoll').value)*Math.PI/180;
   const camera=Math.max(80,Number($('#p3dCamera').value));
   const W=Math.max(1,pseudo3d.originalSource.width),H=Math.max(1,pseudo3d.originalSource.height);
@@ -3367,12 +3544,52 @@ function p3dBuildGeometry(outputW,outputH){
     }
   };
   const zf=D/2,zb=-D/2;
-  addFace('front',(u,v)=>{const no=p3dNodeInfluence(u,v),x=(u-.5)*W+no.dx/baseScale,y=(v-.5)*H+no.dy/baseScale,curve=Number($('#p3dCurve').value)/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
-  addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
-  addFace('left',(u,v)=>({x:-W/2,y:(v-.5)*H,z:zb+u*D}),Math.max(1,Math.ceil(div/2)),div);
-  addFace('right',(u,v)=>({x:W/2,y:(v-.5)*H,z:zf-u*D}),Math.max(1,Math.ceil(div/2)),div);
-  addFace('top',(u,v)=>({x:(u-.5)*W,y:-H/2,z:zb+v*D}),div,Math.max(1,Math.ceil(div/2)));
-  addFace('bottom',(u,v)=>({x:(u-.5)*W,y:H/2,z:zf-v*D}),div,Math.max(1,Math.ceil(div/2)));
+  const meshType=$('#p3dMeshType')?.value||'wrap';
+  if(meshType==='wrap'){
+    const ringCols=Math.max(8,div*3),rows=Math.max(4,div);
+    const round=Math.max(0,Math.min(1,Number($('#p3dWrapRound')?.value||82)/100));
+    const taper=Math.max(0,Math.min(1,Number($('#p3dVerticalTaper')?.value||42)/100));
+    const superN=10-8*round; // 0%=圓角盒、100%=橢圓
+    const pow=2/superN;
+    const addHalf=(key,startTheta,endTheta,flipTexture=false)=>{
+      const sf=pseudo3d.surfaces[key];if(!sf)return;
+      const pts=[];
+      for(let j=0;j<=rows;j++){
+        const v=j/rows,row=[];
+        const bell=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.62);
+        const profile=(1-taper)+taper*(.20+.80*bell);
+        for(let i=0;i<=ringCols;i++){
+          const u=i/ringCols,theta=startTheta+(endTheta-startTheta)*u;
+          const st=Math.sin(theta),ct=Math.cos(theta);
+          const rx=W*.5*profile,rz=Math.max(2,D*.5)*profile;
+          const x=Math.sign(st)*Math.pow(Math.abs(st),pow)*rx;
+          const z=Math.sign(ct)*Math.pow(Math.abs(ct),pow)*rz;
+          const no=key==='front'?p3dNodeInfluence(u,v):{dx:0,dy:0,dz:0};
+          const curve=Number($('#p3dCurve').value)/100;
+          const frontWeight=Math.max(0,ct);
+          const bump=curve*W*.10*frontWeight*(1-Math.min(1,((u-.5)*2)**2*.7+((v-.5)*2)**2*.3))+no.dz*W*.004;
+          const p=project(x+no.dx/baseScale,(v-.5)*H+no.dy/baseScale,z+bump);
+          const tu=flipTexture?1-u:u;
+          row.push({...p,sx:tu*sf.composite.width,sy:v*sf.composite.height,u:tu,v,surface:key,kind:'outer'});
+        }
+        pts.push(row);
+      }
+      for(let j=0;j<rows;j++)for(let i=0;i<ringCols;i++){
+        const a=pts[j][i],b=pts[j][i+1],c=pts[j+1][i+1],d=pts[j+1][i];
+        triangles.push({p:[a,b,c],z:(a.z+b.z+c.z)/3,surface:key,img:sf.composite,kind:'outer'});
+        triangles.push({p:[a,c,d],z:(a.z+c.z+d.z)/3,surface:key,img:sf.composite,kind:'outer'});
+      }
+    };
+    addHalf('front',-Math.PI/2,Math.PI/2,false);
+    addHalf('back',Math.PI/2,Math.PI*1.5,true);
+  }else{
+    addFace('front',(u,v)=>{const no=p3dNodeInfluence(u,v),x=(u-.5)*W+no.dx/baseScale,y=(v-.5)*H+no.dy/baseScale,curve=Number($('#p3dCurve').value)/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
+    addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
+    addFace('left',(u,v)=>({x:-W/2,y:(v-.5)*H,z:zb+u*D}),Math.max(1,Math.ceil(div/2)),div);
+    addFace('right',(u,v)=>({x:W/2,y:(v-.5)*H,z:zf-u*D}),Math.max(1,Math.ceil(div/2)),div);
+    addFace('top',(u,v)=>({x:(u-.5)*W,y:-H/2,z:zb+v*D}),div,Math.max(1,Math.ceil(div/2)));
+    addFace('bottom',(u,v)=>({x:(u-.5)*W,y:H/2,z:zf-v*D}),div,Math.max(1,Math.ceil(div/2)));
+  }
   for(const patch of pseudo3d.patches||[]){
     const sf=patch.surface,key='patch:'+patch.id;const side=patch.side||'left';
     const size=Math.min(W,H)*(patch.size||.28),ph=size*1.25,pw=size*.72,py=(patch.y||-.1)*H;
@@ -3390,11 +3607,14 @@ function p3dBuildGeometry(outputW,outputH){
   return{cols:div,rows:div,points:[],frontPoints:[],backPoints:[],triangles,controlPoints,outputW,outputH};
 }
 function p3dRenderFixed(canvas,options={}){
-  const g=p3dBuildGeometry(canvas.width,canvas.height);if(!g)return false;
+  const g=p3dBuildGeometry(canvas.width,canvas.height,{forceGrid:options.forceGrid});if(!g)return false;
   const ctx=canvas.getContext('2d'),pixelMode=options.pixelMode??$('#p3dPixelMode').checked;
   ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=!pixelMode;if(!pixelMode&&'imageSmoothingQuality'in ctx)ctx.imageSmoothingQuality='high';
   const showBack=options.showBack??$('#p3dShowBack').checked,backOpacity=options.backOpacity??Number($('#p3dBackOpacity').value)/100;
-  for(const t of g.triangles){if(!t.front&&!showBack)continue;ctx.globalAlpha=t.front?1:backOpacity;affineTriangle(ctx,t.img,{x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2]);}
+  // 接縫外擴量固定用「輸出像素」為單位即可：不論畫布解析度高低，
+  // 這都只是在修補三角形邊界的次像素縫隙，跟整體幾何縮放無關。
+  const seamFix=options.seamFix??0.75;
+  for(const t of g.triangles){if(!t.front&&!showBack)continue;ctx.globalAlpha=t.front?1:backOpacity;affineTriangle(ctx,t.img,{x:t.p[0].sx,y:t.p[0].sy},{x:t.p[1].sx,y:t.p[1].sy},{x:t.p[2].sx,y:t.p[2].sy},t.p[0],t.p[1],t.p[2],seamFix);}
   ctx.globalAlpha=1;
   if(options.showGrid){ctx.save();ctx.strokeStyle='rgba(110,190,255,.82)';ctx.lineWidth=1;for(const t of g.triangles){if(!t.front&&!showBack)continue;ctx.beginPath();ctx.moveTo(t.p[0].x,t.p[0].y);ctx.lineTo(t.p[1].x,t.p[1].y);ctx.lineTo(t.p[2].x,t.p[2].y);ctx.closePath();ctx.stroke()}ctx.restore()}
   if(options.showNodes&&$('#p3dNodeEdit').checked){ctx.save();g.controlPoints.forEach((p,index)=>{const active=index===pseudo3d.selectedNode;ctx.beginPath();ctx.arc(p.x,p.y,active?7:5,0,Math.PI*2);ctx.fillStyle=active?'rgba(255,210,90,.96)':'rgba(90,180,255,.96)';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='rgba(10,20,30,.9)';ctx.stroke()});ctx.restore()}
@@ -3408,6 +3628,8 @@ function renderPseudo3d(){
   /*
     預覽視窗維持固定大小；
     幾何仍以固定中心與固定輸出框呈現。
+    互動預覽維持原本網格密度，確保拖曳滑桿時反應靈敏；
+    放開滑桿後 updatePseudo3dCanvasPreview 會另外排程一次高品質重繪。
   */
   p3dRenderFixed(canvas,{
     showGrid:$('#p3dShowGrid').checked,
@@ -3419,29 +3641,63 @@ function renderPseudo3d(){
   pseudo3d.result=canvas;
 }
 
-function p3dCreateFixedResult(){
-  const out=document.createElement('canvas');
+// V4.4：套用／輸出品質——決定最終合成時的網格加密倍率與超取樣倍率。
+// 「標準」跟舊版行為一致（最快）；「高品質」與「極致」只在最終確定的那一刻
+// （放開滑桿後自動精修、按下套用、或送回本體畫布／匯出時）才會啟用，
+// 拖曳調整參數時的即時預覽不受影響，維持流暢。
+function p3dFinalQualitySettings(){
+  const v=$('#p3dFinalQuality')?.value||'high';
+  return{
+    standard:{gridMul:1,superSample:1},
+    high:{gridMul:1.6,superSample:2},
+    ultra:{gridMul:2.4,superSample:3}
+  }[v]||{gridMul:1.6,superSample:2};
+}
+function p3dCreateFixedResult(options={}){
+  const targetW=Math.max(1,Math.round(pseudo3d.bounds.w));
+  const targetH=Math.max(1,Math.round(pseudo3d.bounds.h));
+  const pixelMode=$('#p3dPixelMode').checked;
+  // 像素／線稿清晰模式刻意保持最近鄰取樣的銳利邊緣，不做超取樣模糊處理，
+  // 但仍然套用接縫修補與（若有指定）加密網格，讓曲面弧度更準確。
+  const useHQ=options.final&&!pixelMode;
+  const q=useHQ?p3dFinalQualitySettings():{gridMul:1,superSample:1};
 
-  // 永遠使用原始選取範圍的像素尺寸。
-  out.width=Math.max(1,Math.round(pseudo3d.bounds.w));
-  out.height=Math.max(1,Math.round(pseudo3d.bounds.h));
+  const baseGrid=Math.max(1,Math.min(96,Number($('#p3dGrid').value)||4));
+  const forceGrid=q.gridMul>1?Math.max(baseGrid,Math.min(96,Math.round(baseGrid*q.gridMul))):undefined;
+  const superSample=Math.max(1,Math.min(3,Math.round(q.superSample)));
 
-  p3dRenderFixed(out,{
+  const bigW=Math.max(1,Math.round(targetW*superSample));
+  const bigH=Math.max(1,Math.round(targetH*superSample));
+
+  const big=document.createElement('canvas');
+  big.width=(superSample===1)?targetW:bigW;
+  big.height=(superSample===1)?targetH:bigH;
+
+  p3dRenderFixed(big,{
     showGrid:false,
     showBack:$('#p3dShowBack').checked,
     backOpacity:Number($('#p3dBackOpacity').value)/100,
-    pixelMode:$('#p3dPixelMode').checked
+    pixelMode,
+    forceGrid,
+    seamFix:pixelMode?0:0.75
   });
 
+  if(superSample===1)return big;
+
+  // 用高解析度畫布縮回目標尺寸，等同對整個 3D 合成結果做超取樣抗鋸齒。
+  const out=document.createElement('canvas');
+  out.width=targetW;out.height=targetH;
+  const octx=out.getContext('2d');
+  octx.imageSmoothingEnabled=true;
+  if('imageSmoothingQuality'in octx)octx.imageSmoothingQuality='high';
+  octx.drawImage(big,0,0,targetW,targetH);
   return out;
 }
 
-function updatePseudo3dCanvasPreview(){
-  if(!pseudo3d.active)return;
 
-  const out=p3dCreateFixedResult();
+let p3dRefineTimer=0;
+function p3dApplySelectionSource(out){
   if(!out)return;
-
   /*
     主畫布浮動框永遠固定為原始範圍。
     不因 yaw / pitch / curve 改變尺寸。
@@ -3456,11 +3712,32 @@ function updatePseudo3dCanvasPreview(){
     restoreOnCancel:false,
     pseudo3d:true
   };
+  render();
+}
+function updatePseudo3dCanvasPreview(){
+  if(!pseudo3d.active)return;
+
+  // 先用「標準」品質快速畫一次，確保拖曳滑桿時反應即時、不卡頓。
+  const draft=p3dCreateFixedResult({final:false});
+  if(!draft)return;
+  p3dApplySelectionSource(draft);
 
   state.tool='move';
   syncToolButtons();
-  render();
   renderPseudo3d();
+
+  // 放開滑桿、停止拖曳約 180ms 後，若品質設定不是「標準」，
+  // 自動補畫一次高品質（加密網格＋超取樣抗鋸齒）版本並替換預覽，
+  // 讓靜止畫面隨時保持在「套用」時會拿到的最終品質。
+  if(($('#p3dFinalQuality')?.value||'high')!=='standard'){
+    clearTimeout(p3dRefineTimer);
+    p3dRefineTimer=setTimeout(()=>{
+      if(!pseudo3d.active)return;
+      const refined=p3dCreateFixedResult({final:true});
+      if(!refined)return;
+      p3dApplySelectionSource(refined);
+    },180);
+  }
 }
 
 function openPseudo3d(){
@@ -3496,6 +3773,7 @@ function openPseudo3d(){
 }
 
 function closePseudo3d(){
+  clearTimeout(p3dRefineTimer);
   p3dStopAutoRotate();
   p3dSetPaintMode(false);
   if(!pseudo3d.active){
@@ -3553,7 +3831,8 @@ function applyPseudo3d(){
     return;
   }
 
-  const finalCanvas=p3dCreateFixedResult();
+  clearTimeout(p3dRefineTimer);
+  const finalCanvas=p3dCreateFixedResult({final:true});
   const layerCtx=layer.canvas.getContext('2d');
 
   layerCtx.imageSmoothingEnabled=
@@ -3609,7 +3888,10 @@ function resetPseudo3d(){
   $('#p3dPitch').value=0;
   $('#p3dRoll').value=0;
   $('#p3dCurve').value=28;
-  $('#p3dDepth').value=28;
+  $('#p3dMeshType').value='wrap';
+  $('#p3dDepth').value=42;
+  $('#p3dWrapRound').value=82;
+  $('#p3dVerticalTaper').value=42;
   $('#p3dProjectionGap').value=100;
   $('#p3dRoundness').value=58;
   $('#p3dEdgeSegments').value=5;
@@ -3728,7 +4010,7 @@ function p3dPaintTarget(p){
   return pseudo3d.surfaces?.[p.surface]?.paint;
 }
 function p3dUpdateSurfaceStatus(surface,prefix='目前繪製：'){
-  pseudo3d.activePaintSurface=surface||pseudo3d.activePaintSurface;const st=$('#p3dSurfaceStatus');if(st)st.textContent=prefix+p3dSurfaceLabel(pseudo3d.activePaintSurface)+'｜六面方形表面命中';
+  pseudo3d.activePaintSurface=surface||pseudo3d.activePaintSurface;const st=$('#p3dSurfaceStatus');if(st)st.textContent=prefix+p3dSurfaceLabel(pseudo3d.activePaintSurface)+($('#p3dMeshType')?.value==='wrap'?'｜角度包覆曲面命中':'｜六面方形表面命中');
 }
 function p3dDrawTextureDot(p){const target=p3dPaintTarget(p);if(!target)return;const ctx=target.getContext('2d');ctx.save();ctx.globalCompositeOperation=pseudo3d.paintEraser?'destination-out':'source-over';ctx.fillStyle=$('#p3dPaintColor').value;ctx.beginPath();ctx.arc(p.x,p.y,Number($('#p3dPaintSize').value)/2,0,Math.PI*2);ctx.fill();ctx.restore();p3dUpdateSurfaceStatus(p.surface);}
 function p3dDrawTextureLine(a,b){if(!a||!b)return;if(a.surface!==b.surface){p3dDrawTextureDot(b);return}const target=p3dPaintTarget(b);if(!target)return;const ctx=target.getContext('2d');ctx.save();ctx.globalCompositeOperation=pseudo3d.paintEraser?'destination-out':'source-over';ctx.strokeStyle=$('#p3dPaintColor').value;ctx.lineWidth=Number($('#p3dPaintSize').value);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.restore();p3dUpdateSurfaceStatus(b.surface);}
@@ -3841,16 +4123,18 @@ $('#p3dCloseBtn').addEventListener('click',closePseudo3d);
 $('#p3dApplyBtn').addEventListener('click',applyPseudo3d);
 $('#p3dResetBtn').addEventListener('click',resetPseudo3d);
 
-['p3dYaw','p3dPitch','p3dRoll','p3dCurve','p3dDepth','p3dProjectionGap','p3dRoundness','p3dEdgeSegments','p3dCamera','p3dGrid','p3dBackOpacity'].forEach(id=>{
+['p3dYaw','p3dPitch','p3dRoll','p3dCurve','p3dDepth','p3dWrapRound','p3dVerticalTaper','p3dProjectionGap','p3dRoundness','p3dEdgeSegments','p3dCamera','p3dGrid','p3dBackOpacity'].forEach(id=>{
   $('#'+id).addEventListener('input',()=>{
     updatePseudo3dLabels();
     updatePseudo3dCanvasPreview();
   });
 });
 
+$('#p3dMeshType').addEventListener('change',()=>{updatePseudo3dLabels();updatePseudo3dCanvasPreview();});
 $('#p3dShowGrid').addEventListener('change',()=>renderPseudo3d());
 $('#p3dPixelMode').addEventListener('change',()=>updatePseudo3dCanvasPreview());
 $('#p3dShowBack').addEventListener('change',()=>updatePseudo3dCanvasPreview());
+$('#p3dFinalQuality')?.addEventListener('change',()=>updatePseudo3dCanvasPreview());
 
 
 // V3.2：讓所見即得繪製區真正占滿彈出視窗。
