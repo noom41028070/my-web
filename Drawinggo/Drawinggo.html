@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>重構繪圖板 V4.3.2｜修復白屏匯出</title>
+<title>重構繪圖板 V4.10｜頂底曲面封口穩定版</title>
 <style>
 :root{
   color-scheme:dark;
@@ -480,7 +480,7 @@ input[type="range"]{width:110px}
 
 <div id="pseudo3dModal" class="p3d-modal" aria-hidden="true">
   <div class="p3d-dialog">
-    <div class="panel-title">3D 工作室 V4.3.2｜修復白屏匯出</div>
+    <div class="panel-title">3D 工作室 V4.10｜頂部／底部封閉可繪曲面</div>
     <div class="p3d-layout">
       <div class="p3d-preview-wrap">
         <div class="p3d-canvas-stack">
@@ -499,7 +499,7 @@ input[type="range"]{width:110px}
       </div>
       <div class="p3d-controls">
         <div class="p3d-presets">
-          <button type="button" data-p3d-view="front">正面</button><button type="button" data-p3d-view="left">左側</button><button type="button" data-p3d-view="right">右側</button><button type="button" data-p3d-view="back">背面</button>
+          <button type="button" data-p3d-view="front">正面</button><button type="button" data-p3d-view="left">左側</button><button type="button" data-p3d-view="right">右側</button><button type="button" data-p3d-view="top">頂部</button><button type="button" data-p3d-view="bottom">底部</button><button type="button" data-p3d-view="back">背面</button>
         </div>
         <div class="p3d-row"><label for="p3dYaw">水平 360°</label><input id="p3dYaw" type="range" min="-180" max="180" value="0"><span id="p3dYawV">0°</span></div>
         <div class="p3d-row"><label for="p3dPitch">垂直 360°</label><input id="p3dPitch" type="range" min="-180" max="180" value="0"><span id="p3dPitchV">0°</span></div>
@@ -512,12 +512,12 @@ input[type="range"]{width:110px}
         <div class="p3d-row"><label for="p3dProjectionGap">投影間距</label><input id="p3dProjectionGap" type="range" min="0" max="200" value="100"><span id="p3dProjectionGapV">100%</span></div>
         <div class="p3d-row" style="display:none"><label for="p3dRoundness">曲面圓滑</label><input id="p3dRoundness" type="range" min="0" max="100" value="0"><span id="p3dRoundnessV">0%</span></div>
         <div class="p3d-row" style="display:none"><label for="p3dEdgeSegments">過渡密度</label><input id="p3dEdgeSegments" type="range" min="1" max="10" value="1"><span id="p3dEdgeSegmentsV">1</span></div>
-        <div id="p3dSurfaceStatus" class="p3d-node-status">包覆模式會用正面與背面兩張大型畫布形成封閉曲面；一般幾何仍保留六面畫布。</div>
+        <div id="p3dSurfaceStatus" class="p3d-node-status">包覆模式的頂部與底部現在是完整可繪曲面，並加入內側封口與邊緣封邊，避免斜角觀看時呈現空心。</div>
         <div class="p3d-viewer-actions">
           <button id="p3dWorkspaceBtn" type="button">🖌 大型自由工作區</button>
           <button id="p3dFlatEditorBtn" type="button">🖼 平面畫布編輯</button>
-          <button id="p3dAddEarBtn" type="button">＋ 耳朵特殊網格</button>
-          <button id="p3dRemovePatchBtn" type="button">移除特殊網格</button>
+          <button id="p3dAddEarBtn" type="button" style="display:none">＋ 耳朵特殊網格</button>
+          <button id="p3dRemovePatchBtn" type="button" style="display:none">移除特殊網格</button>
         </div>
         <div id="p3dPatchControls" class="p3d-node-status" style="display:none">
           <label>位置 <select id="p3dPatchSide"><option value="left">左耳</option><option value="right">右耳</option></select></label><br>
@@ -3344,7 +3344,49 @@ const zf=D/2,zb=-D/2;
 if(CONFIG.meshType==='wrap'){
  const ringCols=Math.max(12,div*3),rows=Math.max(5,div),round=Math.max(0,Math.min(1,CONFIG.wrapRound/100)),taper=Math.max(0,Math.min(1,CONFIG.verticalTaper/100)),superN=10-8*round,pow=2/superN;
  function addHalf(key,startTheta,endTheta,flip){const img=images[key];if(!img)return;const pts=[];for(let j=0;j<=rows;j++){const v=j/rows,row=[],bell=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.62),profile=(1-taper)+taper*(.20+.80*bell);for(let i=0;i<=ringCols;i++){const u=i/ringCols,theta=startTheta+(endTheta-startTheta)*u,st=Math.sin(theta),ct=Math.cos(theta),rx=W*.5*profile,rz=Math.max(2,D*.5)*profile,x=Math.sign(st)*Math.pow(Math.abs(st),pow)*rx,z=Math.sign(ct)*Math.pow(Math.abs(ct),pow)*rz,no=key==='front'?influence(u,v):{dx:0,dy:0,dz:0},curve=CONFIG.curve/100,frontWeight=Math.max(0,ct),bump=curve*W*.10*frontWeight*(1-Math.min(1,((u-.5)*2)**2*.7+((v-.5)*2)**2*.3))+no.dz*W*.004,p=project(x+no.dx/scale,(v-.5)*H+no.dy/scale,z+bump),tu=flip?1-u:u;row.push({...p,sx:tu*img.width,sy:v*img.height})}pts.push(row)}for(let j=0;j<rows;j++)for(let i=0;i<ringCols;i++){const a=pts[j][i],b=pts[j][i+1],cc=pts[j+1][i+1],d=pts[j+1][i];tris.push({p:[a,b,cc],z:(a.z+b.z+cc.z)/3,img},{p:[a,cc,d],z:(a.z+cc.z+d.z)/3,img})}}
- addHalf('front',-Math.PI/2,Math.PI/2,false);addHalf('back',Math.PI/2,Math.PI*1.5,true);
+ addHalf('front',-Math.PI/2,Math.PI/2,false);addHalf('back',Math.PI/2,Math.PI*1.5,true);function addCapSurface(key,y,flipV){
+ const img=images[key];if(!img)return;
+ const cols=Math.max(8,div*2),capRows=Math.max(6,div*2),outer=[],inner=[];
+ const edgeProfile=(1-taper)+taper*.20,rx=W*.5*edgeProfile,rz=Math.max(2,D*.5)*edgeProfile;
+ const capBulge=Math.min(W,Math.max(2,D))*(.035+.085*round);
+ const thickness=Math.max(1,Math.min(W,H,Math.max(2,D))*.018),outward=key==='top'?-1:1;
+ for(let j=0;j<=capRows;j++){
+  const rawV=j/capRows,orow=[],irow=[];
+  for(let i=0;i<=cols;i++){
+   const u=i/cols,su=u*2-1,sv=rawV*2-1;
+   const dx=su*Math.sqrt(Math.max(0,1-sv*sv/2)),dz=sv*Math.sqrt(Math.max(0,1-su*su/2));
+   const radius=Math.min(1,Math.hypot(dx,dz)),theta=Math.atan2(dz,dx),ct=Math.cos(theta),st=Math.sin(theta);
+   const bx=Math.sign(ct)*Math.pow(Math.abs(ct),pow)*rx,bz=Math.sign(st)*Math.pow(Math.abs(st),pow)*rz;
+   const x=radius*bx,z=radius*bz,dome=Math.pow(Math.max(0,1-radius*radius),1.35);
+   const outerY=y+outward*capBulge*dome,innerY=outerY-outward*thickness,tv=flipV?1-rawV:rawV;
+   const common={sx:u*img.width,sy:tv*img.height};
+   orow.push({...project(x,outerY,z),...common});
+   irow.push({...project(x,innerY,z),...common});
+  }
+  outer.push(orow);inner.push(irow);
+ }
+ for(let j=0;j<capRows;j++)for(let i=0;i<cols;i++){
+  const a=outer[j][i],b=outer[j][i+1],c=outer[j+1][i+1],d=outer[j+1][i];
+  const ia=inner[j][i],ib=inner[j][i+1],ic=inner[j+1][i+1],id=inner[j+1][i];
+  if(key==='top'){
+   tris.push({p:[a,c,b],z:(a.z+b.z+c.z)/3,img},{p:[a,d,c],z:(a.z+c.z+d.z)/3,img});
+   tris.push({p:[ia,ib,ic],z:(ia.z+ib.z+ic.z)/3,img},{p:[ia,ic,id],z:(ia.z+ic.z+id.z)/3,img});
+  }else{
+   tris.push({p:[a,b,c],z:(a.z+b.z+c.z)/3,img},{p:[a,c,d],z:(a.z+c.z+d.z)/3,img});
+   tris.push({p:[ia,ic,ib],z:(ia.z+ib.z+ic.z)/3,img},{p:[ia,id,ic],z:(ia.z+ic.z+id.z)/3,img});
+  }
+ }
+ const rim=[];
+ for(let i=0;i<=cols;i++)rim.push([outer[0][i],inner[0][i]]);
+ for(let j=1;j<=capRows;j++)rim.push([outer[j][cols],inner[j][cols]]);
+ for(let i=cols-1;i>=0;i--)rim.push([outer[capRows][i],inner[capRows][i]]);
+ for(let j=capRows-1;j>0;j--)rim.push([outer[j][0],inner[j][0]]);
+ for(let i=0;i<rim.length;i++){
+  const n=(i+1)%rim.length,oa=rim[i][0],ia=rim[i][1],ob=rim[n][0],ib=rim[n][1];
+  tris.push({p:[oa,ob,ib],z:(oa.z+ob.z+ib.z)/3,img},{p:[oa,ib,ia],z:(oa.z+ib.z+ia.z)/3,img});
+ }
+}
+addCapSurface('top',-H/2,false);addCapSurface('bottom',H/2,true);
 }else{
  addFace('front',(u,v)=>{const no=influence(u,v),x=(u-.5)*W+no.dx/scale,y=(v-.5)*H+no.dy/scale,curve=CONFIG.curve/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
  addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
@@ -3394,6 +3436,12 @@ function p3dMakeSideBase(source){
   ctx.drawImage(source,0,0,edge,source.height,0,0,c.width,c.height);
   return c;
 }
+function p3dMakeCapBase(source){
+  const c=p3dNewSurfaceCanvas(source.width,source.height),ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,c.width,c.height);
+  return c;
+}
 function p3dCreateSurface(base){
   const w=base.width,h=base.height;
   return {base:cloneCanvas(base),paint:p3dNewSurfaceCanvas(w,h),composite:p3dNewSurfaceCanvas(w,h)};
@@ -3405,8 +3453,8 @@ function p3dInitSurfaces(source){
     back:p3dCreateSurface(p3dMakeBackReference(source)),
     left:p3dCreateSurface(sideBase),
     right:p3dCreateSurface(sideBase),
-    top:p3dCreateSurface(sideBase),
-    bottom:p3dCreateSurface(sideBase)
+    top:p3dCreateSurface(p3dMakeCapBase(source)),
+    bottom:p3dCreateSurface(p3dMakeCapBase(source))
   };
   pseudo3d.patches=[];
   pseudo3d.activePaintSurface='front';
@@ -3446,7 +3494,7 @@ function p3dClearPaint(){
   p3dRefreshTexture();updatePseudo3dCanvasPreview();
 }
 function p3dSurfaceLabel(key){
-  const names={front:'正面大型畫布',back:'背面',left:'左側',right:'右側',top:'上側',bottom:'下側'};
+  const names={front:'正面大型畫布',back:'背面',left:'左側',right:'右側',top:'頂部',bottom:'底部'};
   if(String(key).startsWith('patch:'))return '特殊網格（耳朵）';
   return names[key]||key;
 }
@@ -3582,6 +3630,83 @@ function p3dBuildGeometry(outputW,outputH,options={}){
     };
     addHalf('front',-Math.PI/2,Math.PI/2,false);
     addHalf('back',Math.PI/2,Math.PI*1.5,true);
+
+    // V4.8：頂部／底部改為「完整可繪、且會跟著模型彎曲」的曲面網格。
+    // UV 仍維持完整矩形畫布，但幾何會先由方形平滑映射到圓盤，
+    // 再套用包覆模式的超橢圓輪廓。邊界接回正面／背面外圈，
+    // 中央則略微向外鼓起，因此不再是僵硬的平板，也不會縮成小封口。
+    const addCapSurface=(key,y,flipV=false)=>{
+      const sf=pseudo3d.surfaces[key];if(!sf)return;
+      const cols=Math.max(8,div*2),capRows=Math.max(6,div*2);
+      const outer=[],inner=[];
+      const edgeProfile=(1-taper)+taper*.20;
+      const rx=W*.5*edgeProfile;
+      const rz=Math.max(2,D*.5)*edgeProfile;
+      const capBulge=Math.min(W,Math.max(2,D))*(.035+.085*round);
+      const thickness=Math.max(1,Math.min(W,H,Math.max(2,D))*.018);
+      const outward=key==='top'?-1:1;
+
+      for(let j=0;j<=capRows;j++){
+        const rawV=j/capRows,outerRow=[],innerRow=[];
+        for(let i=0;i<=cols;i++){
+          const u=i/cols;
+          const su=u*2-1,sv=rawV*2-1;
+          const dx=su*Math.sqrt(Math.max(0,1-(sv*sv)/2));
+          const dz=sv*Math.sqrt(Math.max(0,1-(su*su)/2));
+          const radius=Math.min(1,Math.hypot(dx,dz));
+          const theta=Math.atan2(dz,dx);
+          const ct=Math.cos(theta),st=Math.sin(theta);
+          const bx=Math.sign(ct)*Math.pow(Math.abs(ct),pow)*rx;
+          const bz=Math.sign(st)*Math.pow(Math.abs(st),pow)*rz;
+          const x=radius*bx,z=radius*bz;
+          const dome=Math.pow(Math.max(0,1-radius*radius),1.35);
+          const outerY=y+outward*capBulge*dome;
+          const innerY=outerY-outward*thickness;
+          const tv=flipV?1-rawV:rawV;
+          const common={
+            sx:u*sf.composite.width,
+            sy:tv*sf.composite.height,
+            u,v:tv,surface:key
+          };
+          outerRow.push({...project(x,outerY,z),...common,kind:'outer'});
+          innerRow.push({...project(x,innerY,z),...common,kind:'inner'});
+        }
+        outer.push(outerRow);
+        inner.push(innerRow);
+      }
+
+      for(let j=0;j<capRows;j++)for(let i=0;i<cols;i++){
+        const a=outer[j][i],b=outer[j][i+1],c=outer[j+1][i+1],d=outer[j+1][i];
+        const ia=inner[j][i],ib=inner[j][i+1],ic=inner[j+1][i+1],id=inner[j+1][i];
+
+        if(key==='top'){
+          triangles.push({p:[a,c,b],z:(a.z+b.z+c.z)/3,surface:key,img:sf.composite,kind:'outer'});
+          triangles.push({p:[a,d,c],z:(a.z+c.z+d.z)/3,surface:key,img:sf.composite,kind:'outer'});
+          triangles.push({p:[ia,ib,ic],z:(ia.z+ib.z+ic.z)/3,surface:key,img:sf.composite,kind:'inner'});
+          triangles.push({p:[ia,ic,id],z:(ia.z+ic.z+id.z)/3,surface:key,img:sf.composite,kind:'inner'});
+        }else{
+          triangles.push({p:[a,b,c],z:(a.z+b.z+c.z)/3,surface:key,img:sf.composite,kind:'outer'});
+          triangles.push({p:[a,c,d],z:(a.z+c.z+d.z)/3,surface:key,img:sf.composite,kind:'outer'});
+          triangles.push({p:[ia,ic,ib],z:(ia.z+ib.z+ic.z)/3,surface:key,img:sf.composite,kind:'inner'});
+          triangles.push({p:[ia,id,ic],z:(ia.z+ic.z+id.z)/3,surface:key,img:sf.composite,kind:'inner'});
+        }
+      }
+
+      const rim=[];
+      for(let i=0;i<=cols;i++)rim.push([outer[0][i],inner[0][i]]);
+      for(let j=1;j<=capRows;j++)rim.push([outer[j][cols],inner[j][cols]]);
+      for(let i=cols-1;i>=0;i--)rim.push([outer[capRows][i],inner[capRows][i]]);
+      for(let j=capRows-1;j>0;j--)rim.push([outer[j][0],inner[j][0]]);
+
+      for(let i=0;i<rim.length;i++){
+        const next=(i+1)%rim.length;
+        const oa=rim[i][0],ia=rim[i][1],ob=rim[next][0],ib=rim[next][1];
+        triangles.push({p:[oa,ob,ib],z:(oa.z+ob.z+ib.z)/3,surface:key,img:sf.composite,kind:'rim'});
+        triangles.push({p:[oa,ib,ia],z:(oa.z+ib.z+ia.z)/3,surface:key,img:sf.composite,kind:'rim'});
+      }
+    };
+    addCapSurface('top',-H/2,false);
+    addCapSurface('bottom',H/2,true);
   }else{
     addFace('front',(u,v)=>{const no=p3dNodeInfluence(u,v),x=(u-.5)*W+no.dx/baseScale,y=(v-.5)*H+no.dy/baseScale,curve=Number($('#p3dCurve').value)/100,bump=curve*W*.22*(1-Math.min(1,((u-.5)*2)**2*.72+((v-.5)*2)**2*.28))+no.dz*W*.004;return{x,y,z:zf+bump}},div,div);
     addFace('back',(u,v)=>({x:(.5-u)*W,y:(v-.5)*H,z:zb}),div,div);
@@ -4113,7 +4238,7 @@ $('#p3dResetNodesBtn').addEventListener('click',()=>{p3dResetNodes();p3dSelectNo
 $('#p3dStraightenBtn').addEventListener('click',p3dStraightenNodes);
 document.querySelectorAll('[data-p3d-view]').forEach(btn=>btn.addEventListener('click',()=>{
   const view=btn.dataset.p3dView;
-  const presets={front:[0,0],left:[-90,0],right:[90,0],back:[180,0]};
+  const presets={front:[0,0],left:[-90,0],right:[90,0],top:[0,90],bottom:[0,-90],back:[180,0]};
   const [yaw,pitch]=presets[view];$('#p3dYaw').value=yaw;$('#p3dPitch').value=pitch;
   updatePseudo3dLabels();updatePseudo3dCanvasPreview();
 }));
@@ -4191,7 +4316,7 @@ requestAnimationFrame(()=>{
       <button id="p3dFlatClear" type="button">清除目前表面</button>
       <button id="p3dFlatClose" type="button">完成</button>
     </div>
-    <div class="hint">正面是一張完整的大型畫布，適合繪製複雜人臉；側面、背面與耳朵各自獨立，不會被接縫三角形搶走筆畫。</div>
+    <div class="hint">正面是一張完整的大型畫布；頂部、底部、側面、背面與耳朵各自獨立，可直接切換繪製。</div>
   </div>
 </div>
 
