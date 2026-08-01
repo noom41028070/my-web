@@ -4741,8 +4741,37 @@ newOption:"新しい選択"
     	const titleInput = document.querySelector("#pageTitle");
     	const noteInput = document.querySelector("#pageNote");
     	const textInput = document.querySelector("#pageText");
-    	const optionsBox = document.querySelector("#options");
-    	const previewText = document.querySelector("#previewText");
+	    	const optionsBox = document.querySelector("#options");
+	    	const previewText = document.querySelector("#previewText");
+			const LONG_CONTENT_AUTO_PREVIEW_LIMIT = 120000;
+			const LARGE_PROJECT_AUTO_PREVIEW_LIMIT = 500000;
+			let textPreviewTimer = null;
+
+			function getLargeContentState(page) {
+				const nodeChars = String(page && page.text || "").length;
+				let projectChars = 0;
+				for (const item of pages) {
+					projectChars += String(item && item.text || "").length;
+					if (projectChars > LARGE_PROJECT_AUTO_PREVIEW_LIMIT) break;
+				}
+				return {
+					heavy: nodeChars > LONG_CONTENT_AUTO_PREVIEW_LIMIT || projectChars > LARGE_PROJECT_AUTO_PREVIEW_LIMIT,
+					nodeChars,
+					projectChars
+				};
+			}
+
+			function showLargeContentPlaceholder(page, reason) {
+				const state = getLargeContentState(page);
+				const message = "超長內容安全模式\n目前 Node：" + state.nodeChars.toLocaleString() +
+					"字\n已停止自動全文預覽，原文仍會完整編輯與保存。";
+				if (previewText) previewText.textContent = message;
+				const htmlPreview = document.getElementById("htmlPreview");
+				if (htmlPreview) htmlPreview.textContent = message;
+				document.dispatchEvent(new CustomEvent("firehaha:long-content-safe-mode", {
+					detail: Object.assign({ reason: reason || "preview" }, state)
+				}));
+			}
 
     	function createFlowNode(page){
 
@@ -5394,11 +5423,15 @@ if (pageTextPageNum) {
             	page.element.style.borderColor = "#007bff";
             	page.element.style.boxShadow = "0 0 10px rgba(0, 123, 255, 0.5)";
         	}
-        	renderOptions();
-        	updatePreview();
-        	updateHTMLPreview();
-			
-    	}
+	        	renderOptions();
+				if (getLargeContentState(page).heavy) {
+					showLargeContentPlaceholder(page, "select");
+				} else {
+	        		updatePreview();
+	        		updateHTMLPreview();
+				}
+				
+	    	}
 
     	titleInput.addEventListener("input", () => {
 
@@ -5877,16 +5910,22 @@ currentPage.text =
 textInput.value;
 
 
-projectChanged=true;
+		projectChanged=true;
 
+		clearTimeout(textPreviewTimer);
+		if (getLargeContentState(currentPage).heavy) {
+			showLargeContentPlaceholder(currentPage, "input");
+			return;
+		}
+		// 文字輸入不會改變 Node 連線，因此不再呼叫 drawLines()。
+		// 短內容也稍微延遲預覽，避免連續打字時每個按鍵都重組整份專案。
+		textPreviewTimer=setTimeout(()=>{
+			if(!currentPage) return;
+			updatePreview();
+			updateHTMLPreview();
+		},180);
 
-updatePreview();
-
-updateHTMLPreview();
-
-drawLines();
-
-});
+	});
     	// =======================
 // Pixiv 標籤工具
 // =======================
@@ -23049,5 +23088,6 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
 })();
 </script>
 <script src="./firehaha-official-i18n-zh-en-ja.js" data-firehaha-bundled="official.i18n-zh-en-ja"></script>
+<script src="./firehaha-ultra-long-content-guard.js" data-firehaha-bundled="official.ultra-long-content-guard"></script>
 </body>
 </html>
