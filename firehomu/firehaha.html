@@ -5034,76 +5034,220 @@ up
         	});
     	}
 
-    	function drawLines() {
-        	const canvas = document.querySelector("#linesCanvas");
-        	const ctx = canvas.getContext("2d");
+    function drawLinesImmediately() {
+    const canvas =
+        document.querySelector(
+            "#linesCanvas"
+        );
 
-        	// 0. 同步每個節點的頁碼徽章／筆記提示
-        	refreshNodeBadges();
+    const ctx =
+        canvas.getContext("2d");
 
-        	// 1. 同步 Canvas 大小與 flowCanvas 容器一致
-        	const flowCanvas = document.querySelector("#flowCanvas");
-        	canvas.width = flowCanvas.clientWidth;
-        	canvas.height = flowCanvas.clientHeight;
+    // 0. 同步每個節點的頁碼徽章／筆記提示
+    refreshNodeBadges();
 
-        	// 2. 清除畫布
-        	ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 1. 同步 Canvas 大小
+    const flowCanvas =
+        document.querySelector(
+            "#flowCanvas"
+        );
 
-        	// 3. 開始繪圖（選項連線）
-        	ctx.beginPath();
-        	ctx.strokeStyle = "#333";
-        	ctx.lineWidth = 3;
-        	ctx.setLineDash([]);
+    /*
+     * 只有尺寸真的改變時才重新設定。
+     * 重新指定 canvas.width / height 會清空 Canvas，
+     * 即使數值跟原本相同也一樣。
+     */
+    const width =
+        flowCanvas.clientWidth;
 
-        	pages.forEach(page => {
-            	page.options.forEach(option => {
-                	if (!option.target) return;
-                	const target = pages.find(p => p.id === option.target);
-                	if (!target) return;
+    const height =
+        flowCanvas.clientHeight;
 
-                	// 計算連線起點與終點 (節點中心點)
-                	const x1 = page.x + 70;
-                	const y1 = page.y + 25;
-                	const x2 = target.x + 70;
-                	const y2 = target.y + 25;
+    if (
+        canvas.width !== width
+    ) {
+        canvas.width =
+            width;
+    }
 
-                	ctx.moveTo(x1, y1);
-                	ctx.lineTo(x2, y2);
-            	});
-        	});
+    if (
+        canvas.height !== height
+    ) {
+        canvas.height =
+            height;
+    }
 
-        	ctx.stroke();
+    // 2. 清除畫布
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
 
-        	// 4. 手動 [jump:頁碼] 標籤連線
-        	// 直接寫在內文裡的 [jump:數字]，不經過選項(option)控制項
-        	// 頁碼採 1 起算，對應 pages 陣列的第 N 頁（跟 createPageIndex() 的編號規則一致）
-        	ctx.beginPath();
-        	ctx.strokeStyle = "#ff9800";
-        	ctx.lineWidth = 2;
-        	ctx.setLineDash([6, 4]);
+    // 3. 選項連線
+    ctx.beginPath();
+    ctx.strokeStyle =
+        "#333";
+    ctx.lineWidth =
+        3;
+    ctx.setLineDash([]);
 
-        	pages.forEach(page => {
-            	if (!page.text) return;
+    /*
+     * 建立 ID 索引，避免每條線都 pages.find()。
+     */
+    const pageById =
+        new Map();
 
-            	const jumpMatches = page.text.matchAll(/\[jump:(\d+)\]/g);
-            	for (const match of jumpMatches) {
-                	const targetIndex = parseInt(match[1], 10) - 1;
-                	const target = pages[targetIndex];
-                	if (!target || target === page) continue;
+    pages.forEach(page => {
+        pageById.set(
+            page.id,
+            page
+        );
+    });
 
-                	const x1 = page.x + 70;
-                	const y1 = page.y + 25;
-                	const x2 = target.x + 70;
-                	const y2 = target.y + 25;
+    pages.forEach(page => {
+        page.options.forEach(option => {
+            if (!option.target) {
+                return;
+            }
 
-                	ctx.moveTo(x1, y1);
-                	ctx.lineTo(x2, y2);
-            	}
-        	});
+            const target =
+                pageById.get(
+                    option.target
+                );
 
-        	ctx.stroke();
-        	ctx.setLineDash([]);
-    	}
+            if (!target) {
+                return;
+            }
+
+            const x1 =
+                page.x + 70;
+
+            const y1 =
+                page.y + 25;
+
+            const x2 =
+                target.x + 70;
+
+            const y2 =
+                target.y + 25;
+
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        });
+    });
+
+    ctx.stroke();
+
+    // 4. 手動 [jump:頁碼] 標籤連線
+    ctx.beginPath();
+    ctx.strokeStyle =
+        "#ff9800";
+    ctx.lineWidth =
+        2;
+    ctx.setLineDash([
+        6,
+        4
+    ]);
+
+    pages.forEach(page => {
+        if (!page.text) {
+            return;
+        }
+
+        const jumpMatches =
+            page.text.matchAll(
+                /\[jump:(\d+)\]/g
+            );
+
+        for (
+            const match
+            of jumpMatches
+        ) {
+            const targetIndex =
+                parseInt(
+                    match[1],
+                    10
+                ) - 1;
+
+            const target =
+                pages[
+                    targetIndex
+                ];
+
+            if (
+                !target ||
+                target === page
+            ) {
+                continue;
+            }
+
+            const x1 =
+                page.x + 70;
+
+            const y1 =
+                page.y + 25;
+
+            const x2 =
+                target.x + 70;
+
+            const y2 =
+                target.y + 25;
+
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        }
+    });
+
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+       // =====================================
+// 流程圖重繪橋樑
+// =====================================
+
+window.FirehahaRenderCore =
+    window.FirehahaRenderCore || {};
+
+
+/*
+ * 真正立即重繪。
+ * 外部排程插件會呼叫這個函式。
+ */
+window.FirehahaRenderCore.drawImmediately =
+    drawLinesImmediately;
+
+
+/*
+ * 主程式其他位置仍然照常呼叫 drawLines()。
+ *
+ * 有安裝外部排程插件：
+ * → 合併至下一個動畫幀。
+ *
+ * 沒有安裝外部插件：
+ * → 直接立即重繪。
+ */
+function drawLines(
+    force = false
+) {
+    const core =
+        window.FirehahaRenderCore;
+
+    if (
+        !force &&
+        core &&
+        typeof core.requestLines ===
+            "function"
+    ) {
+        core.requestLines();
+        return;
+    }
+
+    drawLinesImmediately();
+}
+
 
     	function createLine(from, to) {
         	const line = document.createElement("div");
@@ -13528,13 +13672,103 @@ window.collectWindowState()
 
 // =====================================
 // 浮動視窗狀態即時追蹤
+// 防重複監聽 + 防抖版
 // =====================================
 
-window.lastWindowState = {};
+window.lastWindowState =
+window.lastWindowState || {};
+
+
+/*
+ * 保存目前已建立的 MutationObserver。
+ *
+ * trackWindowState() 再次執行時，
+ * 會先解除舊 Observer，
+ * 避免匯入專案或重新初始化後越疊越多。
+ */
+window.__firehahaWindowStateObservers =
+window.__firehahaWindowStateObservers ||
+new Map();
+
+
+let windowStateCollectTimer =
+null;
+
+
+/*
+ * 高頻變化時不立即收集。
+ *
+ * style / class 停止改變 250ms 後，
+ * 才更新一次 lastWindowState。
+ */
+function requestWindowStateCollection(){
+
+    clearTimeout(
+        windowStateCollectTimer
+    );
+
+
+    windowStateCollectTimer =
+    setTimeout(
+        function(){
+
+            windowStateCollectTimer =
+            null;
+
+
+            if(
+                typeof window.collectWindowState
+                ===
+                "function"
+            ){
+
+                window.lastWindowState =
+                window.collectWindowState();
+
+            }
+
+        },
+        250
+    );
+
+}
+
+
+/*
+ * 需要立刻取得最新狀態時使用。
+ */
+window.forceWindowStateCollection =
+function forceWindowStateCollection(){
+
+    clearTimeout(
+        windowStateCollectTimer
+    );
+
+
+    windowStateCollectTimer =
+    null;
+
+
+    if(
+        typeof window.collectWindowState
+        ===
+        "function"
+    ){
+
+        window.lastWindowState =
+        window.collectWindowState();
+
+    }
+
+
+    return window.lastWindowState;
+
+};
 
 
 
-window.trackWindowState = function(){
+window.trackWindowState =
+function trackWindowState(){
 
 
     const ids = [
@@ -13554,6 +13788,34 @@ window.trackWindowState = function(){
     ];
 
 
+    const observers =
+    window.__firehahaWindowStateObservers;
+
+
+    /*
+     * 先解除上一輪 Observer。
+     *
+     * 這樣即使其他地方再次呼叫：
+     *
+     * window.trackWindowState()
+     *
+     * 也不會疊加多套監聽。
+     */
+    observers.forEach(
+        observer=>{
+
+            try{
+
+                observer.disconnect();
+
+            }catch(error){}
+
+        }
+    );
+
+
+    observers.clear();
+
 
 
     ids.forEach(id=>{
@@ -13568,36 +13830,17 @@ window.trackWindowState = function(){
 
 
 
-        const update = ()=>{
-
-
-            if(
-                typeof window.collectWindowState
-                ===
-                "function"
-            ){
-
-                window.lastWindowState =
-                window.collectWindowState();
-
-            }
-
-
-        };
-
-
-
-        // 初始記錄
-
-        update();
-
-
-
         const observer =
         new MutationObserver(()=>{
 
 
-            update();
+            /*
+             * 拖曳或縮放時，
+             * style 可能每一幀都變化。
+             *
+             * 改成停止變化後再收集一次。
+             */
+            requestWindowStateCollection();
 
 
         });
@@ -13619,13 +13862,24 @@ window.trackWindowState = function(){
         );
 
 
+        observers.set(
+            id,
+            observer
+        );
+
 
     });
 
 
 
-};
+    /*
+     * 所有 Observer 建立完後，
+     * 先立即記錄一次目前狀態。
+     */
+    window.forceWindowStateCollection();
 
+
+};
 
 
 
@@ -13638,12 +13892,6 @@ setTimeout(()=>{
 
 
 },1500);
-
-
-
-
-
-
 
 
 
@@ -17261,10 +17509,10 @@ header.appendChild(btn);
 
 function collectWindowState(){
 
-    const state={};
+    const state = {};
 
 
-    const windows=[
+    const windows = [
 
         "editorFloat",
         "previewFloat",
@@ -17277,101 +17525,83 @@ function collectWindowState(){
     ];
 
 
-
-    windows.forEach(id=>{
-
+    windows.forEach(id => {
 
         const el =
-        document.getElementById(id);
+            document.getElementById(id);
 
 
-        if(!el)
+        if(!el){
             return;
+        }
 
 
+        state[id] = {
 
-        const rect =
-        el.getBoundingClientRect();
-
-
-
-        state[id]={
-
-
-            // =====================
             // 位置
-            // =====================
-
             left:
-            el.style.left || null,
-
+                el.style.left || null,
 
             top:
-            el.style.top || null,
-
+                el.style.top || null,
 
             right:
-            el.style.right || null,
-
+                el.style.right || null,
 
             bottom:
-            el.style.bottom || null,
+                el.style.bottom || null,
 
 
-
-
-            // =====================
-            // 寬度保存
-            // 高度取消
-            // 避免 CSS 被污染
-            // =====================
-
-
+            // 寬度保存，高度仍不保存
             width:
-            el.style.width || null,
-
-
+                el.style.width || null,
 
             height:
-            null,
+                null,
 
 
-
-            // =====================
             // 收起狀態
-            // =====================
-
-
             minimized:
-            el.classList.contains(
-                "minimize"
-            ),
-
-
+                el.classList.contains(
+                    "minimize"
+                ),
 
             collapsed:
-            el.classList.contains(
-                "collapsed"
-            )
-
-
+                el.classList.contains(
+                    "collapsed"
+                )
 
         };
-
 
     });
 
 
-
-    console.log(
-        "[WindowState 保存]",
-        state
-    );
+    /*
+     * 平常不輸出大量物件。
+     * 需要除錯時才在 Console 開啟：
+     *
+     * window.__FIREHAHA_DEBUG_WINDOW_STATE = true
+     */
+    if(
+        window.__FIREHAHA_DEBUG_WINDOW_STATE === true
+    ){
+        console.log(
+            "[WindowState 保存]",
+            state
+        );
+    }
 
 
     return state;
 
 }
+
+
+/*
+ * 保持 ProjectDataCenter 原本使用的公開接口。
+ */
+window.collectWindowState =
+    collectWindowState;
 
 
 // ============================================================
@@ -23087,7 +23317,92 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
-<script src="./firehaha-official-i18n-zh-en-ja.js" data-firehaha-bundled="official.i18n-zh-en-ja"></script>
-<script src="./firehaha-ultra-long-content-guard.js" data-firehaha-bundled="official.ultra-long-content-guard"></script>
+
+<script
+    src="./firehaha-official-i18n-zh-en-ja.js"
+    data-firehaha-bundled="official.i18n-zh-en-ja">
+</script>
+
+<script
+    src="./firehaha-ultra-long-content-guard.js"
+    data-firehaha-bundled="official.ultra-long-content-guard">
+</script>
+
+<script
+    src="./firehaha-preview-render-guard.js"
+    data-firehaha-bundled="official.preview-render-guard">
+</script>
+
+
+<!-- 新增：Node 切換預覽橋樑 -->
+<script
+    src="./firehaha-preview-selection-bridge.js"
+    data-firehaha-bundled="official.preview-selection-bridge">
+</script>
+
+<script
+    src="./firehaha-large-project-performance.js"
+    data-firehaha-bundled="official.large-project-performance">
+</script>
+
+<script
+    src="./firehaha-render-scheduler.js"
+    data-firehaha-bundled="official.render-scheduler">
+</script>
+
+<script
+    src="./firehaha-official-docx-gamebook.js"
+    data-firehaha-bundled="official.docx-gamebook">
+</script>
+
+<script
+    src="./firehaha-stress-test-300k.js"
+    data-firehaha-bundled="official.stress-test-300k">
+</script>
+
+<script
+    src="./firehaha-native-asset-reader-adapter.js"
+    data-firehaha-bundled="official.native-asset-reader-adapter">
+</script>
+
+<script
+    src="./firehaha-native-audio-adapter.js"
+    data-firehaha-bundled="official.native-audio-adapter">
+</script>
+
+<script
+    src="./firehaha-native-video-adapter.js"
+    data-firehaha-bundled="official.native-video-adapter">
+</script>
+
+
+<script
+    src="./firehaha-drawing-zoom-coordinate-fix.js"
+    data-firehaha-bundled="official.drawing-zoom-coordinate-fix">
+</script>
+
+
+<!-- 先載入框選與群體拖曳 -->
+<script
+    src="./firehaha-node-box-delete-plugin.js"
+    data-firehaha-bundled="official.node-box-delete">
+</script>
+
+<!-- 再載入新的統一右鍵／Action 外掛 -->
+<script
+    src="./firehaha-node-action-context-plugin.js"
+    data-firehaha-bundled="official.node-action-context">
+</script>
+
+<script
+    src="./firehaha-system-settings.js"
+    data-firehaha-bundled="official.system-settings">
+</script>
+
+<!-- 一定放最後 -->
+<script
+    src="./firehaha-toolbox-organizer.js"
+    data-firehaha-bundled="official.toolbox-organizer">
+</script>
 </body>
 </html>
