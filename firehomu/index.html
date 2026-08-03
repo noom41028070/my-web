@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>Firehaha 編輯器</title>
+
+<style>
+  *{
+    box-sizing:border-box;
+  }
+
+  html,
+  body{
+    width:100%;
+    min-height:100%;
+    margin:0;
+  }
+
+  body{
+    display:grid;
+    place-items:center;
+    padding:24px;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Noto Sans TC",
+      sans-serif;
+    background:
+      radial-gradient(
+        circle at 50% 25%,
+        #f1f7ff,
+        #dce8f5 48%,
+        #cad8e7
+      );
+    color:#26394d;
+  }
+
+  .launcher{
+    width:min(520px,100%);
+    padding:30px;
+    border:
+      1px solid
+      rgba(43,67,92,.18);
+    border-radius:22px;
+    background:
+      rgba(255,255,255,.92);
+    box-shadow:
+      0 24px 72px
+      rgba(31,49,70,.24);
+    text-align:center;
+    backdrop-filter:
+      blur(12px);
+  }
+
+  .logo{
+    display:grid;
+    place-items:center;
+    width:80px;
+    height:80px;
+    margin:0 auto 16px;
+    border-radius:24px;
+    background:
+      linear-gradient(
+        145deg,
+        #315f8e,
+        #203b59
+      );
+    color:#fff;
+    font-size:40px;
+    box-shadow:
+      0 13px 32px
+      rgba(34,62,91,.3);
+  }
+
+  h1{
+    margin:0 0 8px;
+    font-size:25px;
+  }
+
+  p{
+    margin:0;
+    color:#6a7b8c;
+    line-height:1.7;
+  }
+
+  .progress{
+    height:10px;
+    margin:24px 0 11px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#dbe4ee;
+  }
+
+  .progress-bar{
+    width:0;
+    height:100%;
+    border-radius:inherit;
+    background:
+      linear-gradient(
+        90deg,
+        #3677ad,
+        #7358c7
+      );
+    transition:
+      width 120ms linear;
+  }
+
+  .status{
+    min-height:23px;
+    color:#425f7c;
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .actions{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:9px;
+    margin-top:20px;
+  }
+
+  button{
+    min-height:41px;
+    padding:8px 15px;
+    border:
+      1px solid #bcc9d6;
+    border-radius:10px;
+    background:#fff;
+    color:#31495f;
+    font-weight:750;
+    cursor:pointer;
+  }
+
+  button.primary{
+    border-color:#315f8e;
+    background:#315f8e;
+    color:#fff;
+  }
+
+  .path{
+    margin-top:17px;
+    padding:10px;
+    border-radius:10px;
+    background:#eef3f8;
+    color:#728193;
+    font-size:11px;
+    line-height:1.5;
+    word-break:break-all;
+  }
+
+  @media(prefers-color-scheme:dark){
+
+    body{
+      background:
+        radial-gradient(
+          circle at 50% 25%,
+          #263a50,
+          #172638 50%,
+          #101a27
+        );
+      color:#e9f1f8;
+    }
+
+    .launcher{
+      background:
+        rgba(25,39,55,.94);
+      border-color:
+        rgba(255,255,255,.11);
+    }
+
+    p,
+    .path{
+      color:#afbdcb;
+    }
+
+    .progress{
+      background:#34485d;
+    }
+
+    .status{
+      color:#bdd5e9;
+    }
+
+    button{
+      border-color:#53677c;
+      background:#25384b;
+      color:#e8f0f7;
+    }
+
+    .path{
+      background:#203246;
+    }
+
+  }
+</style>
+</head>
+
+<body>
+
+<main class="launcher">
+
+  <div class="logo">
+    🔥
+  </div>
+
+  <h1>
+    Firehaha 編輯器
+  </h1>
+
+  <p>
+    正在準備工作區與外掛環境。
+  </p>
+
+  <div class="progress">
+    <div
+      class="progress-bar"
+      id="progressBar">
+    </div>
+  </div>
+
+  <div
+    class="status"
+    id="statusText">
+    正在初始化……
+  </div>
+
+  <div class="actions">
+
+    <button
+      type="button"
+      class="primary"
+      id="openButton">
+      立即開啟編輯器
+    </button>
+
+    <button
+      type="button"
+      id="safeButton">
+      安全模式
+    </button>
+
+  </div>
+
+  <div
+    class="path"
+    id="targetPath">
+  </div>
+
+</main>
+
+<script>
+(function(){
+
+  "use strict";
+
+
+  const EDITOR_FILE =
+  "./firehaha.html";
+
+
+  const AUTO_OPEN_DELAY =
+    1200;
+
+
+  const progressBar =
+    document.getElementById(
+      "progressBar"
+    );
+
+
+  const statusText =
+    document.getElementById(
+      "statusText"
+    );
+
+
+  const openButton =
+    document.getElementById(
+      "openButton"
+    );
+
+
+  const safeButton =
+    document.getElementById(
+      "safeButton"
+    );
+
+
+  const targetPath =
+    document.getElementById(
+      "targetPath"
+    );
+
+
+  let redirected =
+    false;
+
+
+  targetPath.textContent =
+    "啟動位置：" +
+    EDITOR_FILE;
+
+
+  function buildEditorUrl(
+    safeMode
+  ){
+
+    const url =
+      new URL(
+        EDITOR_FILE,
+        location.href
+      );
+
+
+    if(safeMode){
+
+      url.searchParams.set(
+        "firehahaSafeMode",
+        "1"
+      );
+
+    }
+
+
+    url.searchParams.set(
+      "firehahaOpenedFromIndex",
+      "1"
+    );
+
+
+    return url.href;
+
+  }
+
+
+  function openEditor(
+    safeMode
+  ){
+
+    if(redirected){
+      return;
+    }
+
+
+    redirected =
+      true;
+
+
+    progressBar.style.width =
+      "100%";
+
+
+    statusText.textContent =
+      safeMode
+        ? "正在以安全模式開啟……"
+        : "正在開啟編輯器……";
+
+
+    location.replace(
+      buildEditorUrl(
+        safeMode
+      )
+    );
+
+  }
+
+
+  openButton.addEventListener(
+    "click",
+    function(){
+
+      openEditor(
+        false
+      );
+
+    }
+  );
+
+
+  safeButton.addEventListener(
+    "click",
+    function(){
+
+      openEditor(
+        true
+      );
+
+    }
+  );
+
+
+  const startedAt =
+    performance.now();
+
+
+  function updateProgress(){
+
+    if(redirected){
+      return;
+    }
+
+
+    const elapsed =
+      performance.now() -
+      startedAt;
+
+
+    const ratio =
+      Math.min(
+        1,
+        elapsed /
+        AUTO_OPEN_DELAY
+      );
+
+
+    progressBar.style.width =
+      (
+        ratio *
+        100
+      ).toFixed(1) +
+      "%";
+
+
+    if(ratio < .35){
+
+      statusText.textContent =
+        "正在讀取系統設定……";
+
+    }else if(ratio < .75){
+
+      statusText.textContent =
+        "正在準備外掛環境……";
+
+    }else{
+
+      statusText.textContent =
+        "即將開啟編輯器……";
+
+    }
+
+
+    if(ratio >= 1){
+
+      openEditor(
+        false
+      );
+
+      return;
+
+    }
+
+
+    requestAnimationFrame(
+      updateProgress
+    );
+
+  }
+
+
+  requestAnimationFrame(
+    updateProgress
+  );
+
+})();
+</script>
+
+</body>
+</html>
