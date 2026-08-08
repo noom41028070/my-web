@@ -1,0 +1,621 @@
+對，就是這支 `firehaha-native-audio-adapter.js`。它目前所有播放、停止、跳頁按鈕都共用：
+
+```css
+.fh-native-audio-control
+```
+
+所以才會全部長得一樣。
+
+下面這支是**獨立匯入式插件**，不用修改音樂適配器。每一個按鈕前面放樣式標籤，就能各自使用不同外觀。
+
+```javascript
+// @firehaha-plugin {"id":"official.audio-button-styles","name":"音樂按鈕多樣式","version":"1.0.0","author":"Firehaha","description":"讓每個 BGM 播放、停止與跳頁按鈕分別使用純文字、選項、外框、膠囊等樣式"}
+
+FirehahaPlugins.register({
+  id: "official.audio-button-styles",
+
+  setup(api) {
+    "use strict";
+
+    const STYLE_ID =
+      "firehaha-audio-button-styles";
+
+    const STYLE_CLASSES = [
+      "fh-audio-style-text",
+      "fh-audio-style-option",
+      "fh-audio-style-outline",
+      "fh-audio-style-pill",
+      "fh-audio-style-dark",
+      "fh-audio-style-danger",
+      "fh-audio-style-glass",
+      "fh-audio-style-compact"
+    ];
+
+    const css = `
+/* =====================================
+   Firehaha 音樂按鈕多樣式
+===================================== */
+
+/* 純文字按鈕 */
+.fh-native-audio-control.fh-audio-style-text{
+  display:inline-block;
+  width:auto;
+  max-width:100%;
+  margin:5px 3px;
+  padding:3px 5px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#2673bd;
+  box-shadow:none;
+  font-weight:700;
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+
+.fh-native-audio-control.fh-audio-style-text:hover{
+  background:transparent;
+  color:#14548c;
+}
+
+.fh-native-audio-control.fh-audio-style-text.is-playing{
+  background:transparent;
+  color:#278146;
+}
+
+
+/* 一般選項按鈕 */
+.fh-native-audio-control.fh-audio-style-option{
+  display:block;
+  width:100%;
+  max-width:560px;
+  margin:10px auto;
+  padding:14px 18px;
+  border:1px solid #d8dde5;
+  border-left:6px solid #4b8ee8;
+  border-radius:12px;
+  background:#fff;
+  color:#303846;
+  box-shadow:0 3px 10px rgba(0,0,0,.09);
+  text-align:left;
+}
+
+.fh-native-audio-control.fh-audio-style-option:hover{
+  border-color:#76a8ea;
+  border-left-color:#2673bd;
+  background:#f3f8ff;
+  transform:translateX(3px);
+}
+
+.fh-native-audio-control.fh-audio-style-option.is-playing{
+  border-left-color:#2f9854;
+  background:#f0faf3;
+  color:#246b3b;
+}
+
+
+/* 外框按鈕 */
+.fh-native-audio-control.fh-audio-style-outline{
+  width:auto;
+  display:inline-block;
+  margin:7px 4px;
+  padding:9px 18px;
+  border:2px solid #526b8a;
+  border-radius:10px;
+  background:transparent;
+  color:#405674;
+  box-shadow:none;
+}
+
+.fh-native-audio-control.fh-audio-style-outline:hover{
+  background:#edf3fa;
+}
+
+
+/* 膠囊按鈕 */
+.fh-native-audio-control.fh-audio-style-pill{
+  display:inline-block;
+  width:auto;
+  margin:7px 4px;
+  padding:9px 22px;
+  border:0;
+  border-radius:999px;
+  background:#6d5bd0;
+  color:#fff;
+  box-shadow:0 4px 12px rgba(70,50,160,.25);
+}
+
+
+/* 深色按鈕 */
+.fh-native-audio-control.fh-audio-style-dark{
+  background:#252932;
+  color:#fff;
+  border:1px solid #454b57;
+  border-radius:8px;
+  box-shadow:0 5px 15px rgba(0,0,0,.25);
+}
+
+
+/* 警告／停止按鈕 */
+.fh-native-audio-control.fh-audio-style-danger{
+  background:#fff1f1;
+  color:#a43b3b;
+  border:1px solid #e9a4a4;
+  border-radius:10px;
+  box-shadow:none;
+}
+
+.fh-native-audio-control.fh-audio-style-danger:hover{
+  background:#ffe4e4;
+}
+
+
+/* 玻璃按鈕 */
+.fh-native-audio-control.fh-audio-style-glass{
+  background:rgba(255,255,255,.58);
+  color:#344052;
+  border:1px solid rgba(255,255,255,.8);
+  border-radius:16px;
+  box-shadow:
+    0 7px 20px rgba(30,50,80,.15),
+    inset 0 1px 0 rgba(255,255,255,.8);
+  backdrop-filter:blur(9px);
+  -webkit-backdrop-filter:blur(9px);
+}
+
+
+/* 小型按鈕 */
+.fh-native-audio-control.fh-audio-style-compact{
+  display:inline-block;
+  width:auto;
+  margin:4px;
+  padding:6px 11px;
+  border-radius:7px;
+  font-size:12px;
+}
+
+
+/* 樣式標記本身不顯示 */
+.fh-audio-style-marker{
+  display:none!important;
+}
+`;
+
+    function installRuntime(
+      targetWindow,
+      targetDocument
+    ) {
+      if (
+        targetWindow
+          .__firehahaAudioButtonStylesInstalled
+      ) {
+        return;
+      }
+
+      targetWindow
+        .__firehahaAudioButtonStylesInstalled =
+        true;
+
+      const classes = [
+        "fh-audio-style-text",
+        "fh-audio-style-option",
+        "fh-audio-style-outline",
+        "fh-audio-style-pill",
+        "fh-audio-style-dark",
+        "fh-audio-style-danger",
+        "fh-audio-style-glass",
+        "fh-audio-style-compact"
+      ];
+
+      function normalizeStyle(value) {
+        const name =
+          String(value || "")
+            .trim()
+            .toLowerCase();
+
+        const map = {
+          "文字": "text",
+          "純文字": "text",
+          "text": "text",
+
+          "選項": "option",
+          "一般選項": "option",
+          "option": "option",
+
+          "外框": "outline",
+          "outline": "outline",
+
+          "膠囊": "pill",
+          "圓角": "pill",
+          "pill": "pill",
+
+          "深色": "dark",
+          "黑色": "dark",
+          "dark": "dark",
+
+          "警告": "danger",
+          "危險": "danger",
+          "紅色": "danger",
+          "danger": "danger",
+
+          "玻璃": "glass",
+          "透明": "glass",
+          "glass": "glass",
+
+          "小型": "compact",
+          "迷你": "compact",
+          "compact": "compact"
+        };
+
+        return map[name] || "option";
+      }
+
+      function createMarker(styleName) {
+        const marker =
+          targetDocument.createElement(
+            "span"
+          );
+
+        marker.className =
+          "fh-audio-style-marker";
+
+        marker.dataset.fhAudioStyle =
+          normalizeStyle(styleName);
+
+        return marker;
+      }
+
+      function convertTextMarkers() {
+        if (!targetDocument.body) {
+          return;
+        }
+
+        const walker =
+          targetDocument.createTreeWalker(
+            targetDocument.body,
+            NodeFilter.SHOW_TEXT
+          );
+
+        const nodes = [];
+
+        while (walker.nextNode()) {
+          const node =
+            walker.currentNode;
+
+          const parent =
+            node.parentElement;
+
+          if (
+            !parent ||
+            parent.closest(
+              "script,style,textarea,noscript," +
+              ".fh-audio-style-marker"
+            )
+          ) {
+            continue;
+          }
+
+          if (
+            /\[(?:音樂按鈕樣式|bgmstyle|audiostyle)\s*:/i
+              .test(node.nodeValue || "")
+          ) {
+            nodes.push(node);
+          }
+        }
+
+        nodes.forEach(node => {
+          const text =
+            node.nodeValue || "";
+
+          const pattern =
+            /\[(?:音樂按鈕樣式|bgmstyle|audiostyle)\s*:\s*([^\]]+)\]/gi;
+
+          const fragment =
+            targetDocument
+              .createDocumentFragment();
+
+          let lastIndex = 0;
+          let match;
+
+          while (
+            (
+              match =
+                pattern.exec(text)
+            )
+          ) {
+            if (
+              match.index >
+              lastIndex
+            ) {
+              fragment.appendChild(
+                targetDocument
+                  .createTextNode(
+                    text.slice(
+                      lastIndex,
+                      match.index
+                    )
+                  )
+              );
+            }
+
+            fragment.appendChild(
+              createMarker(match[1])
+            );
+
+            lastIndex =
+              pattern.lastIndex;
+          }
+
+          if (
+            lastIndex <
+            text.length
+          ) {
+            fragment.appendChild(
+              targetDocument
+                .createTextNode(
+                  text.slice(lastIndex)
+                )
+            );
+          }
+
+          node.replaceWith(fragment);
+        });
+      }
+
+      function applyStyles() {
+        const items =
+          Array.from(
+            targetDocument.querySelectorAll(
+              ".fh-audio-style-marker," +
+              ".fh-native-audio-control"
+            )
+          );
+
+        items.forEach(
+          (item, index) => {
+            if (
+              !item.classList.contains(
+                "fh-audio-style-marker"
+              )
+            ) {
+              return;
+            }
+
+            const styleName =
+              item.dataset.fhAudioStyle ||
+              "option";
+
+            let targetButton = null;
+
+            for (
+              let i = index + 1;
+              i < items.length;
+              i++
+            ) {
+              if (
+                items[i].classList.contains(
+                  "fh-audio-style-marker"
+                )
+              ) {
+                break;
+              }
+
+              if (
+                items[i].classList.contains(
+                  "fh-native-audio-control"
+                )
+              ) {
+                targetButton = items[i];
+                break;
+              }
+            }
+
+            if (!targetButton) {
+              return;
+            }
+
+            classes.forEach(name => {
+              targetButton.classList.remove(
+                name
+              );
+            });
+
+            targetButton.classList.add(
+              "fh-audio-style-" +
+              styleName
+            );
+
+            item.remove();
+          }
+        );
+      }
+
+      let queued = false;
+
+      function scan() {
+        convertTextMarkers();
+        applyStyles();
+      }
+
+      function queueScan() {
+        if (queued) {
+          return;
+        }
+
+        queued = true;
+
+        setTimeout(() => {
+          queued = false;
+          scan();
+        }, 0);
+      }
+
+      scan();
+
+      const observer =
+        new MutationObserver(queueScan);
+
+      observer.observe(
+        targetDocument.body,
+        {
+          childList: true,
+          subtree: true,
+          characterData: true
+        }
+      );
+
+      targetWindow
+        .FirehahaAudioButtonStyles = {
+          version: "1.0.0",
+          scan,
+          observer
+        };
+    }
+
+    const removeStyle =
+      api.addStyle(
+        "audio-button-styles",
+        css
+      );
+
+    installRuntime(
+      window,
+      document
+    );
+
+    const runtimeCode =
+      "(" +
+      installRuntime.toString() +
+      ")(window,document);";
+
+    const removeTransform =
+      api.registerReaderTransform(
+        "audio-button-styles",
+
+        function (html) {
+          html = String(
+            html == null ? "" : html
+          );
+
+          if (
+            html.includes(
+              "data-fh-audio-button-styles"
+            )
+          ) {
+            return html;
+          }
+
+          const style =
+            '<style data-fh-audio-button-styles>' +
+            css +
+            "</style>";
+
+          const script =
+            '<script data-fh-audio-button-styles>' +
+            runtimeCode +
+            "</scr" +
+            "ipt>";
+
+          if (/<\/head\s*>/i.test(html)) {
+            html = html.replace(
+              /<\/head\s*>/i,
+              style + "\n</head>"
+            );
+          } else {
+            html =
+              style + html;
+          }
+
+          if (/<\/body\s*>/i.test(html)) {
+            html = html.replace(
+              /<\/body\s*>/i,
+              script + "\n</body>"
+            );
+          } else {
+            html += script;
+          }
+
+          return html;
+        },
+
+        520
+      );
+
+    api.toast(
+      "音樂按鈕多樣式已啟用"
+    );
+
+    return function cleanup() {
+      removeTransform();
+      removeStyle();
+
+      if (
+        window.FirehahaAudioButtonStyles
+          ?.observer
+      ) {
+        window
+          .FirehahaAudioButtonStyles
+          .observer
+          .disconnect();
+      }
+
+      delete window
+        .FirehahaAudioButtonStyles;
+
+      delete window
+        .__firehahaAudioButtonStylesInstalled;
+    };
+  }
+});
+```
+
+## 使用方式
+
+每個音樂標籤前放一個樣式標籤：
+
+```text
+[音樂按鈕樣式:純文字]
+[bgmplay:asset_audio_你的ID|播放背景音樂]
+```
+
+一般選項：
+
+```text
+[音樂按鈕樣式:選項]
+[bgmjump:asset_audio_你的ID|2|推開大門]
+```
+
+停止按鈕可使用紅色：
+
+```text
+[音樂按鈕樣式:警告]
+[bgmstop:asset_audio_你的ID|停止音樂]
+```
+
+同一頁也能每顆不同：
+
+```text
+[音樂按鈕樣式:純文字]
+[bgmplay:asset_audio_A|播放森林音樂]
+
+[音樂按鈕樣式:選項]
+[bgmjump:asset_audio_B|3|前往城鎮]
+
+[音樂按鈕樣式:外框]
+[bgmstop:asset_audio_A|關閉音樂]
+```
+
+支援的名稱：
+
+```text
+純文字
+選項
+外框
+膠囊
+深色
+警告
+玻璃
+小型
+```
+
+所以不是「只要安插播放按鈕就全部變成同一種」，而是**每一顆按鈕前面的樣式標籤，只控制緊接著的下一顆音樂按鈕**。
