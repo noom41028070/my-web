@@ -2851,7 +2851,8 @@ margin-top:5px;
 	box-shadow:
 	0 8px 25px rgba(0,0,0,.25);
 
-	z-index:9999;
+	/* 浮動編輯器刻意高於專案工具列，拖到頂部時仍可完整操作。 */
+	z-index:30000;
 
 	overflow:hidden;
 
@@ -7177,6 +7178,10 @@ function getWindowState() {
 
 
 			bottom:
+			panelId === "editorFloat"
+			?
+			"auto"
+			:
 			style.bottom,
 
 
@@ -7492,6 +7497,19 @@ function restoreWindowState(state){
         ].forEach(prop=>{
 
 
+            // 編輯器固定採用 top 定位；舊存檔同時保存 top / bottom
+            // 會讓視窗被上下拉伸，因此只保留可自由拖曳的 top。
+            if(
+                id==="editorFloat" &&
+                prop==="bottom"
+            ){
+
+                el.style.bottom="auto";
+                return;
+
+            }
+
+
             if(
                 s[prop] !== undefined &&
                 s[prop] !== null &&
@@ -7638,6 +7656,10 @@ function restoreWindowState(state){
 
 
     });
+
+
+    window.FirehahaFloatingEditorLayout
+    ?.sync?.();
 
 
 }
@@ -8428,6 +8450,8 @@ style.textContent=`
 
 position:fixed;
 
+display:none;
+
 left:20px;
 
 bottom:20px;
@@ -8445,6 +8469,12 @@ box-shadow:0 8px 20px rgba(0,0,0,.25);
 z-index:9999;
 
 overflow:hidden;
+
+}
+
+#permFloat.open{
+
+display:block;
 
 }
 #permHeader{
@@ -8471,6 +8501,32 @@ cursor:move;
 user-select:none;
 
 font-weight:bold;
+
+}
+
+.perm-header-actions{
+
+display:flex;
+
+gap:5px;
+
+}
+
+#permHeader button{
+
+width:28px;
+
+height:26px;
+
+padding:0;
+
+border:1px solid rgba(255,255,255,.45);
+
+border-radius:6px;
+
+background:rgba(255,255,255,.16);
+
+color:#fff;
 
 }
 
@@ -8607,7 +8663,13 @@ panel.innerHTML=`
 
 <span>✨ 字母組合</span>
 
+<span class="perm-header-actions">
+
 <button id="togglePerm">─</button>
+
+<button id="closePerm" title="關閉">×</button>
+
+</span>
 
 </div>
 
@@ -8632,6 +8694,44 @@ maxlength="6">
 `;
 
 document.body.appendChild(panel);
+
+const openPermButton=
+document.createElement("button");
+
+openPermButton.id="openPermTool";
+
+openPermButton.type="button";
+
+openPermButton.textContent="✨ 字母組合";
+
+openPermButton.title="開啟字母排列組合工具";
+
+openPermButton.onclick=function(){
+
+    panel.classList.add("open");
+
+    document
+    .querySelector(
+        "body > .pro-more-panel.pro-floating-tools"
+    )
+    ?.classList.remove("open");
+
+    document
+    .querySelector(".pro-more-summary")
+    ?.classList.remove("active");
+
+    savePermState();
+
+};
+
+(
+    document.querySelector(
+        ".pixiv-editor-app > header"
+    ) ||
+    document.querySelector("header") ||
+    document.body
+)
+.appendChild(openPermButton);
 
 panel.style.height = "auto";
 
@@ -8665,6 +8765,10 @@ function savePermState(){
         style.bottom || "20px",
 
 
+        isOpen:
+        panel.classList.contains("open"),
+
+
         isMinimized:
         panel.classList.contains("minimize")
 
@@ -8683,8 +8787,9 @@ function savePermState(){
 
 const togglePermBtn =
 document
-.getElementById("togglePerm")
-.onclick=function(){
+.getElementById("togglePerm");
+
+togglePermBtn.onclick=function(){
 
     panel.classList.toggle("minimize");
 
@@ -8696,6 +8801,19 @@ document
     :
     "─";
 
+
+    savePermState();
+
+};
+
+togglePermBtn.dataset.fhToggleBound=
+"true";
+
+document
+.getElementById("closePerm")
+.onclick=function(){
+
+    panel.classList.remove("open");
 
     savePermState();
 
@@ -8735,6 +8853,11 @@ document
 
 
 		// ---------- 收合狀態 ----------
+
+		panel.classList.toggle(
+			"open",
+			state.isOpen === true
+		);
 
 		if(state.isMinimized){
 
@@ -16063,6 +16186,10 @@ window.addEventListener(
                     panel.style.bottom,
 
 
+                    isOpen:
+                    panel.classList.contains("open"),
+
+
                     isMinimized:
                     panel.classList.contains("minimize")
 
@@ -16145,6 +16272,10 @@ function setupToggle(buttonId, panelId){
 
 	if(!btn || !panel)
     	return;
+
+
+	if(btn.dataset.fhToggleBound === "true")
+		return;
 
 
 	btn.onclick=function(e){
@@ -16686,7 +16817,16 @@ if(togglePreview && previewFloat){
                 	window.innerWidth * 0.9;
 
 
-            	const maxContentHeight =
+			const maxContentHeight =
+				panelId === "editorFloat"
+				?
+				Math.max(
+					minHeight,
+					window.innerHeight-
+					panel.getBoundingClientRect().top-
+					52
+				)
+				:
                 	window.innerHeight * 0.85;
 
 
@@ -17549,6 +17689,10 @@ function collectWindowState(){
                 el.style.right || null,
 
             bottom:
+                id === "editorFloat"
+                ?
+                "auto"
+                :
                 el.style.bottom || null,
 
 
@@ -19111,6 +19255,10 @@ if(document.readyState === "loading"){
                 if (!element || !isPlainObject(saved)) return;
 
                 ["left", "top", "right", "bottom", "width", "height", "display"].forEach(function (property) {
+                    if (id === "editorFloat" && property === "bottom") {
+                        element.style.bottom = "auto";
+                        return;
+                    }
                     if (typeof saved[property] === "string") {
                         element.style[property] = saved[property];
                     }
@@ -19119,6 +19267,8 @@ if(document.readyState === "loading"){
                     element.className = saved.className;
                 }
             });
+
+            window.FirehahaFloatingEditorLayout?.sync?.();
         }, 0);
     }
 
@@ -20877,13 +21027,14 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
                     '#storyPanel{display:none;position:fixed;z-index:90;inset:64px 12px auto auto;width:min(360px,calc(100vw - 24px));max-height:70dvh;overflow:auto;padding:15px;border:1px solid #d5e0e8;border-radius:14px;background:rgba(255,255,255,.98);color:#26384a;box-shadow:0 15px 40px rgba(15,30,45,.24)}#storyPanel.open{display:block}#storyPanel h2{margin:0 0 12px;font-size:17px}.story-section{margin-top:10px;padding-top:10px;border-top:1px solid #e4eaf0}.story-chip{display:inline-block;margin:3px;padding:5px 8px;border-radius:999px;background:#e8f2fb;color:#274963;font-size:12px}.story-empty{color:#8694a0;font-size:12px}.reader-toast{pointer-events:none;position:fixed;z-index:100;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 15px;border-radius:999px;background:#26384a;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:readerToast 2.5s ease both}@keyframes readerToast{0%{opacity:0;transform:translate(-50%,12px)}12%,82%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-8px)}}' +
                     '.story-dice{display:inline-flex;align-items:center;gap:12px;margin:8px 0;padding:9px 14px;border:1px solid #8ca3b7;border-radius:12px;background:linear-gradient(145deg,#fff,#dce8f2);color:#20384d;font:700 14px system-ui;cursor:pointer;box-shadow:0 8px 18px rgba(20,45,65,.18)}.dice-cube{display:grid;place-items:center;width:42px;height:42px;border:2px solid #516e86;border-radius:9px;background:linear-gradient(135deg,#fff 0 45%,#c6d8e6 100%);box-shadow:inset -7px -7px 12px rgba(42,75,100,.18),7px 8px 13px rgba(20,42,60,.22);font-size:18px;transform:rotateX(-16deg) rotateY(22deg);transform-style:preserve-3d}.story-dice.rolling .dice-cube{animation:diceRoll3d .75s cubic-bezier(.2,.8,.2,1)}@keyframes diceRoll3d{0%{transform:rotateX(0) rotateY(0) scale(.8)}45%{transform:rotateX(420deg) rotateY(300deg) scale(1.18)}100%{transform:rotateX(704deg) rotateY(742deg) scale(1)}}' +
                     '.dice-stage{display:flex;align-items:center;gap:7px;perspective:500px}.dice-shape{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;background:linear-gradient(145deg,#fff,#b9d2e5);color:#173b57;font-weight:900;filter:drop-shadow(5px 7px 5px rgba(20,42,60,.24));transform:rotateX(-13deg) rotateY(18deg);transform-style:preserve-3d}.dice-d4{clip-path:polygon(50% 2%,98% 94%,2% 94%)}.dice-d6{border:2px solid #516e86;border-radius:8px;clip-path:none}.dice-d8{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}.dice-d10{clip-path:polygon(50% 0,92% 24%,100% 66%,50% 100%,0 66%,8% 24%)}.dice-d12{clip-path:polygon(50% 0,88% 14%,100% 50%,82% 91%,50% 100%,18% 91%,0 50%,12% 14%)}.dice-d20{clip-path:polygon(50% 0,91% 20%,100% 64%,72% 100%,28% 100%,0 64%,9% 20%)}.dice-d100{clip-path:polygon(50% 0,92% 24%,100% 66%,50% 100%,0 66%,8% 24%)}.dice-percent-tens{background:linear-gradient(145deg,#fff2cc,#df9f35);color:#5d3500}.dice-percent-ones{background:linear-gradient(145deg,#e7f7ff,#58a9d6);color:#083d5c}.story-dice.rolling .dice-shape{animation:diceShapeRoll .78s cubic-bezier(.2,.8,.2,1)}.story-dice.rolling .dice-shape:nth-child(2){animation-delay:.08s}.story-dice.rolling .dice-shape:nth-child(3){animation-delay:.14s}@keyframes diceShapeRoll{0%{transform:rotateX(0) rotateY(0) scale(.72)}45%{transform:rotateX(460deg) rotateY(330deg) scale(1.16)}100%{transform:rotateX(720deg) rotateY(740deg) scale(1)}}.dice-copy{display:grid;gap:2px;text-align:left}.dice-process{font-size:12px;font-weight:500;color:#516b7d;white-space:normal}.story-dice.rolling .dice-process{opacity:.55}.reader-dark .story-dice{background:linear-gradient(145deg,#263746,#17232e);color:#edf6fc}.reader-dark .dice-process{color:#b9ccda}@media(max-width:600px){.dice-shape{width:36px;height:36px;flex-basis:36px}.story-dice{max-width:100%;flex-wrap:wrap}}' +
-                    '#saveDock{position:fixed;right:18px;bottom:18px;z-index:50;width:min(330px,calc(100vw - 28px));font-size:14px;text-align:left}' +
-                    '#saveToggle{display:block;margin-left:auto;padding:10px 15px;border:0;border-radius:999px;background:#26384a;color:#fff;box-shadow:0 5px 18px rgba(0,0,0,.22);cursor:pointer}' +
-                    '#savePanel{display:none;margin-top:8px;padding:13px;border:1px solid #d6e0e8;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 12px 35px rgba(15,30,45,.2)}#savePanel.open{display:block}' +
+                    '#saveDock{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(max(14px,env(safe-area-inset-bottom)) + 58px);z-index:90;width:min(330px,calc(100vw - 28px));font-size:14px;text-align:left;pointer-events:none}' +
+                    '#readerTools #saveToggle{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:91;display:inline-flex;margin:0;padding:10px 15px;border:1px solid #d5dde5;border-radius:999px;background:rgba(255,255,255,.94);color:#34495e;box-shadow:0 5px 18px rgba(0,0,0,.18);cursor:pointer;backdrop-filter:blur(8px)}' +
+                    '.reader-dark #readerTools #saveToggle{background:rgba(35,45,57,.94);color:#eef5fa;border-color:#526273}' +
+                    '#savePanel{display:none;margin:0;padding:13px;border:1px solid #d6e0e8;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 12px 35px rgba(15,30,45,.2);pointer-events:auto;max-height:min(70vh,560px);overflow:auto}#savePanel.open{display:block}' +
                     '#savePanel h2{margin:0 0 5px;font-size:16px}.save-note{margin:0 0 10px;color:#6d7e8e;font-size:11px}.auto-slot,.save-slot{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:7px 0;border-top:1px solid #edf1f4}' +
                     '.slot-info{min-width:0}.slot-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.slot-time{display:block;color:#81909d;font-size:10px}.slot-btn{padding:6px 8px;border:1px solid #ccd8e2;border-radius:7px;background:#fff;color:#34495e;cursor:pointer}.slot-btn:disabled{opacity:.4;cursor:not-allowed}.slot-save{color:#1565c0}.save-disabled{padding:8px;border-radius:8px;background:#fff3e0;color:#9a5b00;font-size:11px}' +
-                    '@media(max-width:600px){#reader{width:min(100vw,calc(100dvh * 9 / 16));height:min(100dvh,calc(100vw * 16 / 9));min-height:0;padding:0}.content{max-width:none}#readerTools{top:max(8px,env(safe-area-inset-top))}#saveDock{bottom:max(12px,env(safe-area-inset-bottom))}}' +
-                    '</style></head><body><nav id="readerTools"><button id="fontDown" type="button">字−</button><button id="fontUp" type="button">字＋</button><button id="typeToggle" type="button">⌨ 打字動畫：開</button><button id="typeSpeed" type="button">速度：標準</button><button id="typeSkip" type="button">⏩ 顯示全文</button><button id="themeToggle" type="button">◐ 深色</button><button id="fullToggle" type="button">⛶ 滿版</button><button id="storyToggle" type="button">🎒 冒險紀錄</button></nav><main id="reader"></main><section id="storyPanel"><h2>🎒 冒險紀錄</h2><div id="storyContent"></div></section><aside id="saveDock"><button id="saveToggle" type="button">💾 存檔／讀取</button><section id="savePanel"><h2>書籤存檔</h2><p class="save-note">共有 6 個手動槽位；存檔只保存在此瀏覽器。</p><div id="autoSlot"></div><div id="saveSlots"></div></section></aside><script>' +
+                    '@media(max-width:600px){#reader{width:min(100vw,calc(100dvh * 9 / 16));height:min(100dvh,calc(100vw * 16 / 9));min-height:0;padding:0}.content{max-width:none}#readerTools{top:max(8px,env(safe-area-inset-top))}#saveDock{right:max(10px,env(safe-area-inset-right));bottom:calc(max(10px,env(safe-area-inset-bottom)) + 58px);width:min(330px,calc(100vw - 20px))}#readerTools #saveToggle{right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}}' +
+                    '</style></head><body><nav id="readerTools"><button id="fontDown" type="button">字−</button><button id="fontUp" type="button">字＋</button><button id="typeToggle" type="button">⌨ 打字動畫：開</button><button id="typeSpeed" type="button">速度：標準</button><button id="typeSkip" type="button">⏩ 顯示全文</button><button id="themeToggle" type="button">◐ 深色</button><button id="fullToggle" type="button">⛶ 滿版</button><button id="storyToggle" type="button">🎒 冒險紀錄</button><button id="saveToggle" type="button">💾 存檔／讀取</button></nav><main id="reader"></main><section id="storyPanel"><h2>🎒 冒險紀錄</h2><div id="storyContent"></div></section><aside id="saveDock"><section id="savePanel"><h2>書籤存檔</h2><p class="save-note">共有 6 個手動槽位；存檔只保存在此瀏覽器。</p><div id="autoSlot"></div><div id="saveSlots"></div></section></aside><script>' +
                     'const pages=' + data + ',readerPrefs=' + readerPrefs + ';const history=[];const reader=document.getElementById(\"reader\");const storageKey=' + JSON.stringify(storageKey) + ';const slotCount=6;let currentId=\"\",typewriterOn=true,typeToken=0,typeDelay=24,readerTypingChoice=null,readerSpeedChoice=0,fontScale=1,darkMode=false;let memorySave={slots:Array(slotCount).fill(null),auto:null,adventure:{items:[],flags:[],values:{},attributes:{},modifiers:{},skills:{},skillModifiers:{},quests:{},dice:{},checks:{},checkBands:{},damage:{},damageRules:{},successDice:{},diceModelVersion:2,applied:{}}};' +
                     'function loadState(){try{const value=JSON.parse(localStorage.getItem(storageKey)||\"null\");if(value&&Array.isArray(value.slots)){memorySave=value;while(memorySave.slots.length<slotCount)memorySave.slots.push(null)}}catch(e){}memorySave.adventure=memorySave.adventure||{items:[],flags:[],values:{},attributes:{},modifiers:{},skills:{},skillModifiers:{},quests:{},dice:{},checks:{},checkBands:{},damage:{},damageRules:{},successDice:{},diceModelVersion:2,applied:{}};memorySave.adventure.items=Array.isArray(memorySave.adventure.items)?memorySave.adventure.items:[];memorySave.adventure.flags=Array.isArray(memorySave.adventure.flags)?memorySave.adventure.flags:[];memorySave.adventure.values=memorySave.adventure.values&&typeof memorySave.adventure.values===\"object\"?memorySave.adventure.values:{};memorySave.adventure.attributes=memorySave.adventure.attributes&&typeof memorySave.adventure.attributes===\"object\"?memorySave.adventure.attributes:{};memorySave.adventure.modifiers=memorySave.adventure.modifiers&&typeof memorySave.adventure.modifiers===\"object\"?memorySave.adventure.modifiers:{};memorySave.adventure.skills=memorySave.adventure.skills&&typeof memorySave.adventure.skills===\"object\"?memorySave.adventure.skills:{};memorySave.adventure.skillModifiers=memorySave.adventure.skillModifiers&&typeof memorySave.adventure.skillModifiers===\"object\"?memorySave.adventure.skillModifiers:{};memorySave.adventure.quests=memorySave.adventure.quests&&typeof memorySave.adventure.quests===\"object\"?memorySave.adventure.quests:{};memorySave.adventure.dice=memorySave.adventure.dice&&typeof memorySave.adventure.dice===\"object\"?memorySave.adventure.dice:{};memorySave.adventure.checks=memorySave.adventure.checks&&typeof memorySave.adventure.checks===\"object\"?memorySave.adventure.checks:{};memorySave.adventure.checkBands=memorySave.adventure.checkBands&&typeof memorySave.adventure.checkBands===\"object\"?memorySave.adventure.checkBands:{};memorySave.adventure.damage=memorySave.adventure.damage&&typeof memorySave.adventure.damage===\"object\"?memorySave.adventure.damage:{};memorySave.adventure.damageRules=memorySave.adventure.damageRules&&typeof memorySave.adventure.damageRules===\"object\"?memorySave.adventure.damageRules:{};memorySave.adventure.successDice=memorySave.adventure.successDice&&typeof memorySave.adventure.successDice===\"object\"?memorySave.adventure.successDice:{};if(memorySave.adventure.diceModelVersion!==2){const legacy=Object.entries(memorySave.adventure.dice),last=legacy[legacy.length-1];legacy.forEach(entry=>{if(memorySave.adventure.values[entry[0]]===entry[1])delete memorySave.adventure.values[entry[0]]});memorySave.adventure.dice=last?{__last:{total:Number(last[1])||0,formula:\"舊版擲骰\",attribute:\"\"}}:{};memorySave.adventure.diceModelVersion=2}memorySave.adventure.applied=memorySave.adventure.applied||{};return memorySave}' +
                     'function persist(){try{localStorage.setItem(storageKey,JSON.stringify(memorySave))}catch(e){}}' +
@@ -20898,8 +21049,8 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
                     'function visualCss(v){v=v||{};return `font-size:${Number(v.fontSize)||18}px;font-weight:${Number(v.weight)||400};font-style:${v.italic?"italic":"normal"};color:${v.color||"#222222"};background:${visualColor(v.background,Number.isFinite(Number(v.opacity))?Number(v.opacity):1)};opacity:1;border-radius:${Number(v.radius)||0}px`}' +
                     'function visualClass(v){v=v||{};return `visual-preset-${v.preset||"plain"} visual-anim-${v.animation||"none"}`}' +
                     'function rgba(hex,alpha){const v=String(hex||\"#fff\").replace(\"#\",\"\");const f=v.length===3?v.split(\"\").map(x=>x+x).join(\"\"):v;const n=parseInt(f,16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${Math.max(0,Math.min(1,Number(alpha)||0))})`}' +
-                    'function toast(message){const count=document.querySelectorAll(\".reader-toast\").length,el=document.createElement(\"div\");el.className=\"reader-toast\";el.style.bottom=(28+count*48)+\"px\";el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}function addUnique(list,value){if(!list.includes(value)){list.push(value);return true}return false}function numericTest(source,name){const test=String(name||\"\").match(/^(.+?)(>=|<=|=|>|<)(-?\\d+(?:\\.\\d+)?)$/);if(!test)return false;const raw=source[test[1].trim()],actual=Number(raw&&typeof raw===\"object\"?raw.total:raw||0),expected=Number(test[3]);return test[2]===\">=\"?actual>=expected:test[2]===\"<=\"?actual<=expected:test[2]===\">\"?actual>expected:test[2]===\"<\"?actual<expected:actual===expected}function hiddenCondition(body){const parts=String(body||\"\").split(\":\").map(x=>x.trim()),kind=String(parts.shift()||\"\").toLowerCase(),name=parts.join(\":\").trim(),a=memorySave.adventure,items=a.items,flags=a.flags;if(name&&(kind===\"持有\"||kind===\"item\"))return items.includes(name);if(name&&(kind===\"旗幟\"||kind===\"發生\"||kind===\"flag\"))return flags.includes(name);if(name&&(kind===\"未持有\"||kind===\"not-item\"))return!items.includes(name);if(name&&(kind===\"未發生\"||kind===\"not-flag\"))return!flags.includes(name);if(kind===\"數值\"||kind===\"value\")return numericTest(a.values,name);if(kind===\"屬性\"||kind===\"attribute\")return numericTest(a.attributes,name);if(kind===\"技能\"||kind===\"skill\")return numericTest(a.skills,name);if(kind===\"骰子\"||kind===\"dice\")return numericTest(a.dice,name.replace(/^無屬性(?=[><=])/,\"__last\"));if(kind===\"傷害\"||kind===\"damage\")return numericTest(a.damage,name);if(kind===\"成功骰\"||kind===\"success-dice\")return numericTest(a.successDice,name);if(kind===\"檢定\"||kind===\"check\"){const test=name.match(/^(.+?)=(.+)$/);return!!(test&&a.checks[test[1].trim()]&&a.checks[test[1].trim()].result===test[2])}if(kind===\"任務\"||kind===\"quest\"){const test=name.match(/^(.+?)=(.+)$/);if(test)return String(a.quests[test[1].trim()]||\"\")===test[2].trim()}return false}function resolveTarget(a,target){const raw=String(target||\"\").trim();if(/^-?\\d+(?:\\.\\d+)?$/.test(raw))return{type:\"固定值\",name:raw,value:Number(raw),modifier:0,has:true};const parts=raw.split(\":\"),explicit=parts.length>1?(parts.shift()||\"\").trim():\"\",name=(parts.length?parts.join(\":\"):raw).trim(),skill=explicit===\"技能\"||explicit.toLowerCase()===\"skill\",attribute=explicit===\"屬性\"||explicit.toLowerCase()===\"attribute\",source=skill?a.skills:attribute?a.attributes:Object.prototype.hasOwnProperty.call(a.attributes,name)?a.attributes:a.skills,modifiers=skill?a.skillModifiers:attribute?a.modifiers:Object.prototype.hasOwnProperty.call(a.attributes,name)?a.modifiers:a.skillModifiers,type=skill?\"技能\":attribute?\"屬性\":Object.prototype.hasOwnProperty.call(a.attributes,name)?\"屬性\":Object.prototype.hasOwnProperty.call(a.skills,name)?\"技能\":\"未設定\",has=Object.prototype.hasOwnProperty.call(source||{},name);return{type:type,name:name,value:has?Number(source[name]):0,modifier:has?Number(modifiers&&modifiers[name]||0):0,has:has}}function checkCompare(actual,operator,target){return operator===\"<=\"?actual<=target:operator===\"<\"?actual<target:operator===\">=\"?actual>=target:operator===\">\"?actual>target:actual===target}function checkBandTarget(expression,attributeValue){const value=String(expression||\"屬性\").trim();if(/^-?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);const match=value.match(/^(?:目標|屬性)(?:([\\/\\*+-])(-?\\d+(?:\\.\\d+)?))?$/);if(!match)return attributeValue;const amount=Number(match[2]);return!match[1]?attributeValue:match[1]===\"/\"?(amount?attributeValue/amount:attributeValue):match[1]===\"*\"?attributeValue*amount:match[1]===\"+\"?attributeValue+amount:attributeValue-amount}function hiddenRule(text){const value=String(text||\"\"),regex=/\\[(?:隱藏|hidden)\\s*:\\s*([^\\]]+)\\]/gi,matches=[...value.matchAll(regex)];if(!matches.length)return{hidden:false,show:true,text:value};return{hidden:true,show:matches.every(match=>hiddenCondition(match[1])),text:value.replace(regex,\"\").trim()}}function diceFaces(sides,count,saved){const limit=Math.min(count,sides===100?3:6),rolls=saved&&Array.isArray(saved.rolls)?saved.rolls:[],percent=saved&&Array.isArray(saved.percent)?saved.percent:[],supported=[4,6,8,10,12,20],shape=supported.includes(sides)?\"dice-d\"+sides:\"dice-d10\",faces=[];for(let i=0;i<limit;i++){if(sides===100){const pair=percent[i]||[\"?\",\"?\"];faces.push(`<span class=\"dice-shape dice-d100 dice-percent-tens\" title=\"十位骰\">${esc(pair[0])}</span><span class=\"dice-shape dice-d100 dice-percent-ones\" title=\"個位骰\">${esc(pair[1])}</span>`)}else faces.push(`<span class=\"dice-shape ${shape}\">${rolls[i]==null?\"?\":esc(rolls[i])}</span>`)}if(count>limit)faces.push(`<span class=\"story-chip\">＋${count-limit} 顆</span>`);return faces.join(\"\")}function applyAdventure(page){let html=String(page.content||\"\");const a=memorySave.adventure;if(!a.applied[page.id]){html.replace(/\\[取得:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();if(addUnique(a.items,name))toast(\"取得物品：\"+name);return\"\"}).replace(/\\[失去:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();const i=a.items.indexOf(name);if(i>=0){a.items.splice(i,1);toast(\"失去物品：\"+name)}return\"\"}).replace(/\\[旗幟:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();if(addUnique(a.flags,name))toast(\"事件記錄：\"+name);return\"\"}).replace(/\\[取消旗幟:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();const i=a.flags.indexOf(name);if(i>=0){a.flags.splice(i,1);toast(\"事件取消：\"+name)}return\"\"}).replace(/\\[數值:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{a.values[name.trim()]=Number(num);toast(name.trim()+\"：\"+a.values[name.trim()]);return\"\"}).replace(/\\[增加:([^:\\]]+):(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.values[name]=Number(a.values[name]||0)+Number(num);toast(name+\" 增加至 \"+a.values[name]);return\"\"}).replace(/\\[減少:([^:\\]]+):(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.values[name]=Number(a.values[name]||0)-Number(num);toast(name+\" 減少至 \"+a.values[name]);return\"\"}).replace(/\\[屬性:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.attributes[name]=Number(num);toast(\"屬性 \"+name+\"：\"+a.attributes[name]);return\"\"}).replace(/\\[修正值:([^=\\]]+)=([+-]?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.modifiers[name]=Number(num);toast(name+\"修正值：\"+(a.modifiers[name]>=0?\"+\":\"\")+a.modifiers[name]);return\"\"}).replace(/\\[技能:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.skills[name]=Number(num);toast(\"技能 \"+name+\"：\"+a.skills[name]);return\"\"}).replace(/\\[技能修正值:([^=\\]]+)=([+-]?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.skillModifiers[name]=Number(num);toast(name+\"技能修正值：\"+(a.skillModifiers[name]>=0?\"+\":\"\")+a.skillModifiers[name]);return\"\"}).replace(/\\[任務:([^:\\]]+):([^\\]]+)\\]/gi,(_,name,state)=>{a.quests[name.trim()]=state.trim();toast(\"任務「\"+name.trim()+\"」：\"+state.trim());return\"\"}).replace(/\\[檢定等級:([^:\\]]+):([^:\\]]+):自然骰(&lt;=?|&gt;=?|<=|>=|=|<|>)(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,level,operator,target)=>{name=name.trim();level=level.trim();operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");const list=a.checkBands[name]||(a.checkBands[name]=[]),existing=list.find(rule=>rule.level===level),rule={level:level,operator:operator,target:String(target),source:\"natural\"};if(existing)Object.assign(existing,rule);else list.push(rule);return\"\"}).replace(/\\[檢定等級:([^:\\]]+):([^:\\]]+):(&lt;=?|&gt;=?|<=|>=|=|<|>):([^\\]]+)\\]/gi,(_,name,level,operator,target)=>{name=name.trim();level=level.trim();operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");target=target.trim();const list=a.checkBands[name]||(a.checkBands[name]=[]),existing=list.find(rule=>rule.level===level),rule={level:level,operator:operator,target:target};if(existing)Object.assign(existing,rule);else list.push(rule);return\"\"}).replace(/\\[重擊:([^:\\]]+):([^=\\]]+)=([^:\\]]+):([^\\]]+)\\]/gi,(_,name,check,result,mode)=>{a.damageRules[name.trim()]={check:check.trim(),result:result.trim(),mode:mode.trim()};return\"\"});a.applied[page.id]=true;persist()}return html.replace(/\\[(?:檢定等級|重擊):[^\\]]+\\]/gi,\"\").replace(/\\[(?:取得|失去|旗幟|取消旗幟):[^\\]]+\\]/gi,\"\").replace(/\\[(?:數值|屬性|修正值|技能|技能修正值):[^\\]]+\\]/gi,\"\").replace(/\\[(?:增加|減少|任務):[^\\]]+\\]/gi,\"\").replace(/\\[傷害骰:([^:\\]]+):(\\d*)d(\\d+)(?:([+-]\\d+))?\\]/gi,(_,name,count,sides,bonus)=>{name=name.trim();count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));bonus=Number(bonus)||0;const key=\"__damage_\"+name,saved=a.damage[name],formula=count+\"d\"+sides+(bonus?(bonus>0?\"+\"+bonus:String(bonus)):\"\"),rule=a.damageRules[name];return`<button type=\"button\" class=\"story-dice story-damage\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${bonus}\" data-key=\"${esc(key)}\" data-formula=\"${esc(formula)}\" data-damage-name=\"${esc(name)}\"><span class=\"dice-stage\">${diceFaces(sides,saved&&saved.effectiveCount||count,saved)}</span><span class=\"dice-copy\"><strong>傷害骰 ${esc(name)}｜${esc(formula)}</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:rule?\"點擊擲傷害；重擊規則：\"+rule.mode:\"點擊擲出傷害\")}</small></span></button>`}).replace(/\\[成功骰:([^:\\]]+):(\\d*)d(\\d+):(&lt;=?|&gt;=?|<=|>=|=|<|>):?(-?\\d+(?:\\.\\d+)?):(\\d+)\\]/gi,(_,name,count,sides,operator,threshold,required)=>{name=name.trim();count=Math.max(1,Math.min(100,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");threshold=Number(threshold);required=Math.max(1,Number(required)||1);const key=\"__success_\"+name,saved=a.successDice[name],formula=count+\"d\"+sides;return`<button type=\"button\" class=\"story-dice story-success-dice\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"0\" data-key=\"${esc(key)}\" data-formula=\"${esc(formula)}\" data-success-name=\"${esc(name)}\" data-success-operator=\"${esc(operator)}\" data-success-threshold=\"${threshold}\" data-success-required=\"${required}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>成功骰 ${esc(name)}｜每顆 ${esc(operator)} ${threshold}，需要 ${required} 成功</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:\"點擊擲出整組骰池\")}</small></span></button>`}).replace(/\\[檢定:([^:\\]]+):(\\d*)d(\\d+)(?:([+-]\\d+))?:(&lt;=?|&gt;=?|<=|>=|=|<|>):([^\\]]+)\\]/gi,(_,name,count,sides,bonus,operator,target)=>{name=String(name||\"檢定\").trim();count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));bonus=Number(bonus)||0;operator=String(operator||\"\").replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");target=String(target||\"\").trim();const resolved=resolveTarget(a,target),targetValue=resolved.value,targetLabel=resolved.type===\"固定值\"?\"固定目標\":resolved.type+\" \"+resolved.name,key=\"__check_\"+name,saved=a.checks[name],formula=count+\"d\"+sides+(bonus?(bonus>0?\"+\"+bonus:String(bonus)):\"\");return`<button type=\"button\" class=\"story-dice story-check\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${bonus}\" data-key=\"${esc(key)}\" data-attribute=\"\" data-formula=\"${esc(formula)}\" data-check-name=\"${esc(name)}\" data-check-operator=\"${esc(operator)}\" data-check-target=\"${esc(target)}\" data-check-label=\"${esc(targetLabel)}\" data-check-value=\"${targetValue}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>檢定 ${esc(name)}｜${esc(formula)} ${esc(operator)} ${esc(targetLabel)}（${targetValue}）</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:\"點擊骰子進行目標值檢定\")}</small></span></button>`}).replace(/\\[骰子:(\\d*)d(\\d+)(?:([+-]\\d+))?(?::([^\\]]+))?\\]/gi,(_,count,sides,inlineBonus,requested)=>{count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));inlineBonus=Number(inlineBonus)||0;requested=String(requested||\"\").trim();const resolved=requested?resolveTarget(a,requested):{has:false,type:\"\",name:\"\",value:null,modifier:0},hasAttribute=resolved.has,attribute=hasAttribute?resolved.type+\":\"+resolved.name:\"\",attributeValue=hasAttribute?resolved.value:null,modifier=inlineBonus+(hasAttribute?resolved.modifier:0),key=attribute||\"__last\",saved=a.dice[key],formula=count+\"d\"+sides+(modifier?modifier>0?\"+\"+modifier:String(modifier):\"\"),label=hasAttribute?resolved.type+\" \"+resolved.name+\"（\"+attributeValue+\"）\":\"無屬性\",process=saved&&saved.breakdown?saved.breakdown:\"點擊骰子，查看每一顆的結果\";return`<button type=\"button\" class=\"story-dice\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${modifier}\" data-key=\"${esc(key)}\" data-attribute=\"${esc(attribute)}\" data-formula=\"${esc(formula)}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>${esc(label)}｜骰子結果：${esc(formula)}</strong><small class=\"dice-process\">${esc(process)}</small></span></button>`})}function renderAdventure(){const a=memorySave.adventure,html=list=>list.length?list.map(value=>`<span class=\"story-chip\">${esc(value)}</span>`).join(\"\"):`<span class=\"story-empty\">尚無記錄</span>`,pairs=obj=>Object.keys(obj).length?Object.entries(obj).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value)}</span>`).join(\"\"):`<span class=\"story-empty\">尚無記錄</span>`,attributes=Object.keys(a.attributes).length?Object.entries(a.attributes).map(([key,value])=>{const mod=Number(a.modifiers[key]||0);return`<span class=\"story-chip\">${esc(key)}（${esc(value)}）${mod?\"　修正 \"+(mod>0?\"+\":\"\")+esc(mod):\"\"}</span>`}).join(\"\"):`<span class=\"story-empty\">尚無屬性</span>`,skills=Object.keys(a.skills).length?Object.entries(a.skills).map(([key,value])=>{const mod=Number(a.skillModifiers[key]||0);return`<span class=\"story-chip\">${esc(key)}（${esc(value)}）${mod?\"　修正 \"+(mod>0?\"+\":\"\")+esc(mod):\"\"}</span>`}).join(\"\"):`<span class=\"story-empty\">尚無技能</span>`,checks=Object.keys(a.checks).length?Object.entries(a.checks).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.result)}｜${value.target?esc(value.total)+\" \"+esc(value.operator)+\" \"+esc(value.target)+\"（\"+esc(value.targetValue)+\"）\":esc(value.total)+\" 個成功\"}</span>`).join(\"\"):`<span class=\"story-empty\">尚未檢定</span>`,damage=Object.keys(a.damage).length?Object.entries(a.damage).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.total)}${value.critical?\"（重擊 \"+esc(value.criticalMode)+\"）\":\"\"}</span>`).join(\"\"):`<span class=\"story-empty\">尚未造成傷害</span>`,successDice=Object.keys(a.successDice).length?Object.entries(a.successDice).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.successes)} 個成功／需要 ${esc(value.required)} 個｜${esc(value.result)}</span>`).join(\"\"):`<span class=\"story-empty\">尚未擲成功骰</span>`,diceEntries=Object.entries(a.dice).filter(([key])=>!key.startsWith(\"__damage_\")&&!key.startsWith(\"__success_\")&&!key.startsWith(\"__check_\")),dice=diceEntries.length?diceEntries.map(([key,value])=>{const data=value&&typeof value===\"object\"?value:{total:value,formula:\"\",attribute:key===\"__last\"?\"\":key};return`<span class=\"story-chip\">${data.attribute?\"屬性 \"+esc(data.attribute):\"無屬性\"}｜${esc(data.breakdown||((data.formula||\"擲骰\")+\" → \"+data.total))}</span>`}).join(\"\"):`<span class=\"story-empty\">尚未擲骰</span>`;document.getElementById(\"storyContent\").innerHTML=`<div class=\"story-section\"><strong>攜帶物品</strong><div>${html(a.items)}</div></div><div class=\"story-section\"><strong>事件足跡</strong><div>${html(a.flags)}</div></div><div class=\"story-section\"><strong>一般數值</strong><div>${pairs(a.values)}</div></div><div class=\"story-section\"><strong>角色屬性</strong><div>${attributes}</div></div><div class=\"story-section\"><strong>角色技能</strong><div>${skills}</div></div><div class=\"story-section\"><strong>最近擲骰結果</strong><div>${dice}</div></div><div class=\"story-section\"><strong>目標值檢定</strong><div>${checks}</div></div><div class=\"story-section\"><strong>傷害結果</strong><div>${damage}</div></div><div class=\"story-section\"><strong>成功骰池</strong><div>${successDice}</div></div><div class=\"story-section\"><strong>任務</strong><div>${pairs(a.quests)}</div></div>`}function typewrite(){const box=reader.querySelector(\".content\");if(!box||!typewriterOn)return;const token=++typeToken,walker=document.createTreeWalker(box,NodeFilter.SHOW_TEXT),parts=[];let node;while(node=walker.nextNode())if(node.nodeValue.trim()&&!node.parentElement.closest(\".story-dice,button\"))parts.push({node,text:node.nodeValue});parts.forEach(part=>part.node.nodeValue=\"\");let pi=0,ci=0;function step(){if(token!==typeToken)return;if(pi>=parts.length)return;const part=parts[pi];part.node.nodeValue=part.text.slice(0,++ci);if(ci>=part.text.length){pi++;ci=0}setTimeout(step,typeDelay)}step()}function revealText(){typeToken++;const page=pages.find(x=>x.id===currentId);const box=reader.querySelector(\".content\");if(page&&box){box.innerHTML=applyAdventure(page);bindStoryDice()}}function updateReaderView(){const current=pages.find(x=>x.id===currentId)||{},size=Number(current.settings&&current.settings.fontSize)||18;reader.style.fontSize=(size*fontScale)+\"px\";document.body.classList.toggle(\"reader-dark\",darkMode);document.getElementById(\"themeToggle\").textContent=darkMode?\"☀ 淺色\":\"◐ 深色\"}' +
-                    'function bindStoryDice(){reader.querySelectorAll(\".story-dice\").forEach(button=>button.onclick=()=>{if(button.classList.contains(\"rolling\"))return;const count=Number(button.dataset.count)||1,sides=Number(button.dataset.sides)||6,bonus=Number(button.dataset.bonus)||0,key=button.dataset.key||\"__last\",attribute=button.dataset.attribute||\"\",formula=button.dataset.formula||count+\"d\"+sides,checkName=button.dataset.checkName||\"\",checkOperator=button.dataset.checkOperator||\"\",checkTarget=button.dataset.checkTarget||\"\",checkLabel=button.dataset.checkLabel||checkTarget,checkValue=Number(button.dataset.checkValue)||0,damageName=button.dataset.damageName||\"\",successName=button.dataset.successName||\"\",successOperator=button.dataset.successOperator||\"\",successThreshold=Number(button.dataset.successThreshold)||0,successRequired=Number(button.dataset.successRequired)||1,rolls=[],percent=[];button.classList.add(\"rolling\");const liveProcess=button.querySelector(\".dice-process\");if(liveProcess)liveProcess.textContent=\"擲骰中……\";let subtotal=0;for(let i=0;i<count;i++){if(sides===100){const tens=Math.floor(Math.random()*10)*10,ones=Math.floor(Math.random()*10),value=tens+ones||100;percent.push([tens===0?\"00\":String(tens),String(ones)]);rolls.push(value);subtotal+=value}else{const value=1+Math.floor(Math.random()*sides);rolls.push(value);subtotal+=value}}const damageRule=damageName?memorySave.adventure.damageRules[damageName]:null,critical=!!(damageRule&&memorySave.adventure.checks[damageRule.check]&&memorySave.adventure.checks[damageRule.check].result===damageRule.result);if(critical&&damageRule.mode===\"骰數加倍\"){const original=count;for(let i=0;i<original;i++){const value=1+Math.floor(Math.random()*sides);rolls.push(value);subtotal+=value}}if(critical&&damageRule.mode===\"最大傷害\"){rolls.splice(0,rolls.length,...Array(count).fill(sides));subtotal=count*sides}let total=subtotal+bonus;if(critical&&damageRule.mode===\"傷害加倍\")total*=2;const bonusText=bonus?(bonus>0?\"＋\"+bonus:\"－\"+Math.abs(bonus)):\"\",breakdown=sides===100?(count===1?\"十位骰[\"+percent[0][0]+\"]＋個位骰[\"+percent[0][1]+\"] → \"+rolls[0]+bonusText+\"＝\"+total:rolls.map((value,index)=>\"第\"+(index+1)+\"組(\"+percent[index][0]+\",\"+percent[index][1]+\")＝\"+value).join(\"；\")+bonusText+\"｜總計＝\"+total):rolls.map(value=>\"1d\"+sides+\"[\"+value+\"]\").join(\"＋\")+bonusText+\"＝\"+total;setTimeout(()=>{let finalBreakdown=breakdown;if(critical)finalBreakdown+=\"｜重擊：\"+damageRule.mode+\" → \"+total;const saved={total:total,formula:formula,attribute:attribute,rolls:rolls,percent:percent,breakdown:finalBreakdown,effectiveCount:rolls.length};memorySave.adventure.dice[key]=saved;if(damageName){saved.name=damageName;saved.critical=critical;saved.criticalMode=critical?damageRule.mode:\"\";memorySave.adventure.damage[damageName]=saved}if(successName){const successCount=rolls.filter(value=>checkCompare(value,successOperator,successThreshold)).length,result=successCount>=successRequired?\"成功\":\"失敗\";saved.total=successCount;saved.successes=successCount;saved.required=successRequired;saved.operator=successOperator;saved.threshold=successThreshold;saved.result=result;saved.breakdown=rolls.map(value=>\"d\"+sides+\"[\"+value+\"]\"+(checkCompare(value,successOperator,successThreshold)?\"✓\":\"×\")).join(\" ＋ \")+\"｜成功 \"+successCount+\" 顆／需要 \"+successRequired+\" 顆：\"+result;memorySave.adventure.successDice[successName]=saved;memorySave.adventure.checks[successName]={result:result,total:successCount,formula:formula,breakdown:saved.breakdown}}if(checkName){const passed=checkCompare(total,checkOperator,checkValue),bands=memorySave.adventure.checkBands[checkName]||[],matched=bands.find(rule=>checkCompare(rule.source===\"natural\"?Number(rolls[0]||0):total,rule.operator,checkBandTarget(rule.target,checkValue))),bandTarget=matched?checkBandTarget(matched.target,checkValue):null,bandActual=matched?(matched.source===\"natural\"?Number(rolls[0]||0):total):null;saved.result=matched?matched.level:(passed?\"成功\":\"失敗\");saved.target=checkTarget;saved.targetValue=checkValue;saved.operator=checkOperator;saved.band=matched?{level:matched.level,operator:matched.operator,target:matched.target,value:bandTarget,source:matched.source||\"total\",actual:bandActual}:null;saved.breakdown=breakdown+\"｜目標 \"+checkOperator+\" \"+checkLabel+\"（\"+checkValue+\"）：\"+saved.result+(matched?\"〔\"+(matched.source===\"natural\"?\"自然骰 \"+bandActual+\" \":\"總值 \"+bandActual+\" \")+matched.operator+\" \"+bandTarget+\"〕\":\"\");memorySave.adventure.checks[checkName]=saved}const stage=button.querySelector(\".dice-stage\"),process=button.querySelector(\".dice-process\");if(stage)stage.innerHTML=diceFaces(sides,saved.effectiveCount||count,saved);if(process)process.textContent=saved.breakdown;button.classList.remove(\"rolling\");persist();renderAdventure();toast((damageName?\"傷害 \"+damageName:successName?\"成功骰 \"+successName:checkName?\"檢定 \"+checkName+\"（目標：\"+checkLabel+\" \"+checkValue+\"）\":attribute?\"屬性 \"+attribute:\"無屬性\")+\"｜\"+formula+\" → \"+(successName?saved.successes+\" 個成功\":total));setTimeout(()=>show(currentId,false),650)},780)})}' +
+                    'function toast(message){const count=document.querySelectorAll(\".reader-toast\").length,el=document.createElement(\"div\");el.className=\"reader-toast\";el.style.bottom=(28+count*48)+\"px\";el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}function addUnique(list,value){if(!list.includes(value)){list.push(value);return true}return false}function numericTest(source,name){const test=String(name||\"\").match(/^(.+?)(>=|<=|=|>|<)(-?\\d+(?:\\.\\d+)?)$/);if(!test)return false;const raw=source[test[1].trim()],actual=Number(raw&&typeof raw===\"object\"?raw.total:raw||0),expected=Number(test[3]);return test[2]===\">=\"?actual>=expected:test[2]===\"<=\"?actual<=expected:test[2]===\">\"?actual>expected:test[2]===\"<\"?actual<expected:actual===expected}function hiddenCondition(body){const parts=String(body||\"\").split(\":\").map(x=>x.trim()),kind=String(parts.shift()||\"\").toLowerCase(),name=parts.join(\":\").trim(),a=memorySave.adventure,items=a.items,flags=a.flags;if(name&&(kind===\"持有\"||kind===\"item\"))return items.includes(name);if(name&&(kind===\"旗幟\"||kind===\"發生\"||kind===\"flag\"))return flags.includes(name);if(name&&(kind===\"未持有\"||kind===\"not-item\"))return!items.includes(name);if(name&&(kind===\"未發生\"||kind===\"not-flag\"))return!flags.includes(name);if(kind===\"數值\"||kind===\"value\")return numericTest(a.values,name);if(kind===\"屬性\"||kind===\"attribute\")return numericTest(a.attributes,name);if(kind===\"技能\"||kind===\"skill\")return numericTest(a.skills,name);if(kind===\"骰子\"||kind===\"dice\"){const normalized=name.replace(/^無屬性(?=[><=])/,\"__last\"),test=normalized.match(/^(.+?)(>=|<=|=|>|<)(-?\\d+(?:\\.\\d+)?)$/);if(!test)return false;const rawKey=test[1].trim(),operator=test[2],expected=test[3],keys=[rawKey];if(rawKey!==\"__last\"&&!/^(?:屬性|技能|attribute|skill):/i.test(rawKey)){keys.push(\"屬性:\"+rawKey,\"技能:\"+rawKey)}for(const key of keys){if(Object.prototype.hasOwnProperty.call(a.dice,key)&&numericTest(a.dice,key+operator+expected))return true}return false}if(kind===\"傷害\"||kind===\"damage\")return numericTest(a.damage,name);if(kind===\"成功骰\"||kind===\"success-dice\")return numericTest(a.successDice,name);if(kind===\"檢定\"||kind===\"check\"){const test=name.match(/^(.+?)=(.+)$/);return!!(test&&a.checks[test[1].trim()]&&a.checks[test[1].trim()].result===test[2])}if(kind===\"任務\"||kind===\"quest\"){const test=name.match(/^(.+?)=(.+)$/);if(test)return String(a.quests[test[1].trim()]||\"\")===test[2].trim()}return false}function resolveTarget(a,target){const raw=String(target||\"\").trim();if(/^-?\\d+(?:\\.\\d+)?$/.test(raw))return{type:\"固定值\",name:raw,value:Number(raw),modifier:0,has:true};const parts=raw.split(\":\"),explicit=parts.length>1?(parts.shift()||\"\").trim():\"\",name=(parts.length?parts.join(\":\"):raw).trim(),skill=explicit===\"技能\"||explicit.toLowerCase()===\"skill\",attribute=explicit===\"屬性\"||explicit.toLowerCase()===\"attribute\",source=skill?a.skills:attribute?a.attributes:Object.prototype.hasOwnProperty.call(a.attributes,name)?a.attributes:a.skills,modifiers=skill?a.skillModifiers:attribute?a.modifiers:Object.prototype.hasOwnProperty.call(a.attributes,name)?a.modifiers:a.skillModifiers,type=skill?\"技能\":attribute?\"屬性\":Object.prototype.hasOwnProperty.call(a.attributes,name)?\"屬性\":Object.prototype.hasOwnProperty.call(a.skills,name)?\"技能\":\"未設定\",has=Object.prototype.hasOwnProperty.call(source||{},name);return{type:type,name:name,value:has?Number(source[name]):0,modifier:has?Number(modifiers&&modifiers[name]||0):0,has:has}}function checkCompare(actual,operator,target){return operator===\"<=\"?actual<=target:operator===\"<\"?actual<target:operator===\">=\"?actual>=target:operator===\">\"?actual>target:actual===target}function checkBandTarget(expression,attributeValue){const value=String(expression||\"屬性\").trim();if(/^-?\\d+(?:\\.\\d+)?$/.test(value))return Number(value);const match=value.match(/^(?:目標|屬性)(?:([\\/\\*+-])(-?\\d+(?:\\.\\d+)?))?$/);if(!match)return attributeValue;const amount=Number(match[2]);return!match[1]?attributeValue:match[1]===\"/\"?(amount?attributeValue/amount:attributeValue):match[1]===\"*\"?attributeValue*amount:match[1]===\"+\"?attributeValue+amount:attributeValue-amount}function hiddenRule(text){const value=String(text||\"\"),regex=/\\[(?:隱藏|hidden)\\s*:\\s*([^\\]]+)\\]/gi,matches=[...value.matchAll(regex)];if(!matches.length)return{hidden:false,show:true,text:value};return{hidden:true,show:matches.every(match=>hiddenCondition(match[1])),text:value.replace(regex,\"\").trim()}}function diceFaces(sides,count,saved){const limit=Math.min(count,sides===100?3:6),rolls=saved&&Array.isArray(saved.rolls)?saved.rolls:[],percent=saved&&Array.isArray(saved.percent)?saved.percent:[],supported=[4,6,8,10,12,20],shape=supported.includes(sides)?\"dice-d\"+sides:\"dice-d10\",faces=[];for(let i=0;i<limit;i++){if(sides===100){const pair=percent[i]||[\"?\",\"?\"];faces.push(`<span class=\"dice-shape dice-d100 dice-percent-tens\" title=\"十位骰\">${esc(pair[0])}</span><span class=\"dice-shape dice-d100 dice-percent-ones\" title=\"個位骰\">${esc(pair[1])}</span>`)}else faces.push(`<span class=\"dice-shape ${shape}\">${rolls[i]==null?\"?\":esc(rolls[i])}</span>`)}if(count>limit)faces.push(`<span class=\"story-chip\">＋${count-limit} 顆</span>`);return faces.join(\"\")}function applyAdventure(page){let html=String(page.content||\"\");const a=memorySave.adventure;if(!a.applied[page.id]){html.replace(/\\[取得:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();if(addUnique(a.items,name))toast(\"取得物品：\"+name);return\"\"}).replace(/\\[失去:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();const i=a.items.indexOf(name);if(i>=0){a.items.splice(i,1);toast(\"失去物品：\"+name)}return\"\"}).replace(/\\[旗幟:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();if(addUnique(a.flags,name))toast(\"事件記錄：\"+name);return\"\"}).replace(/\\[取消旗幟:([^\\]]+)\\]/gi,(_,name)=>{name=name.trim();const i=a.flags.indexOf(name);if(i>=0){a.flags.splice(i,1);toast(\"事件取消：\"+name)}return\"\"}).replace(/\\[數值:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{a.values[name.trim()]=Number(num);toast(name.trim()+\"：\"+a.values[name.trim()]);return\"\"}).replace(/\\[增加:([^:\\]]+):(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.values[name]=Number(a.values[name]||0)+Number(num);toast(name+\" 增加至 \"+a.values[name]);return\"\"}).replace(/\\[減少:([^:\\]]+):(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.values[name]=Number(a.values[name]||0)-Number(num);toast(name+\" 減少至 \"+a.values[name]);return\"\"}).replace(/\\[屬性:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.attributes[name]=Number(num);toast(\"屬性 \"+name+\"：\"+a.attributes[name]);return\"\"}).replace(/\\[修正值:([^=\\]]+)=([+-]?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.modifiers[name]=Number(num);toast(name+\"修正值：\"+(a.modifiers[name]>=0?\"+\":\"\")+a.modifiers[name]);return\"\"}).replace(/\\[技能:([^=\\]]+)=(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.skills[name]=Number(num);toast(\"技能 \"+name+\"：\"+a.skills[name]);return\"\"}).replace(/\\[技能修正值:([^=\\]]+)=([+-]?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,num)=>{name=name.trim();a.skillModifiers[name]=Number(num);toast(name+\"技能修正值：\"+(a.skillModifiers[name]>=0?\"+\":\"\")+a.skillModifiers[name]);return\"\"}).replace(/\\[任務:([^:\\]]+):([^\\]]+)\\]/gi,(_,name,state)=>{a.quests[name.trim()]=state.trim();toast(\"任務「\"+name.trim()+\"」：\"+state.trim());return\"\"}).replace(/\\[檢定等級:([^:\\]]+):([^:\\]]+):自然骰(&lt;=?|&gt;=?|<=|>=|=|<|>)(-?\\d+(?:\\.\\d+)?)\\]/gi,(_,name,level,operator,target)=>{name=name.trim();level=level.trim();operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");const list=a.checkBands[name]||(a.checkBands[name]=[]),existing=list.find(rule=>rule.level===level),rule={level:level,operator:operator,target:String(target),source:\"natural\"};if(existing)Object.assign(existing,rule);else list.push(rule);return\"\"}).replace(/\\[檢定等級:([^:\\]]+):([^:\\]]+):(&lt;=?|&gt;=?|<=|>=|=|<|>):([^\\]]+)\\]/gi,(_,name,level,operator,target)=>{name=name.trim();level=level.trim();operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");target=target.trim();const list=a.checkBands[name]||(a.checkBands[name]=[]),existing=list.find(rule=>rule.level===level),rule={level:level,operator:operator,target:target};if(existing)Object.assign(existing,rule);else list.push(rule);return\"\"}).replace(/\\[重擊:([^:\\]]+):([^=\\]]+)=([^:\\]]+):([^\\]]+)\\]/gi,(_,name,check,result,mode)=>{a.damageRules[name.trim()]={check:check.trim(),result:result.trim(),mode:mode.trim()};return\"\"});a.applied[page.id]=true;persist()}return html.replace(/\\[(?:檢定等級|重擊):[^\\]]+\\]/gi,\"\").replace(/\\[(?:取得|失去|旗幟|取消旗幟):[^\\]]+\\]/gi,\"\").replace(/\\[(?:數值|屬性|修正值|技能|技能修正值):[^\\]]+\\]/gi,\"\").replace(/\\[(?:增加|減少|任務):[^\\]]+\\]/gi,\"\").replace(/\\[傷害骰:([^:\\]]+):(\\d*)d(\\d+)(?:([+-]\\d+))?\\]/gi,(_,name,count,sides,bonus)=>{name=name.trim();count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));bonus=Number(bonus)||0;const key=\"__damage_\"+name,saved=a.damage[name],formula=count+\"d\"+sides+(bonus?(bonus>0?\"+\"+bonus:String(bonus)):\"\"),rule=a.damageRules[name];return`<button type=\"button\" class=\"story-dice story-damage\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${bonus}\" data-key=\"${esc(key)}\" data-formula=\"${esc(formula)}\" data-damage-name=\"${esc(name)}\"><span class=\"dice-stage\">${diceFaces(sides,saved&&saved.effectiveCount||count,saved)}</span><span class=\"dice-copy\"><strong>傷害骰 ${esc(name)}｜${esc(formula)}</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:rule?\"點擊擲傷害；重擊規則：\"+rule.mode:\"點擊擲出傷害\")}</small></span></button>`}).replace(/\\[成功骰:([^:\\]]+):(\\d*)d(\\d+):(&lt;=?|&gt;=?|<=|>=|=|<|>):?(-?\\d+(?:\\.\\d+)?):(\\d+)\\]/gi,(_,name,count,sides,operator,threshold,required)=>{name=name.trim();count=Math.max(1,Math.min(100,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));operator=String(operator).replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");threshold=Number(threshold);required=Math.max(1,Number(required)||1);const key=\"__success_\"+name,saved=a.successDice[name],formula=count+\"d\"+sides;return`<button type=\"button\" class=\"story-dice story-success-dice\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"0\" data-key=\"${esc(key)}\" data-formula=\"${esc(formula)}\" data-success-name=\"${esc(name)}\" data-success-operator=\"${esc(operator)}\" data-success-threshold=\"${threshold}\" data-success-required=\"${required}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>成功骰 ${esc(name)}｜每顆 ${esc(operator)} ${threshold}，需要 ${required} 成功</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:\"點擊擲出整組骰池\")}</small></span></button>`}).replace(/\\[檢定:([^:\\]]+):(\\d*)d(\\d+)(?:([+-]\\d+))?:(&lt;=?|&gt;=?|<=|>=|=|<|>):([^\\]]+)\\]/gi,(_,name,count,sides,bonus,operator,target)=>{name=String(name||\"檢定\").trim();count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));bonus=Number(bonus)||0;operator=String(operator||\"\").replace(/&lt;/gi,\"<\").replace(/&gt;/gi,\">\");target=String(target||\"\").trim();const resolved=resolveTarget(a,target),targetValue=resolved.value,targetLabel=resolved.type===\"固定值\"?\"固定目標\":resolved.type+\" \"+resolved.name,key=\"__check_\"+name,saved=a.checks[name],formula=count+\"d\"+sides+(bonus?(bonus>0?\"+\"+bonus:String(bonus)):\"\");return`<button type=\"button\" class=\"story-dice story-check\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${bonus}\" data-key=\"${esc(key)}\" data-attribute=\"\" data-formula=\"${esc(formula)}\" data-check-name=\"${esc(name)}\" data-check-operator=\"${esc(operator)}\" data-check-target=\"${esc(target)}\" data-check-label=\"${esc(targetLabel)}\" data-check-value=\"${targetValue}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>檢定 ${esc(name)}｜${esc(formula)} ${esc(operator)} ${esc(targetLabel)}（${targetValue}）</strong><small class=\"dice-process\">${esc(saved&&saved.breakdown?saved.breakdown:\"點擊骰子進行目標值檢定\")}</small></span></button>`}).replace(/\\[骰子:(\\d*)d(\\d+)(?:([+-]\\d+))?(?::([^\\]]+))?\\]/gi,(_,count,sides,inlineBonus,requested)=>{count=Math.max(1,Math.min(20,Number(count)||1));sides=Math.max(2,Math.min(1000,Number(sides)||6));inlineBonus=Number(inlineBonus)||0;requested=String(requested||\"\").trim();const resolved=requested?resolveTarget(a,requested):{has:false,type:\"\",name:\"\",value:null,modifier:0},hasAttribute=resolved.has,attribute=hasAttribute?resolved.type+\":\"+resolved.name:\"\",attributeValue=hasAttribute?resolved.value:null,modifier=inlineBonus+(hasAttribute?resolved.modifier:0),key=attribute||\"__last\",saved=a.dice[key],formula=count+\"d\"+sides+(modifier?modifier>0?\"+\"+modifier:String(modifier):\"\"),label=hasAttribute?resolved.type+\" \"+resolved.name+\"（\"+attributeValue+\"）\":\"無屬性\",process=saved&&saved.breakdown?saved.breakdown:\"點擊骰子，查看每一顆的結果\";return`<button type=\"button\" class=\"story-dice\" data-count=\"${count}\" data-sides=\"${sides}\" data-bonus=\"${modifier}\" data-key=\"${esc(key)}\" data-attribute=\"${esc(attribute)}\" data-formula=\"${esc(formula)}\"><span class=\"dice-stage\">${diceFaces(sides,count,saved)}</span><span class=\"dice-copy\"><strong>${esc(label)}｜骰子結果：${esc(formula)}</strong><small class=\"dice-process\">${esc(process)}</small></span></button>`})}function renderAdventure(){const a=memorySave.adventure,html=list=>list.length?list.map(value=>`<span class=\"story-chip\">${esc(value)}</span>`).join(\"\"):`<span class=\"story-empty\">尚無記錄</span>`,pairs=obj=>Object.keys(obj).length?Object.entries(obj).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value)}</span>`).join(\"\"):`<span class=\"story-empty\">尚無記錄</span>`,attributes=Object.keys(a.attributes).length?Object.entries(a.attributes).map(([key,value])=>{const mod=Number(a.modifiers[key]||0);return`<span class=\"story-chip\">${esc(key)}（${esc(value)}）${mod?\"　修正 \"+(mod>0?\"+\":\"\")+esc(mod):\"\"}</span>`}).join(\"\"):`<span class=\"story-empty\">尚無屬性</span>`,skills=Object.keys(a.skills).length?Object.entries(a.skills).map(([key,value])=>{const mod=Number(a.skillModifiers[key]||0);return`<span class=\"story-chip\">${esc(key)}（${esc(value)}）${mod?\"　修正 \"+(mod>0?\"+\":\"\")+esc(mod):\"\"}</span>`}).join(\"\"):`<span class=\"story-empty\">尚無技能</span>`,checks=Object.keys(a.checks).length?Object.entries(a.checks).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.result)}｜${value.target?esc(value.total)+\" \"+esc(value.operator)+\" \"+esc(value.target)+\"（\"+esc(value.targetValue)+\"）\":esc(value.total)+\" 個成功\"}</span>`).join(\"\"):`<span class=\"story-empty\">尚未檢定</span>`,damage=Object.keys(a.damage).length?Object.entries(a.damage).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.total)}${value.critical?\"（重擊 \"+esc(value.criticalMode)+\"）\":\"\"}</span>`).join(\"\"):`<span class=\"story-empty\">尚未造成傷害</span>`,successDice=Object.keys(a.successDice).length?Object.entries(a.successDice).map(([key,value])=>`<span class=\"story-chip\">${esc(key)}：${esc(value.successes)} 個成功／需要 ${esc(value.required)} 個｜${esc(value.result)}</span>`).join(\"\"):`<span class=\"story-empty\">尚未擲成功骰</span>`,diceEntries=Object.entries(a.dice).filter(([key])=>!key.startsWith(\"__damage_\")&&!key.startsWith(\"__success_\")&&!key.startsWith(\"__check_\")),dice=diceEntries.length?diceEntries.map(([key,value])=>{const data=value&&typeof value===\"object\"?value:{total:value,formula:\"\",attribute:key===\"__last\"?\"\":key};return`<span class=\"story-chip\">${data.attribute?\"屬性 \"+esc(data.attribute):\"無屬性\"}｜${esc(data.breakdown||((data.formula||\"擲骰\")+\" → \"+data.total))}</span>`}).join(\"\"):`<span class=\"story-empty\">尚未擲骰</span>`;document.getElementById(\"storyContent\").innerHTML=`<div class=\"story-section\"><strong>攜帶物品</strong><div>${html(a.items)}</div></div><div class=\"story-section\"><strong>事件足跡</strong><div>${html(a.flags)}</div></div><div class=\"story-section\"><strong>一般數值</strong><div>${pairs(a.values)}</div></div><div class=\"story-section\"><strong>角色屬性</strong><div>${attributes}</div></div><div class=\"story-section\"><strong>角色技能</strong><div>${skills}</div></div><div class=\"story-section\"><strong>最近擲骰結果</strong><div>${dice}</div></div><div class=\"story-section\"><strong>目標值檢定</strong><div>${checks}</div></div><div class=\"story-section\"><strong>傷害結果</strong><div>${damage}</div></div><div class=\"story-section\"><strong>成功骰池</strong><div>${successDice}</div></div><div class=\"story-section\"><strong>任務</strong><div>${pairs(a.quests)}</div></div>`}function typewrite(){const box=reader.querySelector(\".content\");if(!box||!typewriterOn)return;const token=++typeToken,walker=document.createTreeWalker(box,NodeFilter.SHOW_TEXT),parts=[];let node;while(node=walker.nextNode())if(node.nodeValue.trim()&&!node.parentElement.closest(\".story-dice,button\"))parts.push({node,text:node.nodeValue});parts.forEach(part=>part.node.nodeValue=\"\");let pi=0,ci=0;function step(){if(token!==typeToken)return;if(pi>=parts.length)return;const part=parts[pi];part.node.nodeValue=part.text.slice(0,++ci);if(ci>=part.text.length){pi++;ci=0}setTimeout(step,typeDelay)}step()}function revealText(){typeToken++;const page=pages.find(x=>x.id===currentId);const box=reader.querySelector(\".content\");if(page&&box){box.innerHTML=applyAdventure(page);bindStoryDice()}}function updateReaderView(){const current=pages.find(x=>x.id===currentId)||{},size=Number(current.settings&&current.settings.fontSize)||18;reader.style.fontSize=(size*fontScale)+\"px\";document.body.classList.toggle(\"reader-dark\",darkMode);document.getElementById(\"themeToggle\").textContent=darkMode?\"☀ 淺色\":\"◐ 深色\"}' +
+                    'function bindStoryDice(){reader.querySelectorAll(\".story-dice\").forEach(button=>button.onclick=()=>{if(button.classList.contains(\"rolling\"))return;const count=Number(button.dataset.count)||1,sides=Number(button.dataset.sides)||6,bonus=Number(button.dataset.bonus)||0,key=button.dataset.key||\"__last\",attribute=button.dataset.attribute||\"\",formula=button.dataset.formula||count+\"d\"+sides,checkName=button.dataset.checkName||\"\",checkOperator=button.dataset.checkOperator||\"\",checkTarget=button.dataset.checkTarget||\"\",checkLabel=button.dataset.checkLabel||checkTarget,checkValue=Number(button.dataset.checkValue)||0,damageName=button.dataset.damageName||\"\",successName=button.dataset.successName||\"\",successOperator=button.dataset.successOperator||\"\",successThreshold=Number(button.dataset.successThreshold)||0,successRequired=Number(button.dataset.successRequired)||1,rolls=[],percent=[];button.classList.add(\"rolling\");const liveProcess=button.querySelector(\".dice-process\");if(liveProcess)liveProcess.textContent=\"擲骰中……\";let subtotal=0;for(let i=0;i<count;i++){if(sides===100){const tens=Math.floor(Math.random()*10)*10,ones=Math.floor(Math.random()*10),value=tens+ones||100;percent.push([tens===0?\"00\":String(tens),String(ones)]);rolls.push(value);subtotal+=value}else{const value=1+Math.floor(Math.random()*sides);rolls.push(value);subtotal+=value}}const damageRule=damageName?memorySave.adventure.damageRules[damageName]:null,critical=!!(damageRule&&memorySave.adventure.checks[damageRule.check]&&memorySave.adventure.checks[damageRule.check].result===damageRule.result);if(critical&&damageRule.mode===\"骰數加倍\"){const original=count;for(let i=0;i<original;i++){const value=1+Math.floor(Math.random()*sides);rolls.push(value);subtotal+=value}}if(critical&&damageRule.mode===\"最大傷害\"){rolls.splice(0,rolls.length,...Array(count).fill(sides));subtotal=count*sides}let total=subtotal+bonus;if(critical&&damageRule.mode===\"傷害加倍\")total*=2;const bonusText=bonus?(bonus>0?\"＋\"+bonus:\"－\"+Math.abs(bonus)):\"\",breakdown=sides===100?(count===1?\"十位骰[\"+percent[0][0]+\"]＋個位骰[\"+percent[0][1]+\"] → \"+rolls[0]+bonusText+\"＝\"+total:rolls.map((value,index)=>\"第\"+(index+1)+\"組(\"+percent[index][0]+\",\"+percent[index][1]+\")＝\"+value).join(\"；\")+bonusText+\"｜總計＝\"+total):rolls.map(value=>\"1d\"+sides+\"[\"+value+\"]\").join(\"＋\")+bonusText+\"＝\"+total;setTimeout(()=>{let finalBreakdown=breakdown;if(critical)finalBreakdown+=\"｜重擊：\"+damageRule.mode+\" → \"+total;const saved={total:total,formula:formula,attribute:attribute,rolls:rolls,percent:percent,breakdown:finalBreakdown,effectiveCount:rolls.length};memorySave.adventure.dice[key]=saved;memorySave.adventure.dice.__last=saved;if(attribute){const shortDiceKey=String(attribute).replace(/^(?:屬性|技能|attribute|skill):/i,\"\").trim();if(shortDiceKey)memorySave.adventure.dice[shortDiceKey]=saved}if(damageName){saved.name=damageName;saved.critical=critical;saved.criticalMode=critical?damageRule.mode:\"\";memorySave.adventure.damage[damageName]=saved}if(successName){const successCount=rolls.filter(value=>checkCompare(value,successOperator,successThreshold)).length,result=successCount>=successRequired?\"成功\":\"失敗\";saved.total=successCount;saved.successes=successCount;saved.required=successRequired;saved.operator=successOperator;saved.threshold=successThreshold;saved.result=result;saved.breakdown=rolls.map(value=>\"d\"+sides+\"[\"+value+\"]\"+(checkCompare(value,successOperator,successThreshold)?\"✓\":\"×\")).join(\" ＋ \")+\"｜成功 \"+successCount+\" 顆／需要 \"+successRequired+\" 顆：\"+result;memorySave.adventure.successDice[successName]=saved;memorySave.adventure.checks[successName]={result:result,total:successCount,formula:formula,breakdown:saved.breakdown}}if(checkName){const passed=checkCompare(total,checkOperator,checkValue),bands=memorySave.adventure.checkBands[checkName]||[],matched=bands.find(rule=>checkCompare(rule.source===\"natural\"?Number(rolls[0]||0):total,rule.operator,checkBandTarget(rule.target,checkValue))),bandTarget=matched?checkBandTarget(matched.target,checkValue):null,bandActual=matched?(matched.source===\"natural\"?Number(rolls[0]||0):total):null;saved.result=matched?matched.level:(passed?\"成功\":\"失敗\");saved.target=checkTarget;saved.targetValue=checkValue;saved.operator=checkOperator;saved.band=matched?{level:matched.level,operator:matched.operator,target:matched.target,value:bandTarget,source:matched.source||\"total\",actual:bandActual}:null;saved.breakdown=breakdown+\"｜目標 \"+checkOperator+\" \"+checkLabel+\"（\"+checkValue+\"）：\"+saved.result+(matched?\"〔\"+(matched.source===\"natural\"?\"自然骰 \"+bandActual+\" \":\"總值 \"+bandActual+\" \")+matched.operator+\" \"+bandTarget+\"〕\":\"\");memorySave.adventure.checks[checkName]=saved}const stage=button.querySelector(\".dice-stage\"),process=button.querySelector(\".dice-process\");if(stage)stage.innerHTML=diceFaces(sides,saved.effectiveCount||count,saved);if(process)process.textContent=saved.breakdown;button.classList.remove(\"rolling\");persist();renderAdventure();toast((damageName?\"傷害 \"+damageName:successName?\"成功骰 \"+successName:checkName?\"檢定 \"+checkName+\"（目標：\"+checkLabel+\" \"+checkValue+\"）\":attribute?\"屬性 \"+attribute:\"無屬性\")+\"｜\"+formula+\" → \"+(successName?saved.successes+\" 個成功\":total));setTimeout(()=>show(currentId,false),650)},780)})}' +
                     'function show(id,push=true){const p=pages.find(x=>x.id===id)||pages[0];if(!p)return;const s=p.settings||{},rules=p.rules||{},typing=p.typing||{enabled:true,speed:24};if(rules.noBack)history.length=0;if(push&&history[history.length-1]!==p.id)history.push(p.id);currentId=p.id;typewriterOn=readerPrefs.allowReaderOverride&&readerTypingChoice!==null?readerTypingChoice:typing.enabled!==false;typeDelay=readerPrefs.allowReaderOverride&&readerSpeedChoice?readerSpeedChoice:Math.max(5,Number(typing.speed)||24);document.getElementById(\"typeToggle\").textContent=typewriterOn?\"⌨ 打字動畫：開\":\"⌨ 打字動畫：關\";document.getElementById(\"typeSpeed\").textContent=\"速度：\"+(typeDelay<=12?\"快速\":typeDelay>=40?\"慢速\":\"標準\");if(rules.savePoint){memorySave.auto={id:p.id,label:rules.savePoint,time:stamp()};persist()}' +
                     'reader.style.fontSize=(Number(s.fontSize)||18)+\"px\";reader.style.lineHeight=Number(s.lineHeight)||1.9;reader.style.textAlign=s.align||\"left\";reader.style.color=s.color||\"#222\";const pageGradient=`linear-gradient(${Number(s.backgroundAngle)||0}deg,${s.background||\"#fff\"},${s.background2||s.background||\"#fff\"})`,imageGradient=`linear-gradient(${Number(s.backgroundAngle)||0}deg,${rgba(s.background,.28)},${rgba(s.background2||s.background,.28)})`;reader.style.backgroundImage=s.backgroundImage?`linear-gradient(${rgba(s.backgroundOverlay,s.backgroundOverlayOpacity)},${rgba(s.backgroundOverlay,s.backgroundOverlayOpacity)}),${imageGradient},url(\"${String(s.backgroundImage).replace(/\"/g,\"%22\")}\")`:pageGradient;reader.style.backgroundSize=s.backgroundImage?\"auto,auto,cover\":\"auto\";reader.style.backgroundPosition=\"center\";reader.style.backgroundRepeat=\"no-repeat\";' +
                     'const contentHtml=applyAdventure(p),style=s.choiceStyle||\"link\",choiceBg=`linear-gradient(${Number(s.choiceAngle)||0}deg,${s.choiceBackground||\"#fff\"},${s.choiceBackground2||s.choiceBackground||\"#fff\"})`;const choices=(p.options||[]).filter(o=>o.text).map(o=>({o:o,rule:hiddenRule(o.text)})).filter(entry=>entry.rule.show).map(entry=>{const o=entry.o,label=entry.rule.text,space=o.spacing||{},free=o.freeLayout||{},floating=free.enabled===true,layout=floating?`left:${Math.max(0,Math.min(100,Number(free.x)||50))}%;top:${Math.max(0,Math.min(100,Number(free.y)||50))}%;width:${Math.max(5,Math.min(100,Number(free.width)||30))}%;height:${Math.max(5,Math.min(100,Number(free.height)||15))}%;z-index:${Number(free.z)||10};transform:translate(-50%,-50%)`:`padding:${Number(space.top)||0}px ${Number(space.right)||0}px ${Number(space.bottom)||0}px ${Number(space.left)||0}px`,wrapClass=`choice-layout ${visualClass(o.visualStyle)}${floating?\" free-layout\":\"\"}`,custom=visualCss(o.visualStyle);if(o.type===\"text\")return `<div class=\"${wrapClass}\" style=\"${layout};${custom}\"><div class=\"choice-text\">${esc(label)}</div></div>`;if(o.type===\"textlink\")return `<div class=\"${wrapClass}\" style=\"${layout}\"><button class=\"choice choice-textlink textlink-${esc(o.linkVariant||\"plain\")}\" data-target=\"${esc(o.target||\"\")}\" style=\"${custom}\">${esc(label)}</button></div>`;if(o.type===\"continuation\")return `<div class=\"${wrapClass}\" style=\"${layout}\"><button class=\"choice choice-continuation\" data-target=\"${esc(o.target||\"\")}\" style=\"${custom}\"><span>${esc(label)}</span><span class=\"continue-arrow\" aria-hidden=\"true\">›</span></button></div>`;return `<div class=\"${wrapClass}\" style=\"${layout}\"><button class=\"choice choice-${style}\" data-target=\"${esc(o.target||\"\")}\" style=\"${custom}\">${esc(label)}</button></div>`}).join(\"\");' +
@@ -20930,7 +21081,7 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
                 const url = URL.createObjectURL(readerArtifactBlob(artifact));
                 const link = document.createElement("a");
                 link.href = url;
-                link.download = mode === "pixiv" ? "Pixiv_Test_Reader.html" : "HTML_Custom_Reader.html";
+                link.download = (window.FirehahaReaderDisplay && window.FirehahaReaderDisplay.getExportFileName) ? window.FirehahaReaderDisplay.getExportFileName(mode) : (mode === "pixiv" ? "Pixiv_Test_Reader.html" : "HTML_Custom_Reader.html");
                 link.click();
                 document.dispatchEvent(new CustomEvent("readerartifact:exported",{detail:{mode:artifact.mode,hash:artifact.hash,bytes:artifact.bytes,matchesPreview:!preview||preview.hash===artifact.hash,previewHash:preview&&preview.hash||""}}));
                 setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
@@ -21114,6 +21265,10 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
                 return guide;
             }
             function openGamebookTagGuide(){
+                if(window.FirehahaHelpCenter&&typeof window.FirehahaHelpCenter.open==="function"){
+                    window.FirehahaHelpCenter.open();
+                    return;
+                }
                 const guide=ensureGamebookTagGuide();
                 guide.classList.add("open");
                 guide.classList.remove("minimized");
@@ -21144,10 +21299,10 @@ body.wysiwyg-code-mode #pixivWorkspace #pageText {
                     '<button type="button" data-reader-action="critical">💥 重擊規則</button>' +
                     '<button type="button" data-reader-action="success-dice">🎲 成功骰池</button>' +
                     '<button type="button" data-reader-action="rule-preset">📦 規則範例模板</button>' +
-                    '<button type="button" data-reader-action="tag-guide">📘 標籤教學</button>' +
+                    '<button type="button" data-reader-action="tag-guide">📘 標籤與插件教學</button>' +
                     '<button type="button" data-reader-action="hidden">👁 隱藏選項標籤</button>' +
                     '<button type="button" data-reader-action="gamelist">＋ 遊戲清單</button>' +
-                    '<div class="reader-tag-help"><strong>Gamebook 標籤：</strong>屬性與技能分開保存：<code>[屬性:力量=14]</code>、<code>[技能:開鎖=60]</code>。檢定目標請明確寫成 <code>屬性:力量</code> 或 <code>技能:開鎖</code>；例如 <code>[檢定:開鎖:1d100:&lt;=:技能:開鎖]</code>。舊式未標類型的標籤仍可使用。完整範例請開啟「📘 標籤教學」。</div>'+
+                    '<div class="reader-tag-help"><strong>Gamebook 標籤：</strong>屬性與技能分開保存：<code>[屬性:力量=14]</code>、<code>[技能:開鎖=60]</code>。檢定目標請明確寫成 <code>屬性:力量</code> 或 <code>技能:開鎖</code>；例如 <code>[檢定:開鎖:1d100:&lt;=:技能:開鎖]</code>。舊式未標類型的標籤仍可使用。完整語法、所有插件與快捷鍵請開啟「📘 標籤與插件教學」（F1）。</div>'+
                     '<section class="reader-experience-settings" style="width:100%;margin-top:9px;padding:11px;border:1px solid #b9d1e3;border-radius:10px;background:#f5faff"><strong>⌨ 目前 Node 的打字機動畫</strong><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label><input type="checkbox" data-node-typing> 啟用動畫</label><label>每字速度 <input type="number" data-node-speed min="5" max="200" step="1" style="width:72px" value="24"> ms</label><span data-node-speed-label style="color:#607d8b;font-size:12px"></span></div><details style="margin-top:9px"><summary>輸出閱讀器控制項</summary><div style="display:grid;gap:7px;margin-top:8px"><label><input type="checkbox" data-export-animation> 顯示「動畫開／關」</label><label><input type="checkbox" data-export-speed> 顯示「速度」</label><label><input type="checkbox" data-export-override> 允許讀者覆蓋每個 Node 的設定</label></div></details></section>';
                 function refreshExperience(){const page=core.currentPage,config=readerExperience(),typing=nodeTyping(page),label=typing.speed<=12?"快速":typing.speed>=40?"慢速":"標準";bar.querySelector("[data-node-typing]").checked=typing.enabled;bar.querySelector("[data-node-speed]").value=typing.speed;bar.querySelector("[data-node-speed]").disabled=!typing.enabled;bar.querySelector("[data-node-speed-label]").textContent=label;bar.querySelector("[data-export-animation]").checked=config.export.showAnimationToggle;bar.querySelector("[data-export-speed]").checked=config.export.showSpeedControl;bar.querySelector("[data-export-override]").checked=config.export.allowReaderOverride}
                 bar.querySelector("[data-node-typing]").onchange=event=>{const page=core.currentPage;if(!page)return;const config=readerExperience(),old=nodeTyping(page);config.nodes[page.id]=Object.assign({},config.nodes[page.id]||{},{enabled:event.target.checked,speed:old.speed});if(core.notifyChange)core.notifyChange("node-typewriter-enabled");refreshExperience()};
@@ -22114,7 +22269,24 @@ body:has(#editor-global-lock) .pixiv-editor-app > header.pro-command-header {
     background:#f7f9fc !important;
     border-bottom:1px solid #cfd8e2 !important;
     box-shadow:0 4px 16px rgba(30,45,60,.10) !important;
-    z-index:200 !important;
+    /* 浮動編輯器可自由拖到命令列上方；命令列本身維持一般工作區層級。 */
+    z-index:10000 !important;
+}
+:root {
+    --firehaha-editor-safe-height:calc(100dvh - 24px);
+}
+#editorFloat {
+    max-height:var(--firehaha-editor-safe-height);
+    display:flex;
+    flex-direction:column;
+}
+#editorFloat #editorHeader {
+    flex:0 0 40px;
+}
+#editorFloat #editorPanel {
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
 }
 .pro-command-header .pro-header-top {
     display:flex;
@@ -22510,6 +22682,75 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
         }
         setTimeout(organize,300);
     });
+})();
+</script>
+
+<script id="floating-editor-viewport-guard">
+(function(){
+    "use strict";
+
+    const VIEWPORT_EDGE=10;
+    let animationFrame=0;
+
+    function sync(){
+        animationFrame=0;
+        const editor=document.getElementById("editorFloat");
+        if(!editor)return;
+
+        const top=Math.max(
+            VIEWPORT_EDGE,
+            editor.getBoundingClientRect().top
+        );
+        const safeHeight=Math.max(
+            180,
+            window.innerHeight-top-VIEWPORT_EDGE
+        );
+
+        document.documentElement.style.setProperty(
+            "--firehaha-editor-safe-height",
+            safeHeight+"px"
+        );
+    }
+
+    function schedule(){
+        if(animationFrame)return;
+        animationFrame=requestAnimationFrame(sync);
+    }
+
+    function install(){
+        const editor=document.getElementById("editorFloat");
+        if(!editor){
+            window.setTimeout(install,120);
+            return;
+        }
+
+        if(typeof ResizeObserver==="function"){
+            const resizeObserver=new ResizeObserver(schedule);
+            resizeObserver.observe(editor);
+        }
+
+        const mutationObserver=new MutationObserver(schedule);
+        mutationObserver.observe(editor,{
+            attributes:true,
+            attributeFilter:["style","class"]
+        });
+
+        window.addEventListener("resize",schedule,{passive:true});
+        window.addEventListener("orientationchange",schedule,{passive:true});
+
+        schedule();
+        window.setTimeout(schedule,350);
+    }
+
+    window.FirehahaFloatingEditorLayout=Object.freeze({
+        sync:schedule
+    });
+
+    if(document.readyState==="loading"){
+        document.addEventListener("DOMContentLoaded",install,{once:true});
+    }else{
+        install();
+    }
 })();
 </script>
 
@@ -23318,8 +23559,28 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
 })();
 </script>
 
+<!-- =========================================================
+     內建 JavaScript 整合層
+     同 ID 的備份檔只載入一份；有多個版本時採用最新版。
+     核心排程器必須先於其視覺橋接器與其他擴充載入。
+========================================================== -->
 <script
-    src="./firehaha-official-i18n-zh-en-ja.js"
+    src="./official.firehaha-kernel-scheduler.js"
+    data-firehaha-bundled="official.firehaha-kernel-scheduler">
+</script>
+
+<script
+    src="./official.execution-performance-manager-v2.js"
+    data-firehaha-bundled="official.execution-performance-manager-v2">
+</script>
+
+<script
+    src="./official.kernel-visual-bridge.js?v=1.0.2"
+    data-firehaha-bundled="official.kernel-visual-bridge">
+</script>
+
+<script
+    src="./firehaha-official-i18n-zh-en-ja.js?v=1.2.2"
     data-firehaha-bundled="official.i18n-zh-en-ja">
 </script>
 
@@ -23366,13 +23627,24 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
 </script>
 
 <script
-    src="./firehaha-native-audio-adapter.js"
+    src="./firehaha-native-audio-adapter.js?v=1.0.1"
     data-firehaha-bundled="official.native-audio-adapter">
 </script>
 
 <script
-    src="./firehaha-native-video-adapter.js"
+    src="./firehaha-native-video-adapter.js?v=1.0.1"
     data-firehaha-bundled="official.native-video-adapter">
+</script>
+
+<!-- 紙本出版：節號、素材圖片、Word 書籤／跳頁，以及出版前健檢 -->
+<script
+    src="./firehaha-gamebook-section-images-bookmarks-v3.1/firehaha-gamebook-section-images-bookmarks-v3.1.js?v=3.1.0"
+    data-firehaha-bundled="official.gamebook-section-numbering-v3.1">
+</script>
+
+<script
+    src="./official.gamebook-inspector-v1.0.0/official.gamebook-inspector-v1.0.0.js?v=1.0.0"
+    data-firehaha-bundled="official.gamebook-inspector">
 </script>
 
 
@@ -23394,8 +23666,179 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
     data-firehaha-bundled="official.node-action-context">
 </script>
 
+<!-- Node、素材、音樂與閱讀器擴充 -->
 <script
-    src="./firehaha-system-settings.js"
+    src="./firehaha-folder-node-performance-test.js"
+    data-firehaha-bundled="test.folder-node-performance-v3">
+</script>
+
+<script
+    src="./firehaha-native-audio-style-tags-v3.js"
+    data-firehaha-bundled="official.native-audio-style-tags-v3">
+</script>
+
+<script
+    src="./music.js"
+    data-firehaha-bundled="official.audio-button-styles">
+</script>
+
+<script
+    src="./music2.js"
+    data-firehaha-bundled="official.reader-button-themes">
+</script>
+
+<script
+    src="./js插件/firehaha-reader-dark-fix-v1_2-FIXED/official.reader-comfort-tools.js"
+    data-firehaha-bundled="official.reader-comfort-tools">
+</script>
+
+<script
+    src="./js插件/firehaha-reader-dark-fix-v1_2-FIXED/official.reader-dark-color-adapter.js"
+    data-firehaha-bundled="official.reader-dark-color-adapter">
+</script>
+
+<script
+    src="./js插件/firehaha-new-game-and-save-slots-v1.0.2/firehaha-new-game-and-save-slots-v1.0.2.js?v=1.0.4"
+    data-firehaha-bundled="official.new-game-and-save-slots">
+</script>
+
+<!-- 動畫分層：標題、一般文字與圖片各自使用獨立的演出層 -->
+<script
+    src="./official.layout-studio-title-effects-v1.4.0-multi-fade/official.layout-studio-title-effects-v1.4.0-multi-fade.js?v=1.4.0"
+    data-firehaha-bundled="official.layout-studio-title-effects">
+</script>
+
+<script
+    src="./firehaha-animation-layer-fix-v1/official.typography-motion-studio-v1.1.0.js?v=1.1.0"
+    data-firehaha-bundled="official.typography-motion-studio">
+</script>
+
+<script
+    src="./firehaha-animation-layer-fix-v1/official.image-motion-studio-v1.0.1.js?v=1.0.1"
+    data-firehaha-bundled="official.image-motion-studio">
+</script>
+
+<!-- RPG 變數、條件、顯示與互動擴充 -->
+<script
+    src="./js插件/rpg模組/取名字/official.name-variable.js"
+    data-firehaha-bundled="official.name-variable">
+</script>
+
+<script
+    src="./js插件/rpg模組/取名字/official.name-variable-plus.js"
+    data-firehaha-bundled="official.name-variable-plus">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示數值/official.create-tag.js"
+    data-firehaha-bundled="official.create-tag">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示數值/official.display-tag.js"
+    data-firehaha-bundled="official.display-tag">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/official.number-display.js"
+    data-firehaha-bundled="official.number-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/official.item-display.js"
+    data-firehaha-bundled="official.item-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/ver.js"
+    data-firehaha-bundled="official.attribute-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/skill.js"
+    data-firehaha-bundled="official.skill-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/屬性跟技能列表/official.attribute-list-display.js"
+    data-firehaha-bundled="official.attribute-list-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/屬性跟技能列表/official.skill-list-display.js"
+    data-firehaha-bundled="official.skill-list-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/屬性跟技能列表/official.final-value-display.js"
+    data-firehaha-bundled="official.final-value-display">
+</script>
+
+<script
+    src="./js插件/rpg模組/顯示取得物品/屬性跟技能列表/屬性包/firehaha-attribute-skill-native-fix-v1.5.0/firehaha-attribute-skill-native-fix-v1.5.0.js"
+    data-firehaha-bundled="official.attribute-skill-native-fix">
+</script>
+
+<script
+    src="./js插件/rpg模組/如果條件式/official.if-block.js"
+    data-firehaha-bundled="official.if-block">
+</script>
+
+<script
+    src="./js插件/rpg模組/自動跳轉/official.auto-jump.js?v=1.0.1"
+    data-firehaha-bundled="official.auto-jump">
+</script>
+
+<script
+    src="./js插件/firehaha-draggable-text-jump.js"
+    data-firehaha-bundled="official.draggable-text">
+</script>
+
+<!-- 修復後的骰子判定與跳轉擴充 -->
+<script
+    src="./js插件/rpg模組/骰子比較(失效中)/firehaha-dice-auto-if-reader-hook-v2-1/firehaha-dice-auto-if-reader-hook-v2.js"
+    data-firehaha-bundled="official.dice-auto-if-reader-hook">
+</script>
+
+<script
+    src="./js插件/rpg模組/骰子比較(失效中)/firehaha-opposed-dice-engine-v1.1-1/firehaha-opposed-dice-engine-v1.1.js"
+    data-firehaha-bundled="official.opposed-dice-engine-v1-1">
+</script>
+
+<script
+    src="./firehaha-persistent-opposed-if-bridge-v1.1/firehaha-persistent-opposed-if-bridge-v1.1.js?v=1.1.0"
+    data-firehaha-bundled="official.persistent-opposed-if-bridge-v1-1">
+</script>
+
+<script
+    src="./js插件/rpg模組/骰子比較(失效中)/official-auto-dice-jump/official.auto-dice-jump.js?v=1.0.1"
+    data-firehaha-bundled="official.auto-dice-jump">
+</script>
+
+<!-- 開發與診斷工具；範例插件也一併成為內建功能 -->
+<script
+    src="./official.firehaha-developer-center.js?v=1.0.2"
+    data-firehaha-bundled="official.firehaha-developer-center">
+</script>
+
+<!-- 統一標籤／插件教學中心；涵蓋目前內建模組與快捷鍵 -->
+<script
+    src="./firehaha-help-center.js?v=1.1.3"
+    data-firehaha-bundled="official.help-center">
+</script>
+
+<script
+    src="./firehaha-demo-little-star.js"
+    data-firehaha-bundled="official.demo-little-star">
+</script>
+
+<script
+    src="./firehaha-plugin-template.js"
+    data-firehaha-bundled="official.example-toy">
+</script>
+
+<script
+    src="./firehaha-system-settings.js?v=1.1.1"
     data-firehaha-bundled="official.system-settings">
 </script>
 
@@ -23404,5 +23847,180 @@ body > .pro-more-panel.pro-floating-tools.open { display:grid; }
     src="./firehaha-toolbox-organizer.js"
     data-firehaha-bundled="official.toolbox-organizer">
 </script>
+
+<!-- =========================================================
+     Firehaha 內建閱讀器中繼設定 v1.1
+     瀏覽器分頁資訊、圖示、輸出檔名；不在閱讀畫面生成固定卡片
+========================================================== -->
+<style>
+#readerDisplaySettingsBtn{background:#00897b!important}
+#readerDisplaySettingsPanel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(10,18,24,.48);z-index:1000050;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#readerDisplaySettingsPanel.open{display:flex}
+.reader-display-card{width:min(620px,96vw);max-height:90vh;overflow:auto;background:#fff;color:#263238;border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.35)}
+.reader-display-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#00796b,#009688);color:#fff}
+.reader-display-head strong{font-size:17px}.reader-display-head button{min-width:38px;padding:7px 12px!important;background:rgba(255,255,255,.18)!important}
+.reader-display-body{padding:20px;display:grid;gap:14px}
+.reader-display-body label{display:grid;gap:7px;font-size:13px;font-weight:700;color:#37474f}
+.reader-display-body input,.reader-display-body textarea{width:100%;padding:10px 12px;border:1px solid #cfd8dc;border-radius:9px;font:inherit;background:#fff;color:#263238}
+.reader-display-body textarea{min-height:82px;resize:vertical}
+.reader-display-icon-row{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center}
+#readerDisplayIconPreview{width:64px;height:64px;border-radius:14px;border:1px solid #cfd8dc;object-fit:contain;background:#f5f7f8}
+.reader-display-file-actions{display:flex;gap:8px;flex-wrap:wrap}.reader-display-file-actions button{background:#546e7a!important}
+.reader-display-help{font-size:12px;line-height:1.6;color:#607d8b;background:#f3f8f8;padding:10px 12px;border-radius:9px}
+.reader-display-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;padding:0 20px 20px}.reader-display-actions button{background:#607d8b!important}.reader-display-actions [data-reader-display-save]{background:#00897b!important}
+@media(max-width:600px){.reader-display-card{border-radius:14px}.reader-display-icon-row{grid-template-columns:1fr}.reader-display-actions button{flex:1;justify-content:center}}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.FirehahaReaderDisplay && window.FirehahaReaderDisplay.version)return;
+
+const STORAGE_KEY='firehaha_reader_display_settings_v1';
+const defaults={
+  workTitle:'',
+  author:'',
+  description:'',
+  icon:'',
+  exportFileName:''
+};
+let settings=Object.assign({},defaults);
+let transformInstalled=false;
+let projectRegistered=false;
+
+function clean(value){return String(value==null?'':value).trim()}
+function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]})}
+function escapeAttr(value){return escapeHtml(value).replace(/`/g,'&#96;')}
+function safeFileBase(value){
+  value=clean(value).replace(/[\\/:*?"<>|\x00-\x1F]/g,'_').replace(/[. ]+$/g,'').slice(0,120);
+  return value||'Firehaha_Reader';
+}
+function getExportFileName(mode){
+  let base=clean(settings.exportFileName);
+  base=base.replace(/\.html?$/i,'');
+  if(!base)base=clean(settings.workTitle)||(mode==='pixiv'?'Pixiv_Test_Reader':'HTML_Custom_Reader');
+  return safeFileBase(base)+'.html';
+}
+function saveLocal(){
+  try{(window.safeStorage||localStorage).setItem(STORAGE_KEY,JSON.stringify(settings))}catch(e){}
+}
+function loadLocal(){
+  try{
+    const raw=(window.safeStorage||localStorage).getItem(STORAGE_KEY);
+    if(raw)settings=Object.assign({},defaults,JSON.parse(raw)||{});
+  }catch(e){settings=Object.assign({},defaults)}
+}
+function setSettings(value,options){
+  settings=Object.assign({},defaults,value||{});
+  Object.keys(settings).forEach(function(key){settings[key]=clean(settings[key])});
+  if(!options||options.persist!==false)saveLocal();
+  refreshPanel();
+  document.dispatchEvent(new CustomEvent('firehaha:reader-display-settings-changed',{detail:getSettings()}));
+}
+function getSettings(){return Object.assign({},settings)}
+
+function makePanel(){
+  if(document.getElementById('readerDisplaySettingsPanel'))return;
+  const panel=document.createElement('div');
+  panel.id='readerDisplaySettingsPanel';
+  panel.innerHTML=''+
+  '<section class="reader-display-card" role="dialog" aria-modal="true" aria-labelledby="readerDisplayHeading">'+
+    '<div class="reader-display-head"><strong id="readerDisplayHeading">📖 閱讀器展示設定</strong><button type="button" data-reader-display-close>×</button></div>'+
+    '<div class="reader-display-body">'+
+      '<label>作品名稱<input id="readerDisplayWorkTitle" type="text" placeholder="用於瀏覽器分頁標題；閱讀畫面由各分頁標題負責"></label>'+
+      '<label>作者名稱<input id="readerDisplayAuthor" type="text" placeholder="例如：作者名稱"></label>'+
+      '<label>作品簡介<textarea id="readerDisplayDescription" placeholder="簡短介紹作品；留白就不顯示"></textarea></label>'+
+      '<label>閱讀器圖示<div class="reader-display-icon-row"><img id="readerDisplayIconPreview" alt="圖示預覽"><div><input id="readerDisplayIconUrl" type="text" placeholder="貼上圖片／圖床網址，或使用下方按鈕"><div class="reader-display-file-actions"><button type="button" data-reader-display-upload>上傳圖片</button><button type="button" data-reader-display-clear-icon>清除圖示</button></div><input id="readerDisplayIconFile" type="file" accept="image/*" hidden></div></div></label>'+
+      '<label>輸出檔名<input id="readerDisplayFileName" type="text" placeholder="例如：我的互動小說（會自動加上 .html）"></label>'+
+      '<div class="reader-display-help">測試閱讀與輸出閱讀器會共用這組資料。作品名稱、作者、簡介與圖示只用於網頁中繼資料、瀏覽器分頁與輸出檔名，不會在閱讀畫面生成固定展示卡；閱讀畫面由各分頁內容負責。設定也會跟著專案 JSON 保存。</div>'+
+    '</div>'+
+    '<div class="reader-display-actions"><button type="button" data-reader-display-reset>恢復空白</button><button type="button" data-reader-display-close>取消</button><button type="button" data-reader-display-save>儲存設定</button></div>'+
+  '</section>';
+  document.body.appendChild(panel);
+  panel.addEventListener('click',function(event){if(event.target===panel||event.target.closest('[data-reader-display-close]'))closePanel()});
+  panel.querySelector('[data-reader-display-upload]').onclick=function(){panel.querySelector('#readerDisplayIconFile').click()};
+  panel.querySelector('[data-reader-display-clear-icon]').onclick=function(){panel.querySelector('#readerDisplayIconUrl').value='';panel.querySelector('#readerDisplayIconPreview').removeAttribute('src')};
+  panel.querySelector('#readerDisplayIconUrl').addEventListener('input',function(){updateIconPreview(this.value)});
+  panel.querySelector('#readerDisplayIconFile').addEventListener('change',function(){
+    const file=this.files&&this.files[0];if(!file)return;
+    if(file.size>2.5*1024*1024){alert('圖片超過 2.5MB，請改用較小圖片或圖床網址。');this.value='';return}
+    const reader=new FileReader();reader.onload=function(){panel.querySelector('#readerDisplayIconUrl').value=String(reader.result||'');updateIconPreview(reader.result)};reader.readAsDataURL(file)
+  });
+  panel.querySelector('[data-reader-display-save]').onclick=function(){
+    setSettings({
+      workTitle:panel.querySelector('#readerDisplayWorkTitle').value,
+      author:panel.querySelector('#readerDisplayAuthor').value,
+      description:panel.querySelector('#readerDisplayDescription').value,
+      icon:panel.querySelector('#readerDisplayIconUrl').value,
+      exportFileName:panel.querySelector('#readerDisplayFileName').value
+    });
+    closePanel();
+  };
+  panel.querySelector('[data-reader-display-reset]').onclick=function(){if(confirm('確定要清空閱讀器展示設定嗎？')){setSettings(defaults);refreshPanel()}};
+  refreshPanel();
+}
+function updateIconPreview(value){
+  const img=document.getElementById('readerDisplayIconPreview');if(!img)return;
+  value=clean(value);if(value)img.src=value;else img.removeAttribute('src');
+}
+function refreshPanel(){
+  const panel=document.getElementById('readerDisplaySettingsPanel');if(!panel)return;
+  panel.querySelector('#readerDisplayWorkTitle').value=settings.workTitle||'';
+  panel.querySelector('#readerDisplayAuthor').value=settings.author||'';
+  panel.querySelector('#readerDisplayDescription').value=settings.description||'';
+  panel.querySelector('#readerDisplayIconUrl').value=settings.icon||'';
+  panel.querySelector('#readerDisplayFileName').value=settings.exportFileName||'';
+  updateIconPreview(settings.icon);
+}
+function openPanel(){makePanel();refreshPanel();document.getElementById('readerDisplaySettingsPanel').classList.add('open')}
+function closePanel(){const panel=document.getElementById('readerDisplaySettingsPanel');if(panel)panel.classList.remove('open')}
+function addButton(){
+  if(document.getElementById('readerDisplaySettingsBtn'))return;
+  const button=document.createElement('button');button.id='readerDisplaySettingsBtn';button.type='button';button.textContent='📖 閱讀器設定';button.onclick=openPanel;
+  const save=document.getElementById('saveProject'),group=save&&save.closest('.header-group');
+  if(group)group.appendChild(button);else{const header=document.querySelector('.pixiv-editor-app header');if(header)header.appendChild(button)}
+}
+
+function transformReader(html,context){
+  const mode=context&&context.mode==='html'?'html':'pixiv';
+  const title=settings.workTitle||((mode==='pixiv')?'Pixiv 測試閱讀':'HTML 測試閱讀');
+  const fullTitle=settings.author?title+'｜'+settings.author:title;
+  const icon=settings.icon;
+  const description=settings.description;
+  const meta='\n<meta name="description" content="'+escapeAttr(description)+'">'+
+    (settings.author?'\n<meta name="author" content="'+escapeAttr(settings.author)+'">':'')+
+    (icon?'\n<link rel="icon" href="'+escapeAttr(icon)+'">':'')+'\n';
+  html=html.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+escapeHtml(fullTitle)+'</title>'+meta);
+  return html;
+}
+function installTransform(){
+  if(transformInstalled)return true;
+  if(!window.ReaderArtifactCore||typeof window.ReaderArtifactCore.registerTransform!=='function')return false;
+  window.ReaderArtifactCore.registerTransform('firehaha-reader-display-settings',transformReader,25);
+  transformInstalled=true;return true;
+}
+function registerProjectData(){
+  if(projectRegistered)return true;
+  if(!window.ProjectDataCenter||typeof window.ProjectDataCenter.register!=='function')return false;
+  try{
+    if(window.ProjectDataCenter.has&&window.ProjectDataCenter.has('readerDisplaySettings')){projectRegistered=true;return true}
+    window.ProjectDataCenter.register('readerDisplaySettings',{
+      description:'閱讀器網頁標題、作者中繼資料、簡介、圖示與輸出檔名',
+      defaultValue:Object.assign({},defaults),
+      resetOnMissing:true,
+      save:function(){return getSettings()},
+      load:function(value){setSettings(value||defaults,{persist:true})}
+    });
+    projectRegistered=true;return true;
+  }catch(error){console.warn('[Reader display settings] 專案註冊失敗',error);return false}
+}
+
+window.FirehahaReaderDisplay=Object.freeze({version:'1.1.0',open:openPanel,close:closePanel,getSettings:getSettings,setSettings:setSettings,getExportFileName:getExportFileName,transform:transformReader});
+loadLocal();
+function boot(){addButton();makePanel();installTransform();registerProjectData()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+let attempts=0;const timer=setInterval(function(){boot();attempts++;if((transformInstalled&&projectRegistered&&document.getElementById('readerDisplaySettingsBtn'))||attempts>80)clearInterval(timer)},250);
+})();
+</script>
+
 </body>
 </html>
