@@ -1,0 +1,192 @@
+可以。你這套注入方式還能做很多事情，因為閱讀器目前把物品存在：
+
+```javascript
+memorySave.adventure.items
+```
+
+而且 `[取得:物品]`、`[失去:物品]` 已經由主程式負責修改這份清單。
+
+所以第二支最實用的是：
+
+# `official.item-display.js`
+
+支援：
+
+```text
+{物品:古老鑰匙}
+```
+
+顯示：
+
+```text
+持有
+```
+
+沒有時顯示：
+
+```text
+未持有
+```
+
+另外支援：
+
+```text
+{物品清單}
+```
+
+直接顯示目前所有攜帶物品。
+
+```javascript
+// @firehaha-plugin {"id":"official.item-display","name":"物品文字顯示","version":"1.0.0","author":"Firehaha","description":"橋接原有攜帶物品系統，支援物品持有狀態與物品清單顯示"}
+
+FirehahaPlugins.register({
+  id: "official.item-display",
+
+  setup(api) {
+    "use strict";
+
+    const patchCode = String.raw`
+/* Firehaha Item Display */
+(function () {
+  if (window.__firehahaItemDisplayInstalled) return;
+  window.__firehahaItemDisplayInstalled = true;
+
+  const originalApplyAdventure = applyAdventure;
+
+  applyAdventure = function (page) {
+    let html = originalApplyAdventure(page);
+
+    try {
+      const items =
+        memorySave &&
+        memorySave.adventure &&
+        Array.isArray(memorySave.adventure.items)
+          ? memorySave.adventure.items
+          : [];
+
+      /*
+       * {物品:名稱}
+       *
+       * 有物品：持有
+       * 沒有物品：未持有
+       */
+      html = String(html).replace(
+        /\{物品:\s*([^}]+?)\s*\}/gi,
+        function (full, rawName) {
+          const name = String(rawName || "").trim();
+
+          if (!name) {
+            return "未持有";
+          }
+
+          return items.includes(name)
+            ? "持有"
+            : "未持有";
+        }
+      );
+
+      /*
+       * {物品清單}
+       *
+       * 顯示目前全部攜帶物品。
+       */
+      html = html.replace(
+        /\{物品清單\}/gi,
+        function () {
+          return items.length
+            ? items.join("、")
+            : "目前沒有攜帶物品";
+        }
+      );
+
+    } catch (error) {
+      console.warn(
+        "[Item Display]",
+        error
+      );
+    }
+
+    return html;
+  };
+})();
+`;
+
+    const removeTransform =
+      api.registerReaderTransform(
+        "item-display",
+
+        function (html) {
+          html = String(
+            html == null ? "" : html
+          );
+
+          const marker =
+            "function renderAdventure(){";
+
+          if (!html.includes(marker)) {
+            console.warn(
+              "[Item Display] 找不到閱讀器插入位置"
+            );
+
+            return html;
+          }
+
+          return html.replace(
+            marker,
+            patchCode + "\n" + marker
+          );
+        },
+
+        220
+      );
+
+    api.toast(
+      "物品文字顯示已啟用"
+    );
+
+    return function cleanup() {
+      removeTransform();
+    };
+  }
+});
+```
+
+## 測試方法
+
+第一頁：
+
+```text
+[取得:古老鑰匙]
+
+鑰匙狀態：{物品:古老鑰匙}
+
+目前攜帶：{物品清單}
+```
+
+應該顯示：
+
+```text
+鑰匙狀態：持有
+
+目前攜帶：古老鑰匙
+```
+
+下一頁：
+
+```text
+[失去:古老鑰匙]
+
+鑰匙狀態：{物品:古老鑰匙}
+
+目前攜帶：{物品清單}
+```
+
+應該顯示：
+
+```text
+鑰匙狀態：未持有
+
+目前攜帶：目前沒有攜帶物品
+```
+
+它和數值插件一樣，會跟著測試閱讀與輸出 HTML 一起生效。

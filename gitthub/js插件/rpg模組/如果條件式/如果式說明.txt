@@ -1,0 +1,540 @@
+對，這支要在主程式執行 `[取得]`、`[增加]` 等事件標籤**之前**先裁掉不成立的區塊，否則隱藏文字雖然沒顯示，裡面的事件仍可能被執行。
+
+下面這版直接沿用主程式的 `hiddenCondition()`，因此 `[如果:]` 支援的條件格式會和現有 `[隱藏:]` 相同。主程式原本也是透過 `hiddenCondition()` 判斷隱藏條件，再由 `applyAdventure()` 處理頁面事件。
+
+## `official.if-block.js`
+
+```javascript
+// @firehaha-plugin {"id":"official.if-block","name":"如果條件區塊","version":"1.0.0","author":"Firehaha","description":"以 [如果:條件]、[否則]、[/如果] 在同一頁中顯示不同正文，沿用主程式既有條件判斷"}
+
+FirehahaPlugins.register({
+  id: "official.if-block",
+
+  setup(api) {
+    "use strict";
+
+    const patchCode = String.raw`
+/* Firehaha If Block */
+(function () {
+  "use strict";
+
+  if (window.__firehahaIfBlockInstalled) {
+    return;
+  }
+
+  window.__firehahaIfBlockInstalled = true;
+
+  function clean(value) {
+    return String(
+      value == null ? "" : value
+    ).trim();
+  }
+
+  /*
+   * 完全沿用主程式的 hiddenCondition()。
+   *
+   * 因此可使用與 [隱藏:...] 相同的條件：
+   *
+   * 數值:HP>=5
+   * 持有:古老鑰匙
+   * 未持有:火把
+   * 旗幟:完成任務
+   * 屬性:力量>=3
+   * 技能:開鎖>=2
+   * 任務:主線=完成
+   * 檢定:開鎖=成功
+   */
+  function checkCondition(condition) {
+    condition = clean(condition);
+
+    if (!condition) {
+      return false;
+    }
+
+    try {
+      return (
+        typeof hiddenCondition === "function" &&
+        hiddenCondition(condition)
+      );
+
+    } catch (error) {
+      console.warn(
+        "[If Block] 條件判斷失敗：",
+        condition,
+        error
+      );
+
+      return false;
+    }
+  }
+
+  /*
+   * 區塊資料：
+   *
+   * {
+   *   condition: "數值:HP>=5",
+   *   passed: true,
+   *   inElse: false,
+   *   parentVisible: true
+   * }
+   */
+  function processIfBlocks(source) {
+    source = String(
+      source == null ? "" : source
+    );
+
+    /*
+     * 只切割控制標籤，
+     * 其他正文與遊戲標籤都原樣保留。
+     */
+    const tokenRegex =
+      /\[(如果|if)\s*:\s*([^\]]+?)\]|\[(否則|else)\]|\[\/(如果|if)\]/gi;
+
+    const stack = [];
+
+    let output = "";
+    let cursor = 0;
+    let match;
+
+    function currentVisible() {
+      if (!stack.length) {
+        return true;
+      }
+
+      const top =
+        stack[stack.length - 1];
+
+      return (
+        top.parentVisible &&
+        (
+          top.inElse
+            ? !top.passed
+            : top.passed
+        )
+      );
+    }
+
+    while (
+      (match = tokenRegex.exec(source))
+    ) {
+      /*
+       * 先處理控制標籤前面的普通內容。
+       */
+      const content =
+        source.slice(
+          cursor,
+          match.index
+        );
+
+      if (currentVisible()) {
+        output += content;
+      }
+
+      /*
+       * [如果:條件]
+       */
+      if (match[1]) {
+        const parentVisible =
+          currentVisible();
+
+        const condition =
+          clean(match[2]);
+
+        /*
+         * 父層已經不可見時，
+         * 不必真的執行內層判斷。
+         */
+        const passed =
+          parentVisible
+            ? checkCondition(condition)
+            : false;
+
+        stack.push({
+          condition: condition,
+          passed: passed,
+          inElse: false,
+          parentVisible: parentVisible
+        });
+      }
+
+      /*
+       * [否則]
+       */
+      else if (match[3]) {
+        if (!stack.length) {
+          console.warn(
+            "[If Block] 發現沒有對應 [如果] 的 [否則]"
+          );
+
+        } else {
+          const top =
+            stack[stack.length - 1];
+
+          if (top.inElse) {
+            console.warn(
+              "[If Block] 同一個 [如果] 區塊出現多個 [否則]"
+            );
+          }
+
+          top.inElse = true;
+        }
+      }
+
+      /*
+       * [/如果]
+       */
+      else if (match[4]) {
+        if (!stack.length) {
+          console.warn(
+            "[If Block] 發現沒有開頭的 [/如果]"
+          );
+
+        } else {
+          stack.pop();
+        }
+      }
+
+      cursor =
+        tokenRegex.lastIndex;
+    }
+
+    /*
+     * 最後一個控制標籤後面的內容。
+     */
+    const tail =
+      source.slice(cursor);
+
+    if (currentVisible()) {
+      output += tail;
+    }
+
+    if (stack.length) {
+      console.warn(
+        "[If Block] 有 " +
+        stack.length +
+        " 個 [如果] 缺少 [/如果]"
+      );
+    }
+
+    return output;
+  }
+
+  /*
+   * 提供給其他閱讀器插件使用。
+   */
+  window.FirehahaIfBlock = {
+    version: "1.0.0",
+
+    check: checkCondition,
+
+    process: processIfBlocks
+  };
+
+  const originalApplyAdventure =
+    applyAdventure;
+
+  applyAdventure = function (page) {
+    try {
+      /*
+       * 必須先處理 [如果]。
+       *
+       * 不成立區塊裡的：
+       * [增加]
+       * [減少]
+       * [取得]
+       * [失去]
+       * [旗幟]
+       *
+       * 都必須先移除，不能交給原本
+       * applyAdventure() 執行。
+       */
+      const originalContent =
+        page && page.content != null
+          ? String(page.content)
+          : "";
+
+      const filteredContent =
+        processIfBlocks(
+          originalContent
+        );
+
+      /*
+       * 建立淺層副本，
+       * 不直接修改原始 page 資料。
+       */
+      const filteredPage =
+        Object.assign(
+          {},
+          page,
+          {
+            content: filteredContent
+          }
+        );
+
+      return originalApplyAdventure(
+        filteredPage
+      );
+
+    } catch (error) {
+      console.warn(
+        "[If Block] 處理頁面失敗",
+        error
+      );
+
+      return originalApplyAdventure(
+        page
+      );
+    }
+  };
+})();
+`;
+
+    const removeTransform =
+      api.registerReaderTransform(
+        "if-block",
+
+        function (html) {
+          html = String(
+            html == null ? "" : html
+          );
+
+          const marker =
+            "function renderAdventure(){";
+
+          if (!html.includes(marker)) {
+            console.warn(
+              "[If Block] 找不到閱讀器插入位置"
+            );
+
+            return html;
+          }
+
+          return html.replace(
+            marker,
+            patchCode + "\n" + marker
+          );
+        },
+
+        /*
+         * 放在目前顯示、名稱與自動跳轉插件之後，
+         * 讓 If Block 成為 applyAdventure 的外層入口，
+         * 先裁掉不成立的內容。
+         */
+        260
+      );
+
+    api.toast(
+      "如果條件區塊已啟用"
+    );
+
+    return function cleanup() {
+      removeTransform();
+    };
+  }
+});
+```
+
+## 最基本用法
+
+```text
+[數值:HP=10]
+
+[如果:數值:HP>=5]
+
+你仍然有力氣站起來。
+
+[/如果]
+```
+
+HP 小於 5 時，整段不會顯示。
+
+## 如果／否則
+
+```text
+[如果:數值:HP>=5]
+
+你還能繼續前進。
+
+[否則]
+
+你傷得太重，只能停下休息。
+
+[/如果]
+```
+
+## 物品條件
+
+```text
+[如果:持有:古老鑰匙]
+
+你把古老鑰匙插入鎖孔，門應聲而開。
+
+[否則]
+
+門被牢牢鎖住了。
+
+[/如果]
+```
+
+## 旗幟條件
+
+```text
+[如果:旗幟:見過國王]
+
+守衛認出了你，立刻讓開道路。
+
+[否則]
+
+守衛伸手攔住你。
+
+[/如果]
+```
+
+## 區塊裡執行事件
+
+這是它最有用的地方：
+
+```text
+[如果:數值:金錢>=30]
+
+[減少:金錢:30]
+[取得:治療藥水]
+
+你支付了 30 元，取得治療藥水。
+
+[否則]
+
+你的錢不夠。
+
+[/如果]
+```
+
+當金錢不足時，`[減少]` 和 `[取得]` 會先被裁掉，不會誤執行。
+
+## 巢狀條件
+
+```text
+[如果:持有:古老鑰匙]
+
+你拿出了鑰匙。
+
+[如果:數值:力量>=10]
+
+鎖已經生鏽，你用蠻力轉動鑰匙，成功打開門。
+
+[否則]
+
+你的力量不足，鑰匙完全轉不動。
+
+[/如果]
+
+[否則]
+
+你身上沒有能打開這扇門的鑰匙。
+
+[/如果]
+```
+
+## 搭配自動跳轉
+
+```text
+[如果:數值:HP<=0]
+
+你倒在地上，意識逐漸模糊……
+
+[自動跳轉:20:1500]
+
+[否則]
+
+你勉強撐住了。
+
+[/如果]
+```
+
+只有 HP 歸零時，自動跳轉標籤才會留在頁面裡並執行。
+
+有一項規則要固定：**`[如果]` 判斷的是進入頁面前已存在的狀態。** 不要在同一頁先寫 `[增加:HP:5]`，再期待後面的 `[如果:數值:HP>=10]` 讀到增加後的值；需要這種順序時，最好在下一頁判斷。
+
+
+
+
+
+好,整理一次完整邏輯給你參考:
+
+## 基本語法
+
+```
+[如果:類型:名稱|比較字|數字]
+條件成立時顯示的內容
+[否則]
+條件不成立時顯示的內容
+[/如果]
+```
+
+**類型**可以是:`數值` / `屬性` / `技能`
+
+---
+
+## 比較字對照表
+
+| 意思 | 中文寫法 |
+|---|---|
+| 大於等於(≥) | `至少` / `以上` |
+| 小於等於(≤) | `至多` / `以下` |
+| 大於(>) | `超過` / `大於` |
+| 小於(<) | `未滿` / `小於` |
+| 等於(=) | `等於` |
+| 不等於(≠) | `不等於` |
+
+---
+
+## 核心觀念 1:這是「二選一」,不是「條列規則」
+
+`[如果]...[否則]...[/如果]` 只問**一個是非題**,答案只有「是」或「不是」兩種:
+
+- 答案「是」→ 顯示 `[如果]` 底下那段
+- 答案「不是」→ 自動顯示 `[否則]` 那段(**這已經包含所有其他情況,不用你另外寫一次「相反條件」**)
+
+需要三段以上分級時,才需要一層包一層(巢狀 `[如果]`)。
+
+---
+
+## 核心觀念 2:比較字怎麼選,看你在問什麼問題
+
+| 想判斷的情境 | 該用的比較字 | 原因 |
+|---|---|---|
+| 生死、血量歸零(範圍性的) | `大於` / `至多` / `至少` | 數值可能因扣血直接跳過某個點(如 3 扣 10 變 -7),用「等於」會抓不到 |
+| 固定狀態切換(任務進度、旗標、剛好卡在某數值的特殊事件) | `等於` | 這類值通常是直接設定(`[數值:X=N]`),不會被增減跳過 |
+| 「不等於 0」≠「大於 0」 | — | 負數也算「不等於 0」,判斷生死時容易誤判成「還活著」 |
+
+---
+
+## 核心觀念 3(最容易踩雷):同一頁裡,「判斷」永遠比「數值變化」先執行
+
+外掛的執行順序固定是:
+
+1. 先讀這一頁,用**目前(尚未變動)**的數值判斷所有 `[如果]`
+2. 判斷完之後,才真的執行 `[數值]` `[增加]` `[減少]` 去改變數值
+
+**所以 `[減少:HP:10]` 跟 `[如果:數值:HP|...]` 如果寫在同一頁,判斷讀到的還是扣血前的舊值。**
+
+### ✅ 正確做法:扣血跟判斷分兩頁
+
+```
+第一頁：[減少:HP:10]
+你被攻擊了。
+
+第二頁：[如果:數值:HP|至多|0]
+你死了
+[否則]
+你還活著
+[/如果]
+```
+
+---
+
+## 除錯口訣(判斷結果怪怪的時候,依序檢查)
+
+1. `[如果]` 有沒有跟改數值的標籤(`[數值]`/`[增加]`/`[減少]`)寫在同一頁?→ 拆到不同頁
+2. 比較字選對了嗎?→ 生死/血量用「大於/至多/至少」,不要用「不等於」
+3. 變數名稱打對了嗎?→ 測試閱讀視窗按 F12,打 `memorySave.adventure.values` 看實際存的名稱和數值

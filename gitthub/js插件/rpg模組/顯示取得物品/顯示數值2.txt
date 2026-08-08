@@ -1,0 +1,139 @@
+你說得對。我看過主程式後，正確插入點已經很明確：
+
+* `[數值:名稱=數值]`、`[增加:]`、`[減少:]` 都是在閱讀器內的 `applyAdventure(page)` 處理。
+* 真正的數值保存在 `memorySave.adventure.values`。
+* 所以外掛**不該重做數值核心，也不該重新掃描初始化標籤**；只要在原本 `applyAdventure()` 執行完後，把 `{數值:名稱}` 換成現有數值即可。
+
+先停用或移除之前的：
+
+```text
+official.display-bridge
+official.variables-core
+official.number-tag
+official.number-demo
+```
+
+然後只安裝下面這一支。
+
+## official.number-display.js
+
+```javascript
+// @firehaha-plugin {"id":"official.number-display","name":"數值文字顯示","version":"1.0.0","author":"Firehaha","description":"橋接原有冒險數值系統，讓正文可用 {數值:名稱} 顯示目前數值"}
+
+FirehahaPlugins.register({
+  id: "official.number-display",
+
+  setup(api) {
+    "use strict";
+
+    const patchCode = String.raw`
+/* Firehaha Number Display */
+(function () {
+  if (window.__firehahaNumberDisplayInstalled) return;
+  window.__firehahaNumberDisplayInstalled = true;
+
+  const originalApplyAdventure = applyAdventure;
+
+  applyAdventure = function (page) {
+    let html = originalApplyAdventure(page);
+
+    try {
+      const values =
+        memorySave &&
+        memorySave.adventure &&
+        memorySave.adventure.values
+          ? memorySave.adventure.values
+          : {};
+
+      html = String(html).replace(
+        /\{數值:\s*([^}]+?)\s*\}/gi,
+        function (full, rawName) {
+          const name = String(rawName || "").trim();
+
+          if (!name) return "0";
+
+          return Object.prototype.hasOwnProperty.call(values, name)
+            ? String(values[name])
+            : "0";
+        }
+      );
+    } catch (error) {
+      console.warn("[Number Display]", error);
+    }
+
+    return html;
+  };
+})();
+`;
+
+    const removeTransform = api.registerReaderTransform(
+      "number-display",
+
+      function (html) {
+        html = String(html == null ? "" : html);
+
+        const marker = "function renderAdventure(){";
+
+        if (!html.includes(marker)) {
+          console.warn(
+            "[Number Display] 找不到閱讀器的 applyAdventure 插入位置"
+          );
+
+          return html;
+        }
+
+        return html.replace(
+          marker,
+          patchCode + "\n" + marker
+        );
+      },
+
+      210
+    );
+
+    api.toast("數值文字顯示已啟用");
+
+    return function cleanup() {
+      removeTransform();
+    };
+  }
+});
+```
+
+## 使用方式
+
+第一個頁面：
+
+```text
+[數值:體力=10]
+[數值:金錢=100]
+
+目前體力：{數值:體力}
+目前金錢：{數值:金錢}
+```
+
+會顯示：
+
+```text
+目前體力：10
+目前金錢：100
+```
+
+後續頁面：
+
+```text
+[減少:體力:2]
+[增加:金錢:50]
+
+你現在還有 {數值:體力} 點體力。
+你現在持有 {數值:金錢} 元。
+```
+
+會顯示：
+
+```text
+你現在還有 8 點體力。
+你現在持有 150 元。
+```
+
+這支外掛直接讀你原有的冒險紀錄，因此數值、增加、減少、存檔與返回頁面等行為仍由主程式負責；外掛只補上文字顯示。
