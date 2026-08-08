@@ -966,12 +966,11 @@ FirehahaPlugins.register({
 
 
       if(!dock){
-
-        console.warn(
-          "[System Settings] 工具箱尚未建立"
-        );
-
-
+        /*
+         * System Settings is intentionally loaded before the toolbox.  The
+         * toolbox-ready event below will apply the position once the dock is
+         * available, so this expected startup state is not an error.
+         */
         return false;
 
       }

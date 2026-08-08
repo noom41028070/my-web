@@ -1,9 +1,9 @@
-// @firehaha-plugin {"id":"official.i18n-zh-en-ja","name":"官方多語言介面包","version":"1.0.0","author":"Firehaha 官方開發者","description":"為編輯器與輸出閱讀器提供繁體中文、English、日本語介面，不翻譯作者的作品內容。"}
+// @firehaha-plugin {"id":"official.i18n-zh-en-ja","name":"官方多語言介面包","version":"1.2.2","author":"Firehaha 官方開發者","description":"為編輯器、教學中心、輸出閱讀器及媒體插件按鈕提供繁體中文、English、日本語介面，不翻譯作者作品內容。"}
 
 FirehahaPlugins.register({
   id: "official.i18n-zh-en-ja",
   name: "官方多語言介面包",
-  version: "1.0.0",
+  version: "1.2.2",
   description: "繁體中文、English、日本語介面與閱讀器語言切換",
 
   setup(api) {
@@ -41,6 +41,35 @@ FirehahaPlugins.register({
         "隱藏選項標籤": "Conditional choice tag",
         "遊戲清單": "Game list",
         "標籤教學": "Tag guide",
+        "標籤與插件教學": "Tags & plugin help",
+        "標籤與插件教學中心": "Tag & plugin help center",
+        "節號": "Print sections",
+        "依序編號": "Sequential numbering",
+        "隨機洗牌": "Shuffle",
+        "第一個 Node 固定為第 1 節": "Keep the first Node as Section 1",
+        "輸出節號 TXT": "Export section TXT",
+        "輸出節號 DOCX": "Export section DOCX",
+        "圖片演出": "Image motion",
+        "圖片特效": "Image effects",
+        "文字演出": "Typography motion",
+        "標題演出": "Title effects",
+        "章節標題演出": "Chapter title effects",
+        "健檢": "Publishing inspector",
+        "重新檢查": "Run inspection again",
+        "報告": "Report",
+        "預覽": "Preview",
+        "本頁全部套用": "Apply to every image on this Node",
+        "重設此圖": "Reset this image",
+        "套用目前 Node 到全部": "Apply current Node to all",
+        "重設本 Node": "Reset this Node",
+        "重設本頁": "Reset this page",
+        "套用到全部章節": "Apply to all chapters",
+        "靜態展示": "Still image",
+        "漂浮插圖": "Floating illustration",
+        "電影鏡頭": "Cinematic shot",
+        "夢境插圖": "Dream illustration",
+        "恐怖顫動": "Horror tremble",
+        "動圖強調": "Animated-image emphasis",
         "屬性／修正值": "Attribute / modifier",
         "技能／修正值": "Skill / modifier",
         "目標值檢定": "Target check",
@@ -89,7 +118,17 @@ FirehahaPlugins.register({
         "尚無物品": "No items",
         "尚無事件": "No events",
         "尚未檢定": "No checks yet",
-        "尚未擲骰": "No rolls yet"
+        "尚未擲骰": "No rolls yet",
+        "重新開始": "Restart",
+        "新增存檔槽": "Add save slot",
+        "收合工具": "Collapse tools",
+        "展開工具": "Expand tools",
+        "正在重新開始…": "Restarting…",
+        "播放音樂": "Play music",
+        "停止音樂": "Stop music",
+        "播放中": "Playing",
+        "觀看影片": "Watch video",
+        "播放過場": "Play cutscene"
       },
 
       ja: {
@@ -122,6 +161,35 @@ FirehahaPlugins.register({
         "隱藏選項標籤": "条件付き選択肢タグ",
         "遊戲清單": "ゲームリスト",
         "標籤教學": "タグガイド",
+        "標籤與插件教學": "タグ・プラグインガイド",
+        "標籤與插件教學中心": "タグ・プラグインヘルプ",
+        "節號": "紙面セクション",
+        "依序編號": "連番を付ける",
+        "隨機洗牌": "シャッフル",
+        "第一個 Node 固定為第 1 節": "最初のNodeを第1節に固定",
+        "輸出節號 TXT": "セクションTXT出力",
+        "輸出節號 DOCX": "セクションDOCX出力",
+        "圖片演出": "画像演出",
+        "圖片特效": "画像効果",
+        "文字演出": "文字演出",
+        "標題演出": "タイトル演出",
+        "章節標題演出": "章タイトル演出",
+        "健檢": "出版診断",
+        "重新檢查": "再検査",
+        "報告": "レポート",
+        "預覽": "プレビュー",
+        "本頁全部套用": "このNodeの全画像へ適用",
+        "重設此圖": "この画像をリセット",
+        "套用目前 Node 到全部": "現在のNode設定を全Nodeへ適用",
+        "重設本 Node": "このNodeをリセット",
+        "重設本頁": "このページをリセット",
+        "套用到全部章節": "全章へ適用",
+        "靜態展示": "静止表示",
+        "漂浮插圖": "浮遊イラスト",
+        "電影鏡頭": "映画カメラ",
+        "夢境插圖": "夢イラスト",
+        "恐怖顫動": "ホラー振動",
+        "動圖強調": "アニメ画像強調",
         "屬性／修正值": "能力値／修正値",
         "技能／修正值": "技能／修正値",
         "目標值檢定": "目標値判定",
@@ -169,7 +237,17 @@ FirehahaPlugins.register({
         "尚無物品": "アイテムはありません",
         "尚無事件": "イベントはありません",
         "尚未檢定": "判定はまだありません",
-        "尚未擲骰": "ダイスはまだ振られていません"
+        "尚未擲骰": "ダイスはまだ振られていません",
+        "重新開始": "最初から開始",
+        "新增存檔槽": "セーブ枠を追加",
+        "收合工具": "ツールを閉じる",
+        "展開工具": "ツールを開く",
+        "正在重新開始…": "最初から開始しています…",
+        "播放音樂": "音楽を再生",
+        "停止音樂": "音楽を停止",
+        "播放中": "再生中",
+        "觀看影片": "動画を見る",
+        "播放過場": "カットシーンを再生"
       }
     };
 
@@ -572,6 +650,7 @@ FirehahaPlugins.register({
       "#htmlIntegratedPreview",
       ".rls-stage",
       ".gtg-example code",
+      "#firehahaHelpCenter",
       "[data-plugin-source]"
     ].join(",");
 
@@ -660,6 +739,16 @@ FirehahaPlugins.register({
       applyLanguage(document.body);
       api.emit("firehaha:language-changed", { language });
     }
+
+    // 讓內建教學中心與後續插件能使用同一套語言狀態，避免各自猜測介面語言。
+    const publicI18n = Object.freeze({
+      version: "1.2.2",
+      get language() { return language; },
+      translate: translated,
+      apply(root) { applyLanguage(root || document.body); },
+      setLanguage
+    });
+    window.FirehahaI18n = publicI18n;
 
     const nativeDialogs = {
       alert: window.alert.bind(window),
@@ -763,13 +852,14 @@ FirehahaPlugins.register({
             if(!supported.includes(language))language="zh-TW";
             function translate(root){
               const dict=dictionaries[language]||{};
-              const translated=source=>{if(language==="zh-TW")return source;if(dict[source])return dict[source];const separator=source.indexOf(" ");if(separator>0){const prefix=source.slice(0,separator+1),label=source.slice(separator+1);if(dict[label])return prefix+dict[label]}return source};
+              const translateWith=(target,source)=>{if(target[source])return target[source];const separator=source.indexOf(" ");if(separator>0){const prefix=source.slice(0,separator+1),label=source.slice(separator+1);if(target[label])return prefix+target[label]}return source};
+              const translated=source=>language==="zh-TW"?source:translateWith(dict,source);
               const elements=[root,...root.querySelectorAll("button,label,summary,option,strong,span,a,output,p,li,small,h1,h2,h3,h4,[title],[aria-label]")];
               elements.forEach(element=>{
-                if(!element||element.closest(".content,.choices,.story-chip"))return;
+                if(!element)return;const insideStory=element.closest(".content,.choices,.story-chip");const pluginControl=element.matches&&element.matches(".fh-native-audio-control,.fh-video-button,.firehaha-new-game-btn,.firehaha-add-slot-btn,.firehaha-save-collapse-btn");if(insideStory&&!pluginControl)return;
                 if(element.children.length===0){
                   const current=element.textContent,trimmed=current.trim();
-                  if(trimmed){if(!element.dataset.i18nOriginalText)element.dataset.i18nOriginalText=trimmed;const source=element.dataset.i18nOriginalText;element.textContent=current.match(/^\\s*/)[0]+translated(source)+current.match(/\\s*$/)[0]}
+                  if(trimmed){if(!element.dataset.i18nOriginalText)element.dataset.i18nOriginalText=trimmed;let source=element.dataset.i18nOriginalText;if(pluginControl){const known=[source,translateWith(dictionaries.en||{},source),translateWith(dictionaries.ja||{},source)];if(!known.includes(trimmed)){source=trimmed;element.dataset.i18nOriginalText=trimmed}}element.textContent=current.match(/^\\s*/)[0]+translated(source)+current.match(/\\s*$/)[0]}
                 }
               });
               document.documentElement.lang=language;
@@ -802,6 +892,7 @@ FirehahaPlugins.register({
       if (window.alert === localizedAlert) window.alert = nativeDialogs.alert;
       if (window.confirm === localizedConfirm) window.confirm = nativeDialogs.confirm;
       if (window.prompt === localizedPrompt) window.prompt = nativeDialogs.prompt;
+      if (window.FirehahaI18n === publicI18n) delete window.FirehahaI18n;
 
       language = "zh-TW";
       document.querySelectorAll("[data-i18n-original-text]").forEach(element => {

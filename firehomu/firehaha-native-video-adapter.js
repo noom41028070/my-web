@@ -1,9 +1,9 @@
-// @firehaha-plugin {"id":"official.native-video-adapter","name":"原生影片素材適配器","version":"1.0.0","author":"Firehaha","description":"讓原生素材庫支援影片，提供影片播放、過場動畫、播放後跳頁、靜音背景影片與淡出關閉標籤。"}
+// @firehaha-plugin {"id":"official.native-video-adapter","name":"原生影片素材適配器","version":"1.0.1","author":"Firehaha","description":"讓原生素材庫支援影片、過場與背景影片，並支援新遊戲關閉播放器、取消跳頁與重置按鈕。"}
 
 FirehahaPlugins.register({
   id: "official.native-video-adapter",
   name: "原生影片素材適配器",
-  version: "1.0.0",
+  version: "1.0.1",
 
   async setup(api) {
     "use strict";
@@ -29,7 +29,7 @@ FirehahaPlugins.register({
       "fh-native-video-package";
 
     const RUNTIME_MARK =
-      "data-fh-native-video-runtime-v1";
+      "data-fh-native-video-runtime-v1-0-1";
 
     const VIDEO_EXTENSIONS =
       new Set([
@@ -1831,6 +1831,10 @@ FirehahaPlugins.register({
   cursor:pointer;
 }
 
+.fh-video-button.is-playing{
+  background:#26705a;
+}
+
 .fh-video-overlay{
   position:fixed;
   inset:0;
@@ -1921,11 +1925,11 @@ FirehahaPlugins.register({
 
 "use strict";
 
-if(window.__fhNativeVideoRuntimeV1){
+if(window.__fhNativeVideoRuntimeV101){
   return;
 }
 
-window.__fhNativeVideoRuntimeV1 =
+window.__fhNativeVideoRuntimeV101 =
 true;
 
 
@@ -1961,7 +1965,37 @@ try{
 
 var activeOverlay = null;
 
+var activeButton = null;
+
 var backgroundLayer = null;
+
+var backgroundFadeTimer = null;
+
+var mediaGeneration = 0;
+
+
+function resetVideoButton(button){
+
+  if(!button){
+    return;
+  }
+
+  button.textContent =
+  button.getAttribute(
+    "data-video-label"
+  ) ||
+  "觀看影片";
+
+  button.classList.remove(
+    "is-playing"
+  );
+
+  button.setAttribute(
+    "aria-pressed",
+    "false"
+  );
+
+}
 
 
 function getAsset(id){
@@ -2018,6 +2052,12 @@ function showError(
 function closeOverlay(){
 
   if(!activeOverlay){
+    resetVideoButton(
+      activeButton
+    );
+
+    activeButton = null;
+
     return;
   }
 
@@ -2032,6 +2072,7 @@ function closeOverlay(){
 
     try{
       video.pause();
+      video.currentTime=0;
     }catch(error){}
 
   }
@@ -2041,6 +2082,12 @@ function closeOverlay(){
 
   activeOverlay =
   null;
+
+  resetVideoButton(
+    activeButton
+  );
+
+  activeButton = null;
 
 }
 
@@ -2079,6 +2126,9 @@ function playOverlay(
   options,
   button
 ){
+
+  var generation =
+  mediaGeneration;
 
   var asset =
   getAsset(id);
@@ -2195,10 +2245,41 @@ function playOverlay(
   activeOverlay =
   overlay;
 
+  activeButton =
+  button || null;
+
+  if(activeButton){
+    activeButton.classList.add(
+      "is-playing"
+    );
+
+    activeButton.setAttribute(
+      "aria-pressed",
+      "true"
+    );
+
+    activeButton.textContent =
+    "▶ 播放中";
+  }
+
 
   video.addEventListener(
     "ended",
     function(){
+
+      if(
+        generation !==
+        mediaGeneration
+      ){
+        if(
+          activeOverlay ===
+          overlay
+        ){
+          closeOverlay();
+        }
+
+        return;
+      }
 
       var pageNumber =
       settings.pageNumber;
@@ -2235,6 +2316,13 @@ function playOverlay(
   .catch(
     function(error){
 
+      if(
+        generation !==
+        mediaGeneration
+      ){
+        return;
+      }
+
       console.warn(
         "[Firehaha Video Play]",
         error
@@ -2257,6 +2345,9 @@ function playOverlay(
 
 
 function showBackground(id){
+
+  var generation =
+  mediaGeneration;
 
   var asset =
   getAsset(id);
@@ -2335,6 +2426,13 @@ function showBackground(id){
   .catch(
     function(error){
 
+      if(
+        generation !==
+        mediaGeneration
+      ){
+        return;
+      }
+
       console.warn(
         "[Firehaha Background Video]",
         error
@@ -2351,6 +2449,15 @@ function showBackground(id){
 
 function removeBackground(){
 
+  if(backgroundFadeTimer !== null){
+    clearTimeout(
+      backgroundFadeTimer
+    );
+
+    backgroundFadeTimer =
+    null;
+  }
+
   if(!backgroundLayer){
     return;
   }
@@ -2366,6 +2473,7 @@ function removeBackground(){
 
     try{
       video.pause();
+      video.currentTime=0;
     }catch(error){}
 
   }
@@ -2389,14 +2497,24 @@ function fadeOutBackground(){
   var layer =
   backgroundLayer;
 
+  if(backgroundFadeTimer !== null){
+    clearTimeout(
+      backgroundFadeTimer
+    );
+  }
+
 
   layer.classList.add(
     "is-fading"
   );
 
 
+  backgroundFadeTimer =
   setTimeout(
     function(){
+
+      backgroundFadeTimer =
+      null;
 
       if(
         backgroundLayer === layer
@@ -2451,6 +2569,16 @@ function makeButton(
   button.setAttribute(
     "data-video-id",
     id
+  );
+
+  button.setAttribute(
+    "data-video-label",
+    label
+  );
+
+  button.setAttribute(
+    "aria-pressed",
+    "false"
   );
 
 
@@ -2895,6 +3023,55 @@ function start(){
 }
 
 
+function resetAllVideo(){
+
+  mediaGeneration++;
+
+  closeOverlay();
+
+  removeBackground();
+
+  document
+  .querySelectorAll(
+    ".fh-video-button"
+  )
+  .forEach(
+    resetVideoButton
+  );
+
+  document
+  .querySelectorAll(
+    ".fh-video-error"
+  )
+  .forEach(
+    function(note){
+      note.remove();
+    }
+  );
+
+}
+
+
+window.FirehahaNativeVideoRuntime={
+  version:"1.0.1",
+  reset:resetAllVideo,
+  stopAll:resetAllVideo
+};
+
+
+document.addEventListener(
+  "firehaha:reader-restart",
+  function(event){
+    if(
+      !event.detail ||
+      event.detail.phase === "before"
+    ){
+      resetAllVideo();
+    }
+  }
+);
+
+
 if(
   document.readyState ===
   "loading"
@@ -3155,7 +3332,7 @@ if(
 
     window.FirehahaNativeVideo = {
       version:
-        "1.0.0",
+        "1.0.1",
 
       dbName:
         DB_NAME,

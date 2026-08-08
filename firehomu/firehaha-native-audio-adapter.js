@@ -1,9 +1,9 @@
-// @firehaha-plugin {"id":"official.native-audio-adapter","name":"原生音訊素材適配器","version":"1.0.0","author":"Firehaha","description":"擴充原生素材庫支援音訊檔，使用IndexedDB保存Blob，正文僅插入短BGM語法，並透過Reader Preflight封裝至測試閱讀及正式輸出。"}
+// @firehaha-plugin {"id":"official.native-audio-adapter","name":"原生音訊素材適配器","version":"1.0.1","author":"Firehaha","description":"擴充原生素材庫支援音訊檔，封裝至測試閱讀及正式輸出，並支援新遊戲重置播放器、進度與按鈕。"}
 
 FirehahaPlugins.register({
   id: "official.native-audio-adapter",
   name: "原生音訊素材適配器",
-  version: "1.0.0",
+  version: "1.0.1",
 
   async setup(api) {
     "use strict";
@@ -24,7 +24,7 @@ FirehahaPlugins.register({
       "fh-native-audio-package";
 
     const RUNTIME_MARK =
-      "data-fh-native-audio-runtime-v1";
+      "data-fh-native-audio-runtime-v1-0-1";
 
     const AUDIO_EXTENSIONS =
       new Set([
@@ -1801,11 +1801,11 @@ jumpButton.addEventListener(
 
 "use strict";
 
-if(window.__fhNativeAudioRuntimeV1){
+if(window.__fhNativeAudioRuntimeV101){
   return;
 }
 
-window.__fhNativeAudioRuntimeV1=true;
+window.__fhNativeAudioRuntimeV101=true;
 
 var packageElement=
 document.getElementById(
@@ -1830,6 +1830,37 @@ try{
 }
 
 var players={};
+
+var playerGenerations={};
+
+var playbackGeneration=0;
+
+var fadeTimers=[];
+
+
+function removeFadeTimer(timer){
+
+  var index=
+  fadeTimers.indexOf(timer);
+
+  if(index >= 0){
+    fadeTimers.splice(index,1);
+  }
+
+}
+
+
+function clearFadeTimers(){
+
+  fadeTimers
+  .splice(0)
+  .forEach(
+    function(timer){
+      clearInterval(timer);
+    }
+  );
+
+}
 
 
 function getPlayer(id){
@@ -1967,6 +1998,11 @@ if(
         "is-playing"
       );
 
+      button.setAttribute(
+        "aria-pressed",
+        "false"
+      );
+
     }
   );
 
@@ -1977,6 +2013,12 @@ function playAudio(
   id,
   button
 ){
+
+  var generation=
+  playbackGeneration;
+
+  playerGenerations[id]=
+  generation;
 
   var audio=
   getPlayer(id);
@@ -2015,6 +2057,23 @@ function playAudio(
   .then(
     function(){
 
+      if(
+        generation !==
+        playbackGeneration
+      ){
+        if(
+          playerGenerations[id] ===
+          generation
+        ){
+          try{
+            audio.pause();
+            audio.currentTime=0;
+          }catch(error){}
+        }
+
+        return false;
+      }
+
       clearError(button);
 
       document
@@ -2035,6 +2094,11 @@ function playAudio(
         "is-playing"
       );
 
+      button.setAttribute(
+        "aria-pressed",
+        "true"
+      );
+
       button.textContent=
       "♪ 播放中";
 
@@ -2044,6 +2108,13 @@ function playAudio(
   )
   .catch(
     function(error){
+
+      if(
+        generation !==
+        playbackGeneration
+      ){
+        return false;
+      }
 
       console.warn(
         "[Firehaha Audio Play]",
@@ -2143,6 +2214,8 @@ function playAndJump(
 
 function stopAllAudio(){
 
+  clearFadeTimers();
+
   Object.keys(players)
   .forEach(
     function(id){
@@ -2164,7 +2237,61 @@ function stopAllAudio(){
 }
 
 
+function resetAllAudio(){
+
+  playbackGeneration++;
+
+  stopAllAudio();
+
+  document
+  .querySelectorAll(
+    ".fh-native-audio-control"
+  )
+  .forEach(
+    function(button){
+
+      button.textContent=
+      button.getAttribute(
+        "data-audio-label"
+      ) ||
+      (
+        button.getAttribute(
+          "data-audio-action"
+        ) === "stop"
+        ?
+        "停止音樂"
+        :
+        "播放音樂"
+      );
+
+      button.classList.remove(
+        "is-playing"
+      );
+
+      button.setAttribute(
+        "aria-pressed",
+        "false"
+      );
+
+    }
+  );
+
+  document
+  .querySelectorAll(
+    ".fh-native-audio-error"
+  )
+  .forEach(
+    function(note){
+      note.remove();
+    }
+  );
+
+}
+
+
 function fadeOutAllAudio(){
+
+  clearFadeTimers();
 
   var duration=
   1500;
@@ -2228,6 +2355,8 @@ function fadeOutAllAudio(){
 
             clearInterval(timer);
 
+            removeFadeTimer(timer);
+
             try{
               audio.pause();
               audio.currentTime=0;
@@ -2241,6 +2370,8 @@ function fadeOutAllAudio(){
         },
         stepTime
       );
+
+      fadeTimers.push(timer);
 
     }
   );
@@ -2299,6 +2430,11 @@ function makeButton(
   button.setAttribute(
     "data-audio-label",
     label
+  );
+
+  button.setAttribute(
+    "aria-pressed",
+    "false"
   );
 
   if(pageNumber != null){
@@ -2753,6 +2889,26 @@ function start(){
   );
 
 }
+
+
+window.FirehahaNativeAudioRuntime={
+  version:"1.0.1",
+  reset:resetAllAudio,
+  stopAll:resetAllAudio
+};
+
+
+document.addEventListener(
+  "firehaha:reader-restart",
+  function(event){
+    if(
+      !event.detail ||
+      event.detail.phase === "before"
+    ){
+      resetAllAudio();
+    }
+  }
+);
 
 
 if(
@@ -3507,7 +3663,7 @@ scanEditorPreview();
 
     window.FirehahaNativeAudio = {
       version:
-        "1.0.0",
+        "1.0.1",
 
       dbName:
         DB_NAME,
