@@ -1,15 +1,15 @@
 {
-  "official.install-demo": {
-    "name": "一鍵安裝測試插件",
-    "version": "0.1.0",
+  "official.publisher-test-badge": {
+    "name": "發布流程測試徽章",
+    "version": "1.0.0",
     "author": "Firehaha",
-    "description": "測試「Plugin Hub → Firehaha → 原生插件管理器」一鍵安裝流程。",
-    "file": "./official.install-demo.js",
+    "description": "用來測試 Plugin Publisher / Plugin Hub 一鍵發布流程。啟用後會在 Reader 左下角顯示一個淡淡的 TEST 徽章。",
+    "file": "./official.publisher-test-badge.js",
     "requires": [],
     "category": "test",
     "tags": [
-      "一鍵安裝",
-      "測試"
+      "發布測試",
+      "Plugin Hub"
     ],
     "status": "experimental"
   }
