@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Firehaha 插件安裝實驗頁</title>
+<style>
+:root{color-scheme:light dark}
+body{
+  margin:0;
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;
+  background:#f4f6f8;
+  color:#1f2937;
+}
+.card{
+  width:min(92vw,560px);
+  padding:22px;
+  border:1px solid #d8dee7;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 12px 34px rgba(15,23,42,.10);
+}
+h1{font-size:22px;margin:0 0 8px}
+.meta{font-size:13px;line-height:1.7;color:#64748b;word-break:break-word}
+.desc{margin:16px 0;line-height:1.7}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button,a{
+  appearance:none;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:10px 14px;
+  background:#f8fafc;
+  color:#0f172a;
+  font:700 14px/1.2 inherit;
+  text-decoration:none;
+  cursor:pointer;
+}
+.primary{background:#111827;color:#fff;border-color:#111827}
+.status{margin-top:14px;font-size:13px;color:#64748b}
+@media (prefers-color-scheme:dark){
+  body{background:#111827;color:#e5e7eb}
+  .card{background:#1f2937;border-color:#374151}
+  .meta,.status{color:#9ca3af}
+  button,a{background:#111827;color:#e5e7eb;border-color:#4b5563}
+  .primary{background:#f3f4f6;color:#111827;border-color:#f3f4f6}
+}
+</style>
+</head>
+<body>
+<main class="card">
+  <h1 id="name">Firehaha 插件</h1>
+  <div class="meta">
+    <div>ID：<span id="pluginId">-</span></div>
+    <div>版本：<span id="version">-</span></div>
+    <div>作者：<span id="author">-</span></div>
+  </div>
+
+  <p class="desc" id="description">正在讀取插件資訊……</p>
+
+  <div class="actions">
+    <button class="primary" id="installButton" type="button" disabled>安裝到 Firehaha</button>
+    <a id="sourceLink" href="#" target="_blank" rel="noopener">查看 JS</a>
+  </div>
+
+  <div class="status" id="status"></div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const qs = new URLSearchParams(location.search);
+  const requestedId = (qs.get("id") || "").trim();
+
+  const nameEl = document.getElementById("name");
+  const idEl = document.getElementById("pluginId");
+  const versionEl = document.getElementById("version");
+  const authorEl = document.getElementById("author");
+  const descEl = document.getElementById("description");
+  const statusEl = document.getElementById("status");
+  const installButton = document.getElementById("installButton");
+  const sourceLink = document.getElementById("sourceLink");
+
+  if(!requestedId){
+    statusEl.textContent = "網址缺少 ?id=插件ID";
+    descEl.textContent = "例如：plugin-install.html?id=official.install-demo";
+    return;
+  }
+
+  fetch("./plugin-index.json", {cache:"no-store"})
+    .then(function(res){
+      if(!res.ok) throw new Error("無法讀取 plugins/index.json");
+      return res.json();
+    })
+    .then(function(index){
+      const info = index[requestedId];
+      if(!info) throw new Error("找不到插件：" + requestedId);
+
+      nameEl.textContent = info.name || requestedId;
+      idEl.textContent = requestedId;
+      versionEl.textContent = info.version || "?";
+      authorEl.textContent = info.author || "?";
+      descEl.textContent = info.description || "沒有說明。";
+
+      const fileUrl = new URL(info.file, location.href);
+      sourceLink.href = fileUrl.href;
+
+      installButton.disabled = false;
+      installButton.addEventListener("click", function(){
+        /*
+         * 這個實驗版假設 firehaha.html 與 plugin-install.html 同資料夾。
+         * Receiver 插件會讀取 fh-install 參數。
+         */
+        const target = new URL("./firehaha.html", location.href);
+        target.searchParams.set("fh-install", requestedId);
+        target.searchParams.set("fh-install-source", "plugin-page");
+        location.href = target.href;
+      });
+
+      statusEl.textContent = "準備完成。按下安裝會跳轉到 Firehaha。";
+    })
+    .catch(function(error){
+      statusEl.textContent = error.message;
+      descEl.textContent = "插件資訊載入失敗。";
+    });
+})();
+</script>
+</body>
+</html>

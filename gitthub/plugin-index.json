@@ -1,0 +1,10 @@
+{
+  "official.install-demo": {
+    "name": "一鍵安裝測試插件",
+    "version": "0.1.0",
+    "author": "Firehaha",
+    "description": "測試「插件發布頁 → Firehaha 主程式 → 插件安裝接收器」流程。",
+    "file": "./official.install-demo.js",
+    "requires": []
+  }
+}
