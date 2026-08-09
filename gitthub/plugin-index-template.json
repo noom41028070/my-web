@@ -1,0 +1,18 @@
+{
+  "official.your-plugin-id": {
+    "name": "你的插件名稱",
+    "version": "1.0.0",
+    "author": "你的名字",
+    "description": "簡短說明這個插件做什麼。",
+    "file": "./official.your-plugin-id.js",
+    "requires": [
+      "official.reader-manager-main-bridge"
+    ],
+    "category": "reader",
+    "tags": [
+      "RPG",
+      "Reader Manager"
+    ],
+    "status": "stable"
+  }
+}

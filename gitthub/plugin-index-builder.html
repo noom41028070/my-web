@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Firehaha Plugin Index 產生器</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;margin:0;background:#f5f6f8;color:#1f2937}
+main{width:min(94vw,760px);margin:24px auto;padding:20px;background:white;border:1px solid #d7dde6;border-radius:16px}
+h1{margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-weight:700;font-size:13px}
+input,textarea,select{width:100%;box-sizing:border-box;margin-top:5px;padding:9px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+.full{grid-column:1/-1}
+button{margin-top:14px;padding:10px 14px;border:1px solid #cbd5e1;border-radius:9px;background:#111827;color:white;font-weight:800}
+pre{white-space:pre-wrap;word-break:break-word;background:#111827;color:#e5e7eb;padding:12px;border-radius:10px;min-height:120px}
+small{color:#64748b}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<h1>Firehaha Plugin Index 產生器</h1>
+<p>填好後按「產生 JSON」，把結果加進 <code>plugin-index.json</code>。</p>
+
+<div class="grid">
+  <label>ID
+    <input id="id" value="official.my-plugin" placeholder="official.my-plugin">
+  </label>
+
+  <label>版本
+    <input id="version" value="1.0.0">
+  </label>
+
+  <label>插件名稱
+    <input id="name" value="我的插件">
+  </label>
+
+  <label>作者
+    <input id="author" value="Firehaha">
+  </label>
+
+  <label class="full">JS 檔名
+    <input id="file" value="./official.my-plugin.js">
+  </label>
+
+  <label class="full">說明
+    <textarea id="description">插件功能說明。</textarea>
+  </label>
+
+  <label>依賴插件
+    <input id="requires" placeholder="official.reader-manager-main-bridge">
+    <small>多個用逗號分隔</small>
+  </label>
+
+  <label>標籤
+    <input id="tags" placeholder="RPG, Reader Manager">
+    <small>多個用逗號分隔</small>
+  </label>
+
+  <label>分類
+    <select id="category">
+      <option value="reader">reader</option>
+      <option value="system">system</option>
+      <option value="ui">ui</option>
+      <option value="audio">audio</option>
+      <option value="gameplay">gameplay</option>
+      <option value="test">test</option>
+      <option value="other">other</option>
+    </select>
+  </label>
+
+  <label>狀態
+    <select id="status">
+      <option value="stable">stable</option>
+      <option value="experimental">experimental</option>
+      <option value="beta">beta</option>
+    </select>
+  </label>
+</div>
+
+<button id="generate" type="button">產生 JSON</button>
+<button id="copy" type="button">複製 JSON</button>
+
+<h2>結果</h2>
+<pre id="out"></pre>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  function list(value){
+    return String(value || "")
+      .split(",")
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+
+  function build(){
+    const id = $("id").value.trim();
+
+    const obj = {};
+    obj[id] = {
+      name: $("name").value.trim(),
+      version: $("version").value.trim(),
+      author: $("author").value.trim(),
+      description: $("description").value.trim(),
+      file: $("file").value.trim(),
+      requires: list($("requires").value),
+      category: $("category").value,
+      tags: list($("tags").value),
+      status: $("status").value
+    };
+
+    $("out").textContent = JSON.stringify(obj, null, 2);
+  }
+
+  $("generate").addEventListener("click", build);
+
+  $("copy").addEventListener("click", async function(){
+    if(!$("out").textContent.trim()) build();
+
+    const text = $("out").textContent;
+
+    try{
+      await navigator.clipboard.writeText(text);
+      alert("已複製 JSON");
+    }catch(_){
+      prompt("請手動複製：", text);
+    }
+  });
+
+  build();
+})();
+</script>
+</main>
+</body>
+</html>
