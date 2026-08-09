@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Firehaha 插件中心（實驗）</title>
+<style>
+:root{color-scheme:light dark}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;
+  background:#f4f6f8;
+  color:#1f2937;
+}
+.wrap{
+  width:min(94vw,860px);
+  margin:0 auto;
+  padding:24px 0 40px;
+}
+header{
+  margin-bottom:18px;
+}
+h1{
+  margin:0 0 6px;
+  font-size:26px;
+}
+.sub{
+  margin:0;
+  color:#64748b;
+  line-height:1.6;
+}
+.toolbar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:16px 0;
+}
+input{
+  flex:1 1 240px;
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  background:#fff;
+  color:#111827;
+  font:14px/1.2 inherit;
+}
+button,a.button{
+  appearance:none;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:10px 13px;
+  background:#f8fafc;
+  color:#0f172a;
+  text-decoration:none;
+  font:700 13px/1.2 inherit;
+  cursor:pointer;
+}
+button.primary{
+  background:#111827;
+  color:#fff;
+  border-color:#111827;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+}
+.card{
+  padding:16px;
+  border:1px solid #d8dee7;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(15,23,42,.06);
+}
+.card h2{
+  margin:0 0 6px;
+  font-size:18px;
+}
+.meta{
+  color:#64748b;
+  font-size:12px;
+  line-height:1.6;
+  word-break:break-word;
+}
+.desc{
+  margin:12px 0;
+  line-height:1.65;
+  font-size:14px;
+}
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.badge{
+  display:inline-block;
+  margin-top:8px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#4338ca;
+  font-size:11px;
+  font-weight:700;
+}
+.status{
+  margin:16px 0;
+  color:#64748b;
+  font-size:13px;
+}
+.empty{
+  padding:24px;
+  border:1px dashed #cbd5e1;
+  border-radius:14px;
+  color:#64748b;
+  text-align:center;
+}
+@media (prefers-color-scheme:dark){
+  body{background:#111827;color:#e5e7eb}
+  .sub,.meta,.status{color:#9ca3af}
+  input,.card{background:#1f2937;color:#e5e7eb;border-color:#374151}
+  button,a.button{background:#111827;color:#e5e7eb;border-color:#4b5563}
+  button.primary{background:#f3f4f6;color:#111827;border-color:#f3f4f6}
+  .badge{background:#312e81;color:#c7d2fe}
+  .empty{border-color:#4b5563;color:#9ca3af}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Firehaha 插件中心</h1>
+    <p class="sub">
+      這個頁面不綁死任何插件。它會自動讀取同資料夾的
+      <code>plugin-index.json</code>，把所有已發布插件列出來。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜尋插件名稱、ID、作者">
+    <button id="reload" type="button">重新讀取</button>
+  </div>
+
+  <div class="status" id="status">正在讀取 plugin-index.json…</div>
+  <section class="grid" id="grid"></section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const INDEX_URL = "./plugin-index.json";
+  const FIREHAHA_URL = "./firehaha.html";
+
+  const grid = document.getElementById("grid");
+  const status = document.getElementById("status");
+  const search = document.getElementById("search");
+  const reload = document.getElementById("reload");
+
+  let allEntries = [];
+
+  function escapeHtml(value){
+    return String(value == null ? "" : value)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  }
+
+  function installUrl(id){
+    const url = new URL(FIREHAHA_URL, location.href);
+    url.searchParams.set("fh-install", id);
+    url.searchParams.set("fh-install-source", "plugin-hub");
+    return url.href;
+  }
+
+  function sourceUrl(file){
+    return new URL(file, location.href).href;
+  }
+
+  function render(){
+    const q = String(search.value || "").trim().toLowerCase();
+
+    const list = allEntries.filter(function(item){
+      if(!q) return true;
+
+      return [
+        item.id,
+        item.name,
+        item.author,
+        item.description,
+        item.version
+      ].join(" ").toLowerCase().includes(q);
+    });
+
+    grid.innerHTML = "";
+
+    if(!list.length){
+      grid.innerHTML =
+        '<div class="empty">沒有符合條件的插件。</div>';
+      return;
+    }
+
+    list.forEach(function(item){
+      const card = document.createElement("article");
+      card.className = "card";
+      card.dataset.pluginId = item.id;
+
+      const requires = Array.isArray(item.requires) && item.requires.length
+        ? '<div class="badge">需要：' +
+            escapeHtml(item.requires.join(", ")) +
+          '</div>'
+        : '';
+
+      card.innerHTML =
+        '<h2>' + escapeHtml(item.name || item.id) + '</h2>' +
+        '<div class="meta">' +
+          '<div>ID：' + escapeHtml(item.id) + '</div>' +
+          '<div>版本：' + escapeHtml(item.version || "?") + '</div>' +
+          '<div>作者：' + escapeHtml(item.author || "?") + '</div>' +
+        '</div>' +
+        '<p class="desc">' +
+          escapeHtml(item.description || "沒有說明。") +
+        '</p>' +
+        requires +
+        '<div class="actions">' +
+          '<a class="button install-link" href="' +
+            escapeHtml(installUrl(item.id)) +
+          '">安裝到 Firehaha</a>' +
+          '<a class="button" target="_blank" rel="noopener" href="' +
+            escapeHtml(sourceUrl(item.file)) +
+          '">查看 JS</a>' +
+        '</div>';
+
+      grid.appendChild(card);
+    });
+
+    /*
+     * 如果網址帶 ?id=xxx，就自動捲到指定插件。
+     * 這樣你仍然可以分享單一插件頁面連結：
+     * plugin-hub.html?id=official.xxx
+     */
+    const requestedId =
+      new URLSearchParams(location.search)
+        .get("id");
+
+    if(requestedId){
+      const target =
+        grid.querySelector(
+          '[data-plugin-id="' +
+          CSS.escape(requestedId) +
+          '"]'
+        );
+
+      if(target){
+        target.scrollIntoView({
+          behavior:"smooth",
+          block:"center"
+        });
+      }
+    }
+  }
+
+  async function load(){
+    status.textContent =
+      "正在讀取 plugin-index.json…";
+
+    try{
+      const res = await fetch(
+        INDEX_URL + "?t=" + Date.now(),
+        {cache:"no-store"}
+      );
+
+      if(!res.ok){
+        throw new Error(
+          "讀取失敗（HTTP " + res.status + "）"
+        );
+      }
+
+      const data = await res.json();
+
+      allEntries =
+        Object.entries(data || {})
+          .map(function(pair){
+            const id = pair[0];
+            const info = pair[1] || {};
+
+            return {
+              id:id,
+              name:info.name || id,
+              version:info.version || "?",
+              author:info.author || "?",
+              description:info.description || "",
+              file:info.file || "",
+              requires:info.requires || []
+            };
+          })
+          .filter(function(item){
+            return !!item.file;
+          })
+          .sort(function(a,b){
+            return a.name.localeCompare(b.name,"zh-Hant");
+          });
+
+      status.textContent =
+        "已發布 " + allEntries.length + " 個插件";
+
+      render();
+    }catch(error){
+      status.textContent =
+        "插件索引載入失敗：" + error.message;
+
+      grid.innerHTML =
+        '<div class="empty">' +
+          '請確認 plugin-index.json 跟這個 HTML 放在同一層。' +
+        '</div>';
+    }
+  }
+
+  search.addEventListener("input", render);
+  reload.addEventListener("click", load);
+
+  load();
+})();
+</script>
+</body>
+</html>
