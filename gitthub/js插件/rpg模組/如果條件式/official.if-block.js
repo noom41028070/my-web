@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.if-block","name":"如果條件區塊","version":"1.0.0","author":"Firehaha","description":"以 [如果:條件]、[否則]、[/如果] 在同一頁中顯示不同正文，沿用主程式既有條件判斷"}
+// @firehaha-plugin {"id":"official.if-block","name":"如果條件區塊","version":"1.0.1","author":"Firehaha","description":"以 [如果:條件]、[否則]、[/如果] 在同一頁中顯示不同正文，沿用主程式既有條件判斷"}
 
 FirehahaPlugins.register({
   id: "official.if-block",
@@ -29,8 +29,63 @@ FirehahaPlugins.register({
   }
 
 
+  function decodeHtmlEntities(value) {
+    let text =
+      String(
+        value == null ? "" : value
+      );
+
+    /*
+     * Reader 正文經過 HTML 層後：
+     *
+     * <  可能變成 &lt;
+     * >  可能變成 &gt;
+     * &  可能再次變成 &amp;
+     *
+     * 因此最多解三輪，兼容：
+     * &lt;
+     * &amp;lt;
+     * &amp;amp;lt;
+     *
+     * 這裡只處理「If 條件字串」，
+     * 不會解碼整篇正文 HTML。
+     */
+    for (
+      let i = 0;
+      i < 3;
+      i++
+    ) {
+      const next =
+        text
+          .replace(/&#x3c;/gi, "<")
+          .replace(/&#60;/gi, "<")
+          .replace(/&lt;/gi, "<")
+          .replace(/&#x3e;/gi, ">")
+          .replace(/&#62;/gi, ">")
+          .replace(/&gt;/gi, ">")
+          .replace(/&#x26;/gi, "&")
+          .replace(/&#38;/gi, "&")
+          .replace(/&amp;/gi, "&");
+
+      if (
+        next === text
+      ) {
+        break;
+      }
+
+      text = next;
+    }
+
+    return text;
+  }
+
+
   function normalizeText(value) {
-    return clean(value)
+    return clean(
+      decodeHtmlEntities(
+        value
+      )
+    )
       .replace(/：/g, ":")
       .replace(/｜/g, "|")
       .replace(/＞/g, ">")
@@ -1348,7 +1403,7 @@ FirehahaPlugins.register({
 
   window.FirehahaIfBlock = {
     version:
-      "1.0.0",
+      "1.0.1",
 
     check:
       checkCondition,
@@ -1382,6 +1437,9 @@ FirehahaPlugins.register({
 
     normalizeOperator:
       normalizeOperator,
+
+    decodeHtmlEntities:
+      decodeHtmlEntities,
 
     getNumericSource:
       getNumericSource,
