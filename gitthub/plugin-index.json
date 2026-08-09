@@ -12,5 +12,20 @@
       "Plugin Hub"
     ],
     "status": "experimental"
+  },
+  "official.publisher-test-counter": {
+    "name": "發布流程二號測試插件",
+    "version": "1.0.0",
+    "author": "Firehaha",
+    "description": "Plugin Publisher v3 的第二號測試插件。啟用後會在 Reader 右下角顯示 PUBLISH TEST #2，用來確認 Registry 能從 1 支正確合併成 2 支。",
+    "file": "./official.publisher-test-counter.js",
+    "requires": [],
+    "category": "test",
+    "tags": [
+      "發布測試",
+      "Plugin Hub",
+      "二號測試"
+    ],
+    "status": "experimental"
   }
 }
