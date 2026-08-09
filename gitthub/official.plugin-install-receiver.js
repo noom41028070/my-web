@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.plugin-install-receiver","name":"插件安裝接收器（實驗）","version":"0.1.0","author":"Firehaha","description":"接收 plugin-install.html 傳入的 ?fh-install=插件ID，從 ./plugins/index.json 讀取插件並交給現有 FirehahaPlugins 安裝流程。實驗版。"}
+// @firehaha-plugin {"id":"official.plugin-install-receiver","name":"插件安裝接收器（實驗）","version":"0.2.0","author":"Firehaha","description":"接收插件發布頁的 ?fh-install=插件ID，下載並驗證插件後，直接交給 FirehahaPlugins.installSource() 使用主程式原生安裝流程。"}
 
 FirehahaPlugins.register({
   id: "official.plugin-install-receiver",
@@ -8,190 +8,191 @@ FirehahaPlugins.register({
 
     const PARAM = "fh-install";
     const SOURCE_PARAM = "fh-install-source";
-    const indexUrl = "./plugin-index.json";
+    const INDEX_URL = "./plugin-index.json";
 
-    function cleanUrl(){
-      try{
+    function cleanUrl() {
+      try {
         const url = new URL(location.href);
         url.searchParams.delete(PARAM);
         url.searchParams.delete(SOURCE_PARAM);
         history.replaceState(null, "", url.href);
-      }catch(_){}
+      } catch (_) {}
     }
 
-    function parseMetadata(code){
+    function parseMetadata(code) {
       const match = String(code || "").match(
         /\/\/\s*@firehaha-plugin\s*(\{[^\r\n]*\})/
       );
 
-      if(!match){
-        throw new Error("JS 缺少 @firehaha-plugin metadata");
+      if (!match) {
+        throw new Error("下載的 JS 缺少 @firehaha-plugin 標頭");
       }
 
       let meta;
-      try{
+      try {
         meta = JSON.parse(match[1]);
-      }catch(_){
-        throw new Error("@firehaha-plugin metadata 不是有效 JSON");
+      } catch (_) {
+        throw new Error("@firehaha-plugin 標頭不是有效 JSON");
       }
 
-      if(!meta || !meta.id){
-        throw new Error("插件 metadata 缺少 id");
+      if (!meta || !meta.id) {
+        throw new Error("插件標頭缺少 id");
       }
 
-      if(!/FirehahaPlugins\.register\s*\(/.test(code)){
-        throw new Error("JS 缺少 FirehahaPlugins.register()");
+      if (!/FirehahaPlugins\.register\s*\(/.test(code)) {
+        throw new Error("插件缺少 FirehahaPlugins.register()");
       }
 
       return meta;
     }
 
-    /*
-     * 優先尋找主程式本身可能已有的「從字串安裝插件」能力。
-     * 若找不到，實驗版會提供下載後手動匯入的 fallback，
-     * 不直接 eval 遠端 JS。
-     */
-    async function tryNativeInstall(code, meta){
-      const candidates = [
-        window.FirehahaPlugins && window.FirehahaPlugins.installFromText,
-        window.FirehahaPlugins && window.FirehahaPlugins.importFromText,
-        window.FirehahaPlugins && window.FirehahaPlugins.installCode,
-        window.firehahaPluginInstallFromText,
-        window.installPluginFromText
-      ].filter(function(fn){
-        return typeof fn === "function";
-      });
-
-      for(const fn of candidates){
-        try{
-          const result = await fn.call(
-            window.FirehahaPlugins || window,
-            code,
-            {
-              source:"deeplink",
-              metadata:meta
-            }
-          );
-          return {ok:true,result};
-        }catch(error){
-          console.warn("[Plugin Install Receiver] native install candidate failed", error);
-        }
-      }
-
-      return {ok:false};
-    }
-
-    function downloadJs(code, filename){
-      const blob = new Blob([code], {
-        type:"text/javascript;charset=utf-8"
-      });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename || "firehaha-plugin.js";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      setTimeout(function(){
-        URL.revokeObjectURL(url);
-      }, 1000);
-    }
-
-    async function run(){
+    async function runInstallRequest() {
       const params = new URLSearchParams(location.search);
-      const requestedId = (params.get(PARAM) || "").trim();
+      const requestedId = String(params.get(PARAM) || "").trim();
 
-      if(!requestedId){
-        return;
-      }
+      if (!requestedId) return;
 
-      try{
-        api.toast("收到插件安裝請求：" + requestedId);
+      /*
+       * 先移除網址參數，避免重新整理後再次觸發安裝。
+       * requestedId 已經保存在區域變數裡，不影響後續流程。
+       */
+      cleanUrl();
 
-        const indexRes = await fetch(indexUrl, {cache:"no-store"});
-        if(!indexRes.ok){
-          throw new Error("無法讀取 " + indexUrl);
+      try {
+        api.toast("正在取得插件：" + requestedId);
+
+        const indexResponse = await fetch(INDEX_URL, {
+          cache: "no-store"
+        });
+
+        if (!indexResponse.ok) {
+          throw new Error(
+            "無法讀取 plugin-index.json（HTTP " +
+            indexResponse.status +
+            "）"
+          );
         }
 
-        const index = await indexRes.json();
-        const entry = index[requestedId];
+        const index = await indexResponse.json();
+        const entry = index && index[requestedId];
 
-        if(!entry){
-          throw new Error("插件索引找不到：" + requestedId);
+        if (!entry) {
+          throw new Error(
+            "plugin-index.json 找不到插件：" + requestedId
+          );
+        }
+
+        if (!entry.file) {
+          throw new Error("插件索引缺少 file 欄位");
         }
 
         const pluginUrl = new URL(entry.file, location.href);
-        const pluginRes = await fetch(pluginUrl.href, {cache:"no-store"});
 
-        if(!pluginRes.ok){
-          throw new Error("插件 JS 下載失敗");
-        }
+        const pluginResponse = await fetch(pluginUrl.href, {
+          cache: "no-store"
+        });
 
-        const code = await pluginRes.text();
-        const meta = parseMetadata(code);
-
-        if(meta.id !== requestedId){
+        if (!pluginResponse.ok) {
           throw new Error(
-            "插件 ID 不一致：網址要求 " +
-            requestedId +
-            "，JS 宣告 " +
-            meta.id
+            "插件 JS 下載失敗（HTTP " +
+            pluginResponse.status +
+            "）"
           );
         }
 
-        const ok = confirm(
-          "安裝 Firehaha 插件？\n\n" +
-          "名稱：" + (meta.name || meta.id) + "\n" +
-          "ID：" + meta.id + "\n" +
-          "版本：" + (meta.version || "?") + "\n" +
-          "作者：" + (meta.author || "?") + "\n\n" +
-          (meta.description || "")
-        );
+        const code = await pluginResponse.text();
+        const meta = parseMetadata(code);
 
-        if(!ok){
-          cleanUrl();
-          api.toast("已取消插件安裝");
-          return;
-        }
-
-        const nativeResult = await tryNativeInstall(code, meta);
-
-        if(nativeResult.ok){
-          cleanUrl();
-          api.toast((meta.name || meta.id) + " 已交給插件管理器安裝");
-          return;
+        /*
+         * 防止 manifest 指向錯誤插件。
+         */
+        if (String(meta.id) !== requestedId) {
+          throw new Error(
+            "插件 ID 不一致。\n" +
+            "要求：" + requestedId + "\n" +
+            "實際：" + meta.id
+          );
         }
 
         /*
-         * 安全 fallback：
-         * 現在主程式如果沒有公開「從字串安裝」API，
-         * 就下載 JS，讓使用者走現有匯入按鈕。
+         * index.json 的版本如果有填，也順便比對。
+         * 版本不同時不直接拒絕，避免發布時只忘了更新索引；
+         * 但會在 console 留下警告。
          */
-        downloadJs(
-          code,
-          (meta.id || "firehaha-plugin") + ".js"
+        if (
+          entry.version &&
+          meta.version &&
+          String(entry.version) !== String(meta.version)
+        ) {
+          console.warn(
+            "[Plugin Install Receiver] manifest/version mismatch:",
+            entry.version,
+            meta.version
+          );
+        }
+
+        if (
+          !window.FirehahaPlugins ||
+          typeof window.FirehahaPlugins.installSource !== "function"
+        ) {
+          throw new Error(
+            "目前 FirehahaPlugins.installSource() 不可用，" +
+            "無法交給主程式原生插件管理器安裝。"
+          );
+        }
+
+        /*
+         * 關鍵：
+         * 不 eval、不自行寫 IndexedDB。
+         * 直接走 firehaha.html 已有的原生安裝流程。
+         *
+         * false = 外部／一般插件，不冒充 bundled official plugin。
+         */
+        const result =
+          await window.FirehahaPlugins.installSource(
+            code,
+            false
+          );
+
+        console.info(
+          "[Plugin Install Receiver] installSource completed:",
+          requestedId,
+          result
         );
 
-        cleanUrl();
+      } catch (error) {
+        console.error(
+          "[Plugin Install Receiver 0.2.0]",
+          error
+        );
 
         alert(
-          "目前主程式沒有公開可直接接收 JS 文字的安裝 API。\n\n" +
-          "已幫你下載：" + meta.id + ".js\n" +
-          "請回到插件管理器，用現有「匯入 JS」安裝。\n\n" +
-          "這代表「發布頁 → 主程式」跳轉已成功，" +
-          "下一步只差把主程式現有匯入流程公開成 API。"
+          "插件一鍵安裝失敗：\n\n" +
+          (error && error.message
+            ? error.message
+            : String(error))
         );
-      }catch(error){
-        console.error("[Plugin Install Receiver]", error);
-        cleanUrl();
-        alert("插件安裝請求失敗：\n" + error.message);
       }
     }
 
-    setTimeout(run, 0);
+    /*
+     * setup 完成後才處理 deeplink。
+     * 避免插件管理器本身還在初始化。
+     */
+    if (document.readyState === "loading") {
+      document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+          setTimeout(runInstallRequest, 0);
+        },
+        { once: true }
+      );
+    } else {
+      setTimeout(runInstallRequest, 0);
+    }
 
-    return function cleanup(){};
+    api.toast("插件安裝接收器 0.2 已啟用");
+
+    return function cleanup() {};
   }
 });
