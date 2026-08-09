@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Firehaha 插件發布助手</title>
+<title>Firehaha 插件發布助手 v3</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f6f8;color:#1f2937;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
@@ -21,51 +21,56 @@ button{padding:10px 14px;margin:5px 5px 5px 0;border:1px solid #cbd5e1;border-ra
 button.secondary{background:#fff;color:#111827}
 pre{white-space:pre-wrap;word-break:break-word;background:#111827;color:#e5e7eb;padding:13px;border-radius:10px;min-height:100px}
 .note{font-size:13px;color:#64748b}
+.status{padding:10px 12px;border-radius:10px;background:#eef2ff;color:#3730a3;margin:12px 0;font-size:13px}
 @media(prefers-color-scheme:dark){
  body{background:#111827;color:#e5e7eb}
  main,.card{background:#1f2937;border-color:#374151}
  .drop{border-color:#64748b}
  button.secondary{background:#1f2937;color:#e5e7eb}
  .note{color:#9ca3af}
+ .status{background:#312e81;color:#c7d2fe}
 }
 </style>
 </head>
 <body>
 <main>
-<h1>Firehaha 插件發布助手</h1>
-<p>不用手填。選擇一支符合官方規範的 <code>.js</code>，這個頁面會直接讀取第一行 <code>@firehaha-plugin</code>。</p>
+<h1>Firehaha 插件發布助手 v3</h1>
+<p>這版會自動讀取同資料夾目前線上的 <code>plugin-index.json</code>，你只要選新的插件 JS，就會自動合併成「現有 N 支 + 新插件」。</p>
+
+<div class="status" id="status">正在讀取線上 plugin-index.json…</div>
 
 <label class="drop">
-  <strong>選擇插件 .js</strong>
-  <span>手機直接點這裡選檔案</span>
+  <strong>選擇新的插件 .js</strong>
+  <span>不用手填，也不用先下載舊 index</span>
   <input id="file" type="file" accept=".js,text/javascript,application/javascript">
 </label>
 
 <section id="info" class="card" hidden></section>
 
 <div id="actions" hidden>
-  <button id="copyEntry">複製登記資料</button>
-  <button id="downloadIndex" class="secondary">產生新的 plugin-index.json</button>
+  <button id="downloadIndex">產生合併後的 plugin-index.json</button>
+  <button id="copyEntry" class="secondary">複製這一筆登記資料</button>
 </div>
 
-<p class="note">如果你先選擇現有的 plugin-index.json，再選插件 JS，我也可以直接把新插件合併進完整索引，不必自己處理逗號。</p>
+<h2>這支插件的登記資料</h2>
+<pre id="entryOut">尚未選擇插件。</pre>
 
-<label class="drop">
-  <strong>可選：讀取現有 plugin-index.json</strong>
-  <span>想直接合併時才需要選</span>
-  <input id="indexFile" type="file" accept=".json,application/json">
-</label>
+<h2>合併後總覽</h2>
+<pre id="mergedOut">正在載入現有 Registry…</pre>
 
-<h2>發布資料</h2>
-<pre id="out">尚未選擇插件。</pre>
+<p class="note">產生後把新的 <code>plugin-index.json</code> 覆蓋 GitHub 舊檔即可。舊插件會被保留，同 ID 則會更新成新版。</p>
 
 <script>
 (function(){
 "use strict";
+
+const INDEX_URL = "./plugin-index.json";
 const $ = id => document.getElementById(id);
+
 let pluginMeta = null;
 let pluginFileName = "";
 let existingIndex = {};
+let registryLoaded = false;
 
 function esc(s){
   return String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -73,21 +78,34 @@ function esc(s){
 
 function parseHeader(source){
   const m = String(source).match(/\/\/\s*@firehaha-plugin\s*(\{[^\r\n]*\})/);
-  if(!m) throw new Error("找不到 // @firehaha-plugin {...}");
+
+  if(!m){
+    throw new Error("找不到 // @firehaha-plugin {...}");
+  }
+
   let meta;
-  try{ meta = JSON.parse(m[1]); }
-  catch(e){ throw new Error("@firehaha-plugin 後面的 JSON 格式錯誤"); }
+  try{
+    meta = JSON.parse(m[1]);
+  }catch(_){
+    throw new Error("@firehaha-plugin 後面的 JSON 格式錯誤");
+  }
 
   for(const key of ["id","name","version","author","description"]){
-    if(!meta[key]) throw new Error("插件標頭缺少："+key);
+    if(!meta[key]){
+      throw new Error("插件標頭缺少："+key);
+    }
   }
-  if(!/FirehahaPlugins\.register\s*\(/.test(source))
+
+  if(!/FirehahaPlugins\.register\s*\(/.test(source)){
     throw new Error("找不到 FirehahaPlugins.register(...)");
+  }
+
   return meta;
 }
 
 function makeEntry(){
   if(!pluginMeta) return null;
+
   const entry = {};
   entry[pluginMeta.id] = {
     name: pluginMeta.name,
@@ -100,25 +118,109 @@ function makeEntry(){
     tags: Array.isArray(pluginMeta.tags) ? pluginMeta.tags : [],
     status: pluginMeta.status || "stable"
   };
+
   return entry;
 }
 
-function refresh(){
+function buildMerged(){
+  return Object.assign(
+    {},
+    existingIndex,
+    makeEntry() || {}
+  );
+}
+
+function refreshOutputs(){
   const entry = makeEntry();
-  if(!entry) return;
-  $("out").textContent = JSON.stringify(entry,null,2);
+
+  if(!entry){
+    return;
+  }
+
+  $("entryOut").textContent =
+    JSON.stringify(entry,null,2);
+
+  const merged = buildMerged();
+
+  $("mergedOut").textContent =
+    "目前共 " +
+    Object.keys(merged).length +
+    " 個插件\n\n" +
+    JSON.stringify(merged,null,2);
+}
+
+async function loadOnlineRegistry(){
+  $("status").textContent =
+    "正在讀取線上 plugin-index.json…";
+
+  try{
+    const url = new URL(INDEX_URL, location.href);
+    url.searchParams.set("_fh", Date.now());
+
+    const res = await fetch(url.href,{
+      cache:"no-store",
+      credentials:"same-origin"
+    });
+
+    if(!res.ok){
+      throw new Error(
+        "HTTP " + res.status
+      );
+    }
+
+    const data = await res.json();
+
+    if(
+      !data ||
+      typeof data !== "object" ||
+      Array.isArray(data)
+    ){
+      throw new Error(
+        "Registry 不是物件格式"
+      );
+    }
+
+    existingIndex = data;
+    registryLoaded = true;
+
+    $("status").textContent =
+      "已讀取線上 Registry：目前 " +
+      Object.keys(existingIndex).length +
+      " 個插件。";
+
+    $("mergedOut").textContent =
+      JSON.stringify(existingIndex,null,2);
+
+  }catch(error){
+    existingIndex = {};
+    registryLoaded = false;
+
+    $("status").textContent =
+      "無法讀取線上 Registry：" +
+      error.message +
+      "。仍可產生新 Registry，但請先確認網址與檔案位置。";
+
+    $("mergedOut").textContent =
+      "{}";
+  }
 }
 
 $("file").addEventListener("change", async e=>{
-  const f=e.target.files && e.target.files[0];
-  if(!f) return;
-  try{
-    const source=await f.text();
-    pluginMeta=parseHeader(source);
-    pluginFileName=f.name;
+  const f =
+    e.target.files &&
+    e.target.files[0];
 
-    $("info").hidden=false;
-    $("actions").hidden=false;
+  if(!f) return;
+
+  try{
+    const source = await f.text();
+
+    pluginMeta = parseHeader(source);
+    pluginFileName = f.name;
+
+    $("info").hidden = false;
+    $("actions").hidden = false;
+
     $("info").innerHTML =
       '<div class="row ok"><b>✓ 官方插件格式通過</b></div>'+
       '<div class="row"><span class="label">名稱：</span>'+esc(pluginMeta.name)+'</div>'+
@@ -127,54 +229,87 @@ $("file").addEventListener("change", async e=>{
       '<div class="row"><span class="label">作者：</span>'+esc(pluginMeta.author)+'</div>'+
       '<div class="row"><span class="label">檔案：</span>'+esc(pluginFileName)+'</div>'+
       '<div class="row"><span class="label">說明：</span>'+esc(pluginMeta.description)+'</div>';
-    refresh();
-  }catch(err){
-    pluginMeta=null;
-    $("actions").hidden=true;
-    $("info").hidden=false;
-    $("info").innerHTML='<div class="bad"><b>無法發布：</b>'+esc(err.message)+'</div>';
-    $("out").textContent="請修正插件格式後重新選擇。";
+
+    refreshOutputs();
+
+  }catch(error){
+    pluginMeta = null;
+
+    $("actions").hidden = true;
+    $("info").hidden = false;
+
+    $("info").innerHTML =
+      '<div class="bad"><b>無法發布：</b>'+
+      esc(error.message)+
+      '</div>';
+
+    $("entryOut").textContent =
+      "請修正插件格式後重新選擇。";
   }
 });
 
-$("indexFile").addEventListener("change", async e=>{
-  const f=e.target.files && e.target.files[0];
-  if(!f) return;
-  try{
-    const parsed=JSON.parse(await f.text());
-    if(!parsed || Array.isArray(parsed) || typeof parsed!=="object") throw new Error();
-    existingIndex=parsed;
-    alert("已讀取現有 plugin-index.json，共 "+Object.keys(existingIndex).length+" 個插件。");
-  }catch(_){
-    existingIndex={};
-    alert("這個 plugin-index.json 無法解析。");
-  }
-});
-
-$("copyEntry").addEventListener("click", async ()=>{
+$("copyEntry").addEventListener("click",async ()=>{
   if(!pluginMeta) return;
-  const text=JSON.stringify(makeEntry(),null,2);
+
+  const text =
+    JSON.stringify(
+      makeEntry(),
+      null,
+      2
+    );
+
   try{
     await navigator.clipboard.writeText(text);
-    alert("已複製登記資料");
+    alert("已複製這一筆登記資料");
   }catch(_){
-    prompt("請手動複製：",text);
+    prompt(
+      "請手動複製：",
+      text
+    );
   }
 });
 
-$("downloadIndex").addEventListener("click", ()=>{
+$("downloadIndex").addEventListener("click",()=>{
   if(!pluginMeta) return;
-  const merged=Object.assign({},existingIndex,makeEntry());
-  const text=JSON.stringify(merged,null,2)+"\n";
-  const blob=new Blob([text],{type:"application/json;charset=utf-8"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="plugin-index.json";
+
+  const merged = buildMerged();
+
+  const text =
+    JSON.stringify(
+      merged,
+      null,
+      2
+    ) + "\n";
+
+  const blob =
+    new Blob(
+      [text],
+      {
+        type:
+          "application/json;charset=utf-8"
+      }
+    );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
+  a.href = url;
+  a.download = "plugin-index.json";
+
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+
+  setTimeout(
+    ()=>URL.revokeObjectURL(url),
+    1000
+  );
 });
+
+loadOnlineRegistry();
 
 })();
 </script>
