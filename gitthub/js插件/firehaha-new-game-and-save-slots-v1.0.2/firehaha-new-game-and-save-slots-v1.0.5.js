@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.new-game-and-save-slots","name":"官方重新開始／擴充存檔槽","version":"1.0.4","author":"Firehaha","description":"在正式閱讀器加入完整重新開始、完整 RPG 手動存檔快照、讀檔 Runtime 同步與可擴充 Reader 生命週期協調。"}
+// @firehaha-plugin {"id":"official.new-game-and-save-slots","name":"官方重新開始／擴充存檔槽","version":"1.0.5","author":"Firehaha","description":"在正式閱讀器加入完整重新開始、完整 RPG 手動存檔快照、讀檔 Runtime 同步與可擴充 Reader 生命週期協調。"}
 
 FirehahaPlugins.register({
   id: "official.new-game-and-save-slots",
@@ -9,7 +9,7 @@ FirehahaPlugins.register({
 
       function(html, context) {
         const marker =
-          "/* firehaha-new-game-and-save-slots-v1.0.4 */";
+          "/* firehaha-new-game-and-save-slots-v1.0.5 */";
 
         if (html.includes(marker)) {
           return html;
@@ -100,11 +100,11 @@ ${marker}
     return;
   }
 
-  if (window.__firehahaNewGameSaveSlots104) {
+  if (window.__firehahaNewGameSaveSlots105) {
     return;
   }
 
-  window.__firehahaNewGameSaveSlots104 = true;
+  window.__firehahaNewGameSaveSlots105 = true;
 
   let restarting = false;
   let lifecycleRunning = false;
@@ -813,6 +813,13 @@ ${marker}
 
     callResetApi(
       "FirehahaOpposedDice",
+      [
+        "reset"
+      ]
+    );
+
+    callResetApi(
+      "FirehahaOpposedDiceJumpSequence",
       [
         "reset"
       ]
@@ -1724,7 +1731,7 @@ ${marker}
 
   window.FirehahaNewGameSaveSlots = {
     version:
-      "1.0.4",
+      "1.0.5",
 
     restartStory:
       restartStory,
@@ -1763,7 +1770,7 @@ ${marker}
 
 
   console.info(
-    "[Firehaha] 重新開始／擴充存檔槽 1.0.4 整合版已接入"
+    "[Firehaha] 重新開始／擴充存檔槽 1.0.5 整合版已接入"
   );
 
 })();
@@ -1786,7 +1793,7 @@ ${marker}
     );
 
     api.toast(
-      "官方重新開始／擴充存檔槽 1.0.4 整合版已啟用"
+      "官方重新開始／擴充存檔槽 1.0.5 整合版已啟用"
     );
 
     return function cleanup() {
