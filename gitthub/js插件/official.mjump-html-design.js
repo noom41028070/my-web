@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.mjump-html-design","name":"HTML mjump 獨立跳頁","version":"2.0.0","author":"Firehaha","description":"為目前 Firehaha HTML 設計區加入獨立 mjump 插入按鈕；使用 [mjump:頁碼|文字|樣式]，支援所見即得與 HTML 原始碼，Reader 端解析跳頁。"}
+// @firehaha-plugin {"id":"official.mjump-html-design","name":"HTML mjump 獨立跳頁","version":"2.1.0","author":"Firehaha","description":"HTML 專用 [mjump:頁碼|文字|樣式]。HTML 設計工具列提供 mjump 插入按鈕；Reader Artifact 產出前包裝 applyAdventure，先保護標籤再建立跳頁。"}
 FirehahaPlugins.register({
   id: "official.mjump-html-design",
 
@@ -6,136 +6,61 @@ FirehahaPlugins.register({
     "use strict";
 
     const STYLES = [
-      "text",
-      "underline",
-      "classic",
-      "outline",
-      "soft",
-      "dark",
-      "danger",
-      "choice",
-      "arrow",
-      "quiet"
+      "text","underline","classic","outline",
+      "soft","dark","danger","choice","arrow","quiet"
     ];
 
-    function clean(value) {
-      return String(value == null ? "" : value).trim();
-    }
-
-    function normalizeStyle(value) {
-      const style = clean(value);
-      return STYLES.includes(style)
-        ? style
-        : "underline";
+    function clean(v) {
+      return String(v == null ? "" : v).trim();
     }
 
     function buildTag() {
-      const page =
-        prompt(
-          "HTML mjump：前往第幾頁？",
-          "2"
-        );
-
+      const page = prompt("HTML mjump：前往第幾頁？", "2");
       if (page == null) return "";
 
-      const pageNumber =
-        clean(page);
+      const n = clean(page);
 
-      if (
-        !/^\d+$/.test(pageNumber) ||
-        Number(pageNumber) < 1
-      ) {
-        alert(
-          "頁碼必須是 1 以上的整數。"
-        );
-
+      if (!/^\d+$/.test(n) || Number(n) < 1) {
+        alert("頁碼必須是 1 以上的整數。");
         return "";
       }
 
-      const label =
-        prompt(
-          "顯示文字：",
-          "前往下一頁"
-        );
-
+      const label = prompt("顯示文字：", "前往下一頁");
       if (label == null) return "";
 
-      const style =
-        prompt(
-          "樣式：\n" +
-          "text       純文字\n" +
-          "underline  底線\n" +
-          "classic    一般選項\n" +
-          "outline    外框\n" +
-          "soft       柔和\n" +
-          "dark       深色\n" +
-          "danger     危險\n" +
-          "choice     長條選項\n" +
-          "arrow      箭頭文字\n" +
-          "quiet      淡色文字",
-          "underline"
-        );
-
+      const style = prompt(
+        "樣式：\ntext / underline / classic / outline / soft / dark / danger / choice / arrow / quiet",
+        "underline"
+      );
       if (style == null) return "";
 
-      return (
-        "[mjump:" +
-        pageNumber +
-        "|" +
-        clean(label) +
-        "|" +
-        normalizeStyle(style) +
-        "]"
-      );
+      const s = STYLES.includes(clean(style)) ? clean(style) : "underline";
+
+      return "[mjump:" + n + "|" + clean(label) + "|" + s + "]";
     }
 
-    function insertIntoTextarea(
-      textarea,
-      text
-    ) {
-      if (!textarea || !text) {
-        return false;
-      }
+    function insertTextarea(el, text) {
+      if (!el || !text) return false;
 
-      const value =
-        String(textarea.value || "");
+      const value = String(el.value || "");
+      const start = Number.isFinite(el.selectionStart) ? el.selectionStart : value.length;
+      const end = Number.isFinite(el.selectionEnd) ? el.selectionEnd : start;
 
-      const start =
-        Number.isFinite(
-          textarea.selectionStart
-        )
-          ? textarea.selectionStart
-          : value.length;
-
-      const end =
-        Number.isFinite(
-          textarea.selectionEnd
-        )
-          ? textarea.selectionEnd
-          : start;
-
-      textarea.value =
-        value.slice(0, start) +
+      el.value =
+        value.slice(0,start) +
         text +
         value.slice(end);
 
-      const cursor =
-        start +
-        text.length;
+      const pos =
+        start + text.length;
 
-      textarea.focus();
+      el.focus();
 
       try {
-        textarea.setSelectionRange(
-          cursor,
-          cursor
-        );
+        el.setSelectionRange(pos,pos);
       } catch (_) {}
 
-      /*
-       * 主程式 hsrc 自己監聽 input -> saveHtml()
-       */
-      textarea.dispatchEvent(
+      el.dispatchEvent(
         new Event(
           "input",
           { bubbles:true }
@@ -145,13 +70,8 @@ FirehahaPlugins.register({
       return true;
     }
 
-    function insertIntoVisual(
-      editor,
-      text
-    ) {
-      if (!editor || !text) {
-        return false;
-      }
+    function insertVisual(editor,text) {
+      if (!editor || !text) return false;
 
       editor.focus();
 
@@ -180,28 +100,17 @@ FirehahaPlugins.register({
         range =
           document.createRange();
 
-        range.selectNodeContents(
-          editor
-        );
-
+        range.selectNodeContents(editor);
         range.collapse(false);
       }
 
       range.deleteContents();
 
-      const textNode =
-        document.createTextNode(
-          text
-        );
+      const node =
+        document.createTextNode(text);
 
-      range.insertNode(
-        textNode
-      );
-
-      range.setStartAfter(
-        textNode
-      );
-
+      range.insertNode(node);
+      range.setStartAfter(node);
       range.collapse(true);
 
       if (selection) {
@@ -209,9 +118,6 @@ FirehahaPlugins.register({
         selection.addRange(range);
       }
 
-      /*
-       * 主程式 hed 自己監聽 input -> saveHtml()
-       */
       editor.dispatchEvent(
         new Event(
           "input",
@@ -222,20 +128,7 @@ FirehahaPlugins.register({
       return true;
     }
 
-    function getCurrentHtmlMode() {
-      const active =
-        document.querySelector(
-          "#htmlWorkspace " +
-          ".html-modebar " +
-          "button.active[data-html-view]"
-        );
-
-      if (active) {
-        return clean(
-          active.dataset.htmlView
-        );
-      }
-
+    function htmlMode() {
       const source =
         document.getElementById(
           "htmlSourceEditor"
@@ -252,58 +145,38 @@ FirehahaPlugins.register({
       return "visual";
     }
 
-    function insertMJump() {
-      const tag =
-        buildTag();
-
+    function insertTag() {
+      const tag = buildTag();
       if (!tag) return;
 
-      const mode =
-        getCurrentHtmlMode();
-
-      if (mode === "code") {
-        if (
-          !insertIntoTextarea(
-            document.getElementById(
-              "htmlSourceEditor"
-            ),
-            tag
-          )
-        ) {
-          alert(
-            "找不到 HTML 原始碼編輯器。"
-          );
-        }
+      if (htmlMode() === "code") {
+        insertTextarea(
+          document.getElementById(
+            "htmlSourceEditor"
+          ),
+          tag
+        );
 
         return;
       }
 
-      if (
-        !insertIntoVisual(
-          document.getElementById(
-            "htmlDesignEditor"
-          ),
-          tag
-        )
-      ) {
-        alert(
-          "找不到 HTML 所見即得編輯器。"
-        );
-      }
+      insertVisual(
+        document.getElementById(
+          "htmlDesignEditor"
+        ),
+        tag
+      );
     }
 
-    function installHtmlDesignButton() {
+    function installUi() {
       if (
         document.getElementById(
-          "firehaha-html-mjump-design-button"
+          "firehaha-html-mjump-button"
         )
       ) {
         return true;
       }
 
-      /*
-       * 目前主程式正式 HTML 設計工具列。
-       */
       const toolbar =
         document.getElementById(
           "htmlDesignToolbar"
@@ -318,344 +191,292 @@ FirehahaPlugins.register({
           "button"
         );
 
-      button.type =
-        "button";
-
+      button.type = "button";
       button.id =
-        "firehaha-html-mjump-design-button";
-
+        "firehaha-html-mjump-button";
       button.textContent =
         "mjump";
-
       button.title =
-        "插入 HTML Reader 跳頁 [mjump:頁碼|文字|樣式]";
+        "插入 [mjump:頁碼|文字|樣式]";
 
-      /*
-       * HTML 所見即得工具列原本也會阻止 mousedown 造成 selection 消失。
-       */
       button.addEventListener(
         "mousedown",
-        function(event) {
+        function(event){
           event.preventDefault();
         }
       );
 
       button.addEventListener(
         "click",
-        insertMJump
+        insertTag
       );
 
-      toolbar.appendChild(
-        button
-      );
+      toolbar.appendChild(button);
 
       return true;
     }
 
-    const readerRuntime = String.raw`
+    const readerCss = `
+<style data-firehaha-style="mjump-210">
+.fh-mjump-wrap{display:inline}
+.fh-mjump{
+  appearance:none!important;
+  background:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+  margin:0!important;
+  color:inherit;
+  text-decoration:none;
+  font:inherit;
+  line-height:inherit;
+  cursor:pointer;
+}
+.fh-mjump--underline{text-decoration:underline;text-underline-offset:.16em}
+.fh-mjump--quiet{opacity:.62;font-size:.94em}
+.fh-mjump-wrap--classic,
+.fh-mjump-wrap--outline,
+.fh-mjump-wrap--soft,
+.fh-mjump-wrap--dark,
+.fh-mjump-wrap--danger,
+.fh-mjump-wrap--choice{display:block;margin:10px 0}
+.fh-mjump--classic,
+.fh-mjump--outline,
+.fh-mjump--soft,
+.fh-mjump--dark,
+.fh-mjump--danger,
+.fh-mjump--choice{
+  display:inline-block!important;
+  padding:9px 14px!important;
+  border-radius:10px!important;
+  text-decoration:none!important
+}
+.fh-mjump--classic{background:#f3f4f6!important;border:1px solid #d1d5db!important;color:#1f2937!important}
+.fh-mjump--outline{background:transparent!important;border:1px solid currentColor!important}
+.fh-mjump--soft{background:rgba(59,130,246,.09)!important;border:1px solid rgba(59,130,246,.18)!important}
+.fh-mjump--dark{background:#23272f!important;border:1px solid #23272f!important;color:#fff!important}
+.fh-mjump--danger{background:#fff5f5!important;border:1px solid rgba(185,28,28,.35)!important;color:#b91c1c!important}
+.fh-mjump--choice{display:block!important;width:min(100%,680px)!important;box-sizing:border-box;text-align:center;background:#fff!important;border:1px solid #d8dee7!important;color:#1f2937!important}
+</style>`;
+
+    const patchCode = String.raw`
+/* Firehaha HTML mjump 2.1.0 */
 (function(){
   "use strict";
 
-  if (
-    window.__firehahaMJumpReader200
-  ) {
-    return;
-  }
-
-  window.__firehahaMJumpReader200 =
-    true;
+  if (window.__fhMJump210) return;
+  window.__fhMJump210 = true;
 
   const TAG_RE =
-    /\[mjump:(\d+)(?:\|([^\]|]*))?(?:\|([^\]]*))?\]/g;
+    /\[mjump\s*:\s*([^|\]\r\n]+?)(?:\s*\|\s*([^|\]\r\n]*?))?(?:\s*\|\s*([^\]\r\n]*?))?\s*\]/g;
 
   const VALID =
-    new Set([
-      "text",
-      "underline",
-      "classic",
-      "outline",
-      "soft",
-      "dark",
-      "danger",
-      "choice",
-      "arrow",
-      "quiet"
-    ]);
+    new Set(["text","underline","classic","outline","soft","dark","danger","choice","arrow","quiet"]);
 
-  function clean(value) {
-    return String(
-      value == null ? "" : value
-    ).trim();
+  function C(v){
+    return String(v == null ? "" : v).trim();
   }
 
-  function styleOf(value) {
-    const style =
-      clean(value);
-
-    return VALID.has(style)
-      ? style
-      : "underline";
+  function E(v){
+    return String(v == null ? "" : v)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
   }
 
-  function createLink(
-    page,
-    label,
-    style
-  ) {
-    label =
-      clean(label) ||
-      ("前往第 " + page + " 頁");
+  function pageIdFromReference(ref){
+    ref = C(ref);
 
-    style =
-      styleOf(style);
+    if (!ref) return "";
 
-    const link =
-      document.createElement("a");
+    if (/^\d+$/.test(ref)) {
+      const index =
+        Number(ref) - 1;
 
-    link.href = "#";
-
-    link.className =
-      "firehaha-mjump-reader " +
-      "firehaha-mjump-reader--" +
-      style;
-
-    link.dataset.mjumpPage =
-      String(page);
-
-    link.textContent =
-      style === "arrow"
-        ? ("→ " + label)
-        : label;
-
-    const wrap =
-      document.createElement("span");
-
-    wrap.className =
-      "firehaha-mjump-wrap " +
-      "firehaha-mjump-wrap--" +
-      style;
-
-    wrap.appendChild(
-      link
-    );
-
-    return wrap;
-  }
-
-  function replaceNode(node) {
-    if (
-      !node ||
-      node.nodeType !== 3
-    ) {
-      return false;
-    }
-
-    const text =
-      String(node.nodeValue || "");
-
-    if (
-      !/\[mjump:\d+/.test(text)
-    ) {
-      return false;
-    }
-
-    TAG_RE.lastIndex = 0;
-
-    if (!TAG_RE.test(text)) {
-      return false;
-    }
-
-    TAG_RE.lastIndex = 0;
-
-    const fragment =
-      document.createDocumentFragment();
-
-    let last = 0;
-    let match;
-
-    while (
-      (match = TAG_RE.exec(text))
-    ) {
-      if (
-        match.index > last
-      ) {
-        fragment.appendChild(
-          document.createTextNode(
-            text.slice(
-              last,
-              match.index
-            )
-          )
-        );
-      }
-
-      fragment.appendChild(
-        createLink(
-          Number(match[1]),
-          match[2],
-          match[3]
-        )
-      );
-
-      last =
-        match.index +
-        match[0].length;
-    }
-
-    if (
-      last < text.length
-    ) {
-      fragment.appendChild(
-        document.createTextNode(
-          text.slice(last)
-        )
-      );
-    }
-
-    if (node.parentNode) {
-      node.parentNode.replaceChild(
-        fragment,
-        node
-      );
-
-      return true;
-    }
-
-    return false;
-  }
-
-  function scan(root) {
-    root =
-      root ||
-      document.body;
-
-    if (!root) return;
-
-    if (
-      root.nodeType === 3
-    ) {
-      replaceNode(root);
-      return;
-    }
-
-    const walker =
-      document.createTreeWalker(
-        root,
-        NodeFilter.SHOW_TEXT,
-        {
-          acceptNode(node) {
-            const parent =
-              node.parentElement;
-
-            if (
-              !parent ||
-              parent.closest(
-                "script,style,textarea,input,select,option"
-              )
-            ) {
-              return NodeFilter.FILTER_REJECT;
-            }
-
-            return /\[mjump:\d+/.test(
-              String(
-                node.nodeValue ||
-                ""
-              )
-            )
-              ? NodeFilter.FILTER_ACCEPT
-              : NodeFilter.FILTER_REJECT;
-          }
-        }
-      );
-
-    const found = [];
-    let node;
-
-    while (
-      (node = walker.nextNode())
-    ) {
-      found.push(node);
-    }
-
-    found.forEach(
-      replaceNode
-    );
-  }
-
-  function go(pageNumber) {
-    const number =
-      Number(pageNumber);
-
-    try {
       if (
         typeof pages !== "undefined" &&
         Array.isArray(pages) &&
-        pages[number - 1] &&
-        typeof show === "function"
+        pages[index]
       ) {
-        show(
-          String(
-            pages[number - 1].id ||
-            ""
-          )
-        );
-
-        return true;
+        return C(pages[index].id);
       }
-    } catch (error) {
-      console.warn(
-        "[mjump] Reader 跳頁失敗",
-        error
-      );
+
+      return "";
     }
 
-    return false;
+    if (
+      typeof pages !== "undefined" &&
+      Array.isArray(pages)
+    ) {
+      const byId =
+        pages.find(
+          function(page){
+            return C(page && page.id) === ref;
+          }
+        );
+
+      if (byId) {
+        return C(byId.id);
+      }
+
+      const byTitle =
+        pages.find(
+          function(page){
+            return C(page && page.title) === ref;
+          }
+        );
+
+      if (byTitle) {
+        return C(byTitle.id);
+      }
+    }
+
+    return "";
+  }
+
+  function styleOf(raw){
+    const style = C(raw);
+    return VALID.has(style) ? style : "underline";
+  }
+
+  function prepare(source){
+    const items = [];
+
+    const text =
+      String(source || "").replace(
+        TAG_RE,
+        function(whole,target,label,rawStyle){
+          const token =
+            "@@FH_MJUMP_" +
+            items.length +
+            "@@";
+
+          const targetId =
+            pageIdFromReference(target);
+
+          const style =
+            styleOf(rawStyle);
+
+          const displayLabel =
+            C(label) ||
+            ("前往第 " + C(target) + " 頁");
+
+          let textLabel =
+            displayLabel;
+
+          if (style === "arrow") {
+            textLabel =
+              "→ " +
+              displayLabel;
+          }
+
+          const html =
+            targetId
+              ? (
+                  '<span class="fh-mjump-wrap fh-mjump-wrap--' +
+                  E(style) +
+                  '">' +
+                  '<a href="#" class="fh-mjump fh-mjump--' +
+                  E(style) +
+                  '" data-fh-mjump="' +
+                  E(targetId) +
+                  '">' +
+                  E(textLabel) +
+                  '</a>' +
+                  '</span>'
+                )
+              : whole;
+
+          items.push({
+            token:token,
+            html:html
+          });
+
+          return token;
+        }
+      );
+
+    return {
+      text:text,
+
+      restore:function(html){
+        let out =
+          String(html || "");
+
+        items.forEach(
+          function(item){
+            out =
+              out.split(
+                item.token
+              ).join(
+                item.html
+              );
+          }
+        );
+
+        return out;
+      }
+    };
   }
 
   if (
-    !document.getElementById(
-      "firehaha-mjump-reader-style-200"
-    )
+    typeof applyAdventure === "function" &&
+    !applyAdventure.__fhMJump210Wrapped
   ) {
-    const style =
-      document.createElement("style");
+    const oldApplyAdventure =
+      applyAdventure;
 
-    style.id =
-      "firehaha-mjump-reader-style-200";
+    const wrapped =
+      function(page){
+        const cloned =
+          Object.assign(
+            {},
+            page || {}
+          );
 
-    style.textContent = [
-      ".firehaha-mjump-wrap{display:inline}",
-      ".firehaha-mjump-reader{appearance:none!important;background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:0!important;color:inherit;text-decoration:none;font:inherit;line-height:inherit;cursor:pointer}",
-      ".firehaha-mjump-reader--text{text-decoration:none}",
-      ".firehaha-mjump-reader--underline{text-decoration:underline;text-underline-offset:.16em}",
-      ".firehaha-mjump-reader--quiet{opacity:.62;font-size:.94em}",
-      ".firehaha-mjump-wrap--classic,.firehaha-mjump-wrap--outline,.firehaha-mjump-wrap--soft,.firehaha-mjump-wrap--dark,.firehaha-mjump-wrap--danger,.firehaha-mjump-wrap--choice{display:block;margin:10px 0}",
-      ".firehaha-mjump-reader--classic,.firehaha-mjump-reader--outline,.firehaha-mjump-reader--soft,.firehaha-mjump-reader--dark,.firehaha-mjump-reader--danger,.firehaha-mjump-reader--choice{display:inline-block!important;padding:9px 14px!important;border-radius:10px!important;text-decoration:none!important}",
-      ".firehaha-mjump-reader--classic{background:#f3f4f6!important;border:1px solid #d1d5db!important;color:#1f2937!important}",
-      ".firehaha-mjump-reader--outline{background:transparent!important;border:1px solid currentColor!important;color:inherit!important}",
-      ".firehaha-mjump-reader--soft{background:rgba(59,130,246,.09)!important;border:1px solid rgba(59,130,246,.18)!important;color:inherit!important}",
-      ".firehaha-mjump-reader--dark{background:#23272f!important;border:1px solid #23272f!important;color:#fff!important}",
-      ".firehaha-mjump-reader--danger{background:#fff5f5!important;border:1px solid rgba(185,28,28,.35)!important;color:#b91c1c!important}",
-      ".firehaha-mjump-reader--choice{display:block!important;width:min(100%,680px)!important;box-sizing:border-box;text-align:center;background:#fff!important;border:1px solid #d8dee7!important;color:#1f2937!important}",
-      "body.reader-dark .firehaha-mjump-reader--classic{background:#2b3440!important;border-color:#465363!important;color:#eef4fb!important}",
-      "body.reader-dark .firehaha-mjump-reader--danger{background:#3a2729!important;border-color:#6d4145!important;color:#ffb4ab!important}"
-    ].join("");
+        const field =
+          cloned.content != null
+            ? "content"
+            : "text";
 
-    document.head.appendChild(
-      style
-    );
+        const prepared =
+          prepare(
+            cloned[field] || ""
+          );
+
+        cloned[field] =
+          prepared.text;
+
+        let html =
+          oldApplyAdventure.call(
+            this,
+            cloned
+          );
+
+        html =
+          prepared.restore(
+            html
+          );
+
+        return html;
+      };
+
+    wrapped.__fhMJump210Wrapped = true;
+    wrapped.__fhMJumpOriginal = oldApplyAdventure;
+
+    applyAdventure = wrapped;
   }
 
   document.addEventListener(
     "click",
-
-    function(event) {
+    function(event){
       const link =
         event.target &&
         event.target.closest
-          ? event.target.closest(
-              ".firehaha-mjump-reader"
-            )
+          ? event.target.closest(".fh-mjump")
           : null;
 
       if (!link) return;
@@ -663,76 +484,32 @@ FirehahaPlugins.register({
       event.preventDefault();
       event.stopPropagation();
 
-      go(
-        Number(
-          link.dataset.mjumpPage
-        )
-      );
-    },
+      const target =
+        C(
+          link.dataset.fhMjump
+        );
 
+      if (
+        target &&
+        typeof show === "function"
+      ) {
+        show(target);
+      }
+    },
     true
   );
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
-    document.addEventListener(
-      "DOMContentLoaded",
-      function() {
-        scan(document.body);
-      },
-      { once:true }
-    );
-  } else {
-    scan(document.body);
-  }
-
-  const observer =
-    new MutationObserver(
-      function(mutations) {
-        mutations.forEach(
-          function(mutation) {
-            mutation.addedNodes.forEach(
-              function(node) {
-                if (
-                  node.nodeType === 3
-                ) {
-                  replaceNode(node);
-                } else if (
-                  node.nodeType === 1
-                ) {
-                  scan(node);
-                }
-              }
-            );
-          }
-        );
-      }
-    );
-
-  observer.observe(
-    document.body ||
-    document.documentElement,
-    {
-      childList:true,
-      subtree:true
-    }
-  );
-
   window.FirehahaMJump = {
-    version:"2.0.0",
-    go:go,
-    scan:scan
+    version:"2.1.0"
   };
 })();
 `;
 
-    const removeReaderTransform =
+    const removeTransform =
       api.registerReaderTransform(
         "reader",
 
-        function(html) {
+        function(html, context){
           html =
             String(
               html == null
@@ -740,40 +517,65 @@ FirehahaPlugins.register({
                 : html
             );
 
+          /*
+           * 這支只服務 HTML Reader。
+           */
+          if (
+            context &&
+            context.mode &&
+            context.mode !== "html"
+          ) {
+            return html;
+          }
+
           if (
             html.includes(
-              "__firehahaMJumpReader200"
+              "__fhMJump210"
             )
           ) {
             return html;
           }
 
-          const payload =
-            "\n<script>\n" +
-            readerRuntime +
-            "\n<\\/script>\n";
-
           if (
-            /<\/body\s*>/i.test(html)
+            /<\/head\s*>/i.test(html)
           ) {
-            return html.replace(
-              /<\/body\s*>/i,
-              payload +
-              "</body>"
-            );
+            html =
+              html.replace(
+                /<\/head\s*>/i,
+                readerCss +
+                "\n</head>"
+              );
           }
 
-          return html + payload;
+          const marker =
+            "function renderAdventure(){";
+
+          if (
+            !html.includes(marker)
+          ) {
+            console.warn(
+              "[mjump] 找不到 Reader Artifact 插入位置"
+            );
+
+            return html;
+          }
+
+          return html.replace(
+            marker,
+            patchCode +
+            "\n" +
+            marker
+          );
         },
 
-        410
+        399
       );
 
     const removeStyle =
       api.addStyle(
         "main",
         `
-#firehaha-html-mjump-design-button{
+#firehaha-html-mjump-button{
   background:#fff!important;
   color:#263544!important;
   border:1px solid #ccd6df!important;
@@ -782,45 +584,34 @@ FirehahaPlugins.register({
 `
       );
 
-    function ensureUi() {
-      installHtmlDesignButton();
-    }
+    installUi();
 
-    let timer = null;
+    let attempts = 0;
 
-    function startTimer() {
-      if (timer) return;
+    const timer =
+      setInterval(
+        function(){
+          attempts += 1;
+          installUi();
 
-      let attempts = 0;
+          if (
+            attempts >= 160
+          ) {
+            clearInterval(timer);
+          }
+        },
+        250
+      );
 
-      timer =
-        setInterval(
-          function() {
-            attempts += 1;
-            ensureUi();
-
-            if (
-              attempts >= 240
-            ) {
-              clearInterval(timer);
-              timer = null;
-            }
-          },
-          250
-        );
-    }
-
-    startTimer();
-
-    const documentObserver =
+    const observer =
       new MutationObserver(
-        function() {
-          ensureUi();
+        function(){
+          installUi();
         }
       );
 
     try {
-      documentObserver.observe(
+      observer.observe(
         document.body ||
         document.documentElement,
         {
@@ -830,44 +621,28 @@ FirehahaPlugins.register({
       );
     } catch (_) {}
 
-    ensureUi();
-
-    window.FirehahaMJumpHtmlDesign = {
-      version:"2.0.0",
-      ensureUi:ensureUi
-    };
-
     api.toast(
-      "HTML mjump 獨立跳頁 2.0.0 已啟用"
+      "HTML mjump 2.1.0 已接入 Reader Artifact"
     );
 
-    return function cleanup() {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
+    return function cleanup(){
+      clearInterval(timer);
 
       try {
-        documentObserver.disconnect();
+        observer.disconnect();
       } catch (_) {}
 
-      if (
-        typeof removeReaderTransform ===
-        "function"
-      ) {
-        removeReaderTransform();
-      }
+      removeTransform();
 
       if (
-        typeof removeStyle ===
-        "function"
+        typeof removeStyle === "function"
       ) {
         removeStyle();
       }
 
       const button =
         document.getElementById(
-          "firehaha-html-mjump-design-button"
+          "firehaha-html-mjump-button"
         );
 
       if (button) {
