@@ -6,7 +6,7 @@ FirehahaPlugins.register({
   setup(api) {
     "use strict";
 
-    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-page-number-fix */";
+    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-restart-reset-param */";
 
     const helperCode = String.raw`
 ${MARK}
@@ -59,6 +59,7 @@ function firehahaParseInitOptions(page){
 
     let variant="link";
     let startPage="";
+    let useRestartReset=false;
 
     parts.forEach(token=>{
       const lower=token.toLowerCase();
@@ -78,6 +79,7 @@ function firehahaParseInitOptions(page){
       else if(token==="文字")variant="link";
       else if(token==="按鈕")variant="button";
       else if(token==="卡片")variant="card";
+      else if(token==="重新開始"||token==="完整重置"||token.toLowerCase()==="restart")useRestartReset=true;
 
       else {
         const kv=token.split("=");
@@ -167,6 +169,7 @@ function firehahaParseInitOptions(page){
       text:label,
       target:"",
       startPage:startPage,
+      useRestartReset:useRestartReset,
       initVariant:variant,
       spacing:{top:0,right:0,bottom:0,left:0},
       freeLayout:free,
@@ -181,7 +184,7 @@ function firehahaStripInitTags(html){
   return String(html||"").replace(/\[初始化(?::[^\]]*)?\]/gi,"");
 }
 
-function firehahaStartNewGameAt(startId){
+function firehahaStartNewGameAt(startId,useRestartReset){
   const core=window.FirehahaNewGameSaveSlots;
 
   if(!core||typeof core.resetRuntime!=="function"){
@@ -243,6 +246,21 @@ function firehahaStartNewGameAt(startId){
   };
 
   core.resetRuntime();
+
+  /*
+   * |重新開始 / |完整重置
+   * 直接沿用 official.new-game-and-save-slots 1.0.5
+   * 公開的 resetRuntime() 協調器再跑一次。
+   * 這樣骰子、RollOnceGuard、DamageDice、OpposedDice、
+   * AutoDice、媒體等已知 Runtime 都走同一套官方重置流程。
+   */
+  if(useRestartReset){
+    try{
+      core.resetRuntime();
+    }catch(error){
+      console.warn("[初始化] 重新開始 Runtime 重置失敗",error);
+    }
+  }
 
   try{
     if(Array.isArray(history))history.length=0;
@@ -327,13 +345,13 @@ function firehahaStartNewGameAt(startId){
       'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
 
     const newRenderTail =
-      'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;if(o.type==="initialize"){const iv=["link","button","card"].includes(o.initVariant)?o.initVariant:"link";return `<div class="${wrapClass}" style="${layout}"><button type="button" class="choice choice-${iv} firehaha-init-choice" data-firehaha-init="1" data-start-page="${esc(o.startPage||"")}" style="${custom}">${esc(label)}</button></div>`}return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
+      'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;if(o.type==="initialize"){const iv=["link","button","card"].includes(o.initVariant)?o.initVariant:"link";return `<div class="${wrapClass}" style="${layout}"><button type="button" class="choice choice-${iv} firehaha-init-choice" data-firehaha-init="1" data-start-page="${esc(o.startPage||"")}" data-restart-reset="${o.useRestartReset?"1":"0"}" style="${custom}">${esc(label)}</button></div>`}return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
 
     const oldBind =
       'reader.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{if(b.dataset.target)show(b.dataset.target)});const back=reader.querySelector(".back");';
 
     const newBind =
-      'reader.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{if(b.dataset.target)show(b.dataset.target)});reader.querySelectorAll("[data-firehaha-init]").forEach(b=>b.onclick=()=>firehahaStartNewGameAt(String(b.dataset.startPage||"")));const back=reader.querySelector(".back");';
+      'reader.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{if(b.dataset.target)show(b.dataset.target)});reader.querySelectorAll("[data-firehaha-init]").forEach(b=>b.onclick=()=>firehahaStartNewGameAt(String(b.dataset.startPage||""),String(b.dataset.restartReset||"")==="1"));const back=reader.querySelector(".back");';
 
     const removeTransform = api.registerReaderTransform(
       "reader",
@@ -415,7 +433,7 @@ function firehahaStartNewGameAt(startId){
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 頁碼轉換修正版已啟用"
+      "遊戲初始化標籤 1.0.1 重新開始參數版已啟用"
     );
 
     return function cleanup() {
