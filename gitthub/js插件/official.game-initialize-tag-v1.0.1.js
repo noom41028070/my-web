@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.game-initialize-tag","name":"遊戲初始化標籤","version":"1.0.1","author":"Firehaha","description":"將 [初始化] 轉成可自訂樣式的正文按鈕。按下後直接呼叫 official.new-game-and-save-slots 1.0.5 的 restartStory()；樣式可由標籤指定，不綁死藍色膠囊。"}
+// @firehaha-plugin {"id":"official.game-initialize-tag","name":"遊戲初始化標籤","version":"1.0.1","author":"Firehaha","description":"將 [初始化] 轉成可自訂樣式的文字／選項控制，不使用 button 元素，避免 Reader 全域藍色膠囊 CSS。點擊後呼叫 official.new-game-and-save-slots 1.0.5 的 restartStory()。"}
 
 FirehahaPlugins.register({
   id: "official.game-initialize-tag",
@@ -7,12 +7,12 @@ FirehahaPlugins.register({
     "use strict";
 
     const patchCode = String.raw`
-/* Firehaha Game Initialize Button 1.0.1 - styled */
+/* Firehaha Game Initialize Link 1.0.1 */
 (function () {
   "use strict";
 
-  if (window.__firehahaGameInitializeButton101StyledInstalled) return;
-  window.__firehahaGameInitializeButton101StyledInstalled = true;
+  if (window.__firehahaGameInitializeLink101Installed) return;
+  window.__firehahaGameInitializeLink101Installed = true;
 
   function clean(value) {
     return String(value == null ? "" : value).trim();
@@ -30,13 +30,9 @@ FirehahaPlugins.register({
   function normalizeStyle(value) {
     const raw = clean(value).toLowerCase();
 
-    if (!raw) return "default";
+    if (!raw) return "text";
 
     const aliases = {
-      "預設": "default",
-      "默认": "default",
-      "default": "default",
-
       "文字": "text",
       "純文字": "text",
       "纯文字": "text",
@@ -46,9 +42,8 @@ FirehahaPlugins.register({
       "选项": "option",
       "option": "option",
 
-      "按鈕": "button",
-      "按钮": "button",
-      "button": "button",
+      "底線": "underline",
+      "underline": "underline",
 
       "框線": "outline",
       "描邊": "outline",
@@ -58,10 +53,14 @@ FirehahaPlugins.register({
       "無樣式": "plain",
       "无样式": "plain",
       "plain": "plain",
-      "raw": "plain"
+      "raw": "plain",
+
+      "預設": "text",
+      "默认": "text",
+      "default": "text"
     };
 
-    return aliases[raw] || "default";
+    return aliases[raw] || "text";
   }
 
   function initializeGame() {
@@ -75,7 +74,7 @@ FirehahaPlugins.register({
       }
     } catch (error) {
       console.warn(
-        "[Game Initialize Button] restartStory API failed",
+        "[Game Initialize Link] restartStory API failed",
         error
       );
     }
@@ -105,37 +104,27 @@ FirehahaPlugins.register({
   };
 
   /*
-   * 只提供「可選樣式」，不再強迫所有初始化按鈕長一樣。
-   * plain 模式完全不套本插件視覺樣式。
+   * 關鍵修正：
+   * 完全不用 <button>。
+   * Reader 的全域 button CSS 因此無法把它變成藍色膠囊。
    */
-  if (!document.getElementById("firehaha-inline-initialize-button-style")) {
+  if (!document.getElementById("firehaha-inline-initialize-link-style")) {
     const style = document.createElement("style");
-    style.id = "firehaha-inline-initialize-button-style";
+    style.id = "firehaha-inline-initialize-link-style";
     style.textContent = [
-      ".fh-init-wrap{margin:14px 0;}",
+      ".fh-init-action{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;}",
 
-      ".fh-init-btn{font:inherit;cursor:pointer;}",
+      ".fh-init-style-text{display:inline;text-decoration:none;}",
 
-      ".fh-init-style-default{appearance:none;border:1px solid rgba(100,116,139,.32);border-radius:8px;padding:8px 13px;background:transparent;color:inherit;}",
+      ".fh-init-style-underline{display:inline;text-decoration:underline;text-underline-offset:3px;}",
 
-      ".fh-init-style-button{appearance:none;border:1px solid rgba(100,116,139,.38);border-radius:6px;padding:8px 14px;background:rgba(148,163,184,.12);color:inherit;}",
+      ".fh-init-style-option{display:inline-block;}",
 
-      ".fh-init-style-outline{appearance:none;border:1px solid currentColor;border-radius:6px;padding:8px 14px;background:transparent;color:inherit;}",
+      ".fh-init-style-outline{display:inline-block;border:1px solid currentColor;border-radius:6px;padding:7px 12px;background:transparent;}",
 
-      ".fh-init-style-text{appearance:none;border:0;padding:0;background:none;color:inherit;text-decoration:underline;text-underline-offset:3px;}",
+      ".fh-init-style-plain{display:inline;}",
 
-      /*
-       * option 故意使用很少 CSS，讓 Reader / 排版工作室既有
-       * 選項樣式有機會接手。
-       */
-      ".fh-init-style-option{font:inherit;cursor:pointer;}",
-
-      /*
-       * plain：本插件完全不控制外觀。
-       */
-      ".fh-init-style-plain{font:inherit;cursor:pointer;}",
-
-      "body.reader-dark .fh-init-style-default,body.reader-dark .fh-init-style-button,body.reader-dark .fh-init-style-outline{color:inherit;}"
+      ".fh-init-action:focus-visible{outline:2px solid currentColor;outline-offset:3px;}"
     ].join("");
     document.head.appendChild(style);
   }
@@ -147,51 +136,37 @@ FirehahaPlugins.register({
    * [初始化:開始遊戲]
    * [初始化:開始遊戲|文字]
    * [初始化:開始遊戲|選項]
-   * [初始化:開始遊戲|按鈕]
+   * [初始化:開始遊戲|底線]
    * [初始化:開始遊戲|框線]
    * [初始化:開始遊戲|無樣式]
-   *
-   * 也支援：
-   * [遊戲初始化:開始遊戲|文字]
    */
   const TAG_RE =
     /\[(?:初始化|遊戲初始化|游戏初始化)(?:\s*:\s*([^\]|]*?))?(?:\s*\|\s*([^\]]*?))?\s*\]/gi;
 
-  function buildButton(label, styleName) {
+  function buildAction(label, styleName) {
     const text = clean(label) || "初始化遊戲";
     const style = normalizeStyle(styleName);
 
-    const className =
-      "fh-init-btn firehaha-inline-initialize-button " +
-      "fh-init-style-" + style;
-
-    /*
-     * option 模式多掛幾個中性 class，
-     * 方便排版工作室用選擇器抓取。
-     */
-    const extra =
-      style === "option"
-        ? " data-firehaha-init-style=\"option\""
-        : "";
-
     return (
-      '<span class="fh-init-wrap">' +
-      '<button type="button" class="' +
-      className +
-      '" data-firehaha-init="1"' +
-      extra +
-      ">" +
+      '<span ' +
+      'class="fh-init-action fh-init-style-' + style + '" ' +
+      'data-firehaha-init="1" ' +
+      'role="button" ' +
+      'tabindex="0" ' +
+      'data-init-style="' + style + '"' +
+      '>' +
       escapeHtml(text) +
-      "</button></span>"
+      '</span>'
     );
   }
 
   function replaceTagsInHtml(html) {
     TAG_RE.lastIndex = 0;
+
     return String(html == null ? "" : html).replace(
       TAG_RE,
       function(whole, label, styleName) {
-        return buildButton(label, styleName);
+        return buildAction(label, styleName);
       }
     );
   }
@@ -199,7 +174,7 @@ FirehahaPlugins.register({
   function wrapApplyAdventure() {
     if (
       typeof applyAdventure !== "function" ||
-      applyAdventure.__firehahaGameInitializeButton101StyledWrapped
+      applyAdventure.__firehahaGameInitializeLink101Wrapped
     ) {
       return false;
     }
@@ -213,7 +188,7 @@ FirehahaPlugins.register({
         html = replaceTagsInHtml(html);
       } catch (error) {
         console.warn(
-          "[Game Initialize Button] applyAdventure parse failed",
+          "[Game Initialize Link] applyAdventure parse failed",
           error
         );
       }
@@ -221,8 +196,8 @@ FirehahaPlugins.register({
       return html;
     };
 
-    wrapped.__firehahaGameInitializeButton101StyledWrapped = true;
-    wrapped.__firehahaGameInitializeButtonOriginal = oldApplyAdventure;
+    wrapped.__firehahaGameInitializeLink101Wrapped = true;
+    wrapped.__firehahaGameInitializeLinkOriginal = oldApplyAdventure;
     applyAdventure = wrapped;
 
     return true;
@@ -238,7 +213,7 @@ FirehahaPlugins.register({
     if (
       (
         typeof applyAdventure === "function" &&
-        applyAdventure.__firehahaGameInitializeButton101StyledWrapped
+        applyAdventure.__firehahaGameInitializeLink101Wrapped
       ) ||
       wrapAttempts >= 40
     ) {
@@ -247,7 +222,7 @@ FirehahaPlugins.register({
   }, 100);
 
   /*
-   * DOM 保底：若標籤最後仍以純文字進 DOM，轉成按鈕。
+   * DOM fallback。
    */
   function textNodeHasTag(node) {
     return (
@@ -275,12 +250,14 @@ FirehahaPlugins.register({
     while ((match = TAG_RE.exec(text))) {
       if (match.index > last) {
         frag.appendChild(
-          document.createTextNode(text.slice(last, match.index))
+          document.createTextNode(
+            text.slice(last, match.index)
+          )
         );
       }
 
       const holder = document.createElement("span");
-      holder.innerHTML = buildButton(match[1], match[2]);
+      holder.innerHTML = buildAction(match[1], match[2]);
 
       while (holder.firstChild) {
         frag.appendChild(holder.firstChild);
@@ -299,7 +276,7 @@ FirehahaPlugins.register({
     return true;
   }
 
-  function scanInitializeTags(root) {
+  function scan(root) {
     root = root || document.body;
     if (!root) return;
 
@@ -346,12 +323,12 @@ FirehahaPlugins.register({
     document.addEventListener(
       "DOMContentLoaded",
       function() {
-        scanInitializeTags(document.body);
+        scan(document.body);
       },
       { once: true }
     );
   } else {
-    scanInitializeTags(document.body);
+    scan(document.body);
   }
 
   try {
@@ -361,7 +338,7 @@ FirehahaPlugins.register({
           if (node.nodeType === 3) {
             replaceTextNode(node);
           } else if (node.nodeType === 1) {
-            scanInitializeTags(node);
+            scan(node);
           }
         });
       });
@@ -374,33 +351,53 @@ FirehahaPlugins.register({
         subtree: true
       }
     );
-  } catch (error) {
-    console.warn(
-      "[Game Initialize Button] DOM observer failed",
-      error
-    );
+  } catch (_) {}
+
+  function activate(target) {
+    if (!target) return false;
+
+    const action =
+      target.closest
+        ? target.closest("[data-firehaha-init='1']")
+        : null;
+
+    if (!action) return false;
+
+    initializeGame();
+    return true;
   }
 
   document.addEventListener(
     "click",
     function(event) {
-      const button =
-        event.target && event.target.closest
-          ? event.target.closest("[data-firehaha-init='1']")
-          : null;
-
-      if (!button) return;
+      if (!activate(event.target)) return;
 
       event.preventDefault();
       event.stopPropagation();
+    },
+    true
+  );
 
-      initializeGame();
+  document.addEventListener(
+    "keydown",
+    function(event) {
+      if (
+        event.key !== "Enter" &&
+        event.key !== " "
+      ) {
+        return;
+      }
+
+      if (!activate(event.target)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
     },
     true
   );
 
   console.info(
-    "[Firehaha] 遊戲初始化標籤 1.0.1 樣式標籤版已接入 Reader"
+    "[Firehaha] 遊戲初始化標籤 1.0.1 非 button 樣式版已接入 Reader"
   );
 })();
 `;
@@ -413,7 +410,7 @@ FirehahaPlugins.register({
 
         if (
           html.includes(
-            "__firehahaGameInitializeButton101StyledInstalled"
+            "__firehahaGameInitializeLink101Installed"
           )
         ) {
           return html;
@@ -423,7 +420,7 @@ FirehahaPlugins.register({
 
         if (!html.includes(marker)) {
           console.warn(
-            "[Game Initialize Button] 找不到 Reader 插入位置",
+            "[Game Initialize Link] 找不到 Reader 插入位置",
             context || {}
           );
           return html;
@@ -439,7 +436,7 @@ FirehahaPlugins.register({
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 樣式版已啟用"
+      "遊戲初始化標籤 1.0.1 非 button 樣式版已啟用"
     );
 
     return function cleanup() {
