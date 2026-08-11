@@ -6,7 +6,7 @@ FirehahaPlugins.register({
   setup(api) {
     "use strict";
 
-    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-start-page */";
+    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-start-page-hiddenrule-fix */";
 
     const helperCode = String.raw`
 ${MARK}
@@ -287,11 +287,17 @@ function firehahaStartNewGameAt(startId){
 }
 `;
 
-    const oldContentChoices =
-      'const contentHtml=applyAdventure(p),style=s.choiceStyle||"link",choiceBg=`linear-gradient(${Number(s.choiceAngle)||0}deg,${s.choiceBackground||"#fff"},${s.choiceBackground2||s.choiceBackground||"#fff"})`;const choices=(p.options||[]).filter(o=>o.text)';
+    const oldContentHtml =
+      'const contentHtml=applyAdventure(p),style=s.choiceStyle||"link",choiceBg=';
 
-    const newContentChoices =
-      'const contentHtml=firehahaStripInitTags(applyAdventure(p)),style=s.choiceStyle||"link",choiceBg=`linear-gradient(${Number(s.choiceAngle)||0}deg,${s.choiceBackground||"#fff"},${s.choiceBackground2||s.choiceBackground||"#fff"})`;const choices=(p.options||[]).concat(firehahaParseInitOptions(p)).filter(o=>o.text)';
+    const newContentHtml =
+      'const contentHtml=firehahaStripInitTags(applyAdventure(p)),style=s.choiceStyle||"link",choiceBg=';
+
+    const oldChoicesHead =
+      'const choices=(p.options||[]).filter(o=>o.text).map(o=>({o:o,rule:hiddenRule(o.text)}))';
+
+    const newChoicesHead =
+      'const choices=(p.options||[]).concat(firehahaParseInitOptions(p)).filter(o=>o.text).map(o=>({o:o,rule:hiddenRule(o.text)}))';
 
     const oldRenderTail =
       'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
@@ -322,9 +328,17 @@ function firehahaStartNewGameAt(startId){
           return html;
         }
 
-        if (!html.includes(oldContentChoices)) {
+        if (!html.includes(oldContentHtml)) {
           console.warn(
-            "[Game Initialize Tag] 找不到 choices 建立位置",
+            "[Game Initialize Tag] 找不到 contentHtml 建立位置",
+            context || {}
+          );
+          return html;
+        }
+
+        if (!html.includes(oldChoicesHead)) {
+          console.warn(
+            "[Game Initialize Tag] 找不到目前 Reader 的 choices / hiddenRule 建立位置",
             context || {}
           );
           return html;
@@ -352,8 +366,13 @@ function firehahaStartNewGameAt(startId){
         );
 
         html = html.replace(
-          oldContentChoices,
-          newContentChoices
+          oldContentHtml,
+          newContentHtml
+        );
+
+        html = html.replace(
+          oldChoicesHead,
+          newChoicesHead
         );
 
         html = html.replace(
@@ -372,7 +391,7 @@ function firehahaStartNewGameAt(startId){
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 原生 choice＋指定開始頁版已啟用"
+      "遊戲初始化標籤 1.0.1 原生 choice＋hiddenRule 修正版已啟用"
     );
 
     return function cleanup() {
