@@ -1,4 +1,4 @@
-// @firehaha-plugin {"id":"official.game-initialize-tag","name":"遊戲初始化標籤","version":"1.0.1","author":"Firehaha","description":"在測試閱讀／正式輸出 Reader HTML 建立階段，直接把 [初始化] 能力寫入原生 applyAdventure。每輪第一次遇到時清空 Adventure；不建立按鈕、不套樣式、不跳頁。"}
+// @firehaha-plugin {"id":"official.game-initialize-tag","name":"遊戲初始化標籤","version":"1.0.1","author":"Firehaha","description":"把 [初始化] 解析成 Reader 原生 choice 虛擬選項，沿用 jump 的 visualStyle/freeLayout/animation；支援 頁=N 指定新遊戲開始頁，點擊後沿用 official.new-game-and-save-slots 1.0.5 的 resetRuntime/lifecycle。"}
 
 FirehahaPlugins.register({
   id: "official.game-initialize-tag",
@@ -6,122 +6,373 @@ FirehahaPlugins.register({
   setup(api) {
     "use strict";
 
-    const PATCH_MARK =
-      "/* firehaha-game-initialize-tag-v1.0.1-export-safe */";
+    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-start-page */";
 
-    /*
-     * 不再依賴「Reader 開啟後包裝 applyAdventure」。
-     * 直接在 createReaderArtifact() 的 HTML transform 階段，
-     * 改寫正式 Reader 內建的 applyAdventure()。
-     *
-     * 因此：
-     * - 測試閱讀有效
-     * - 正式輸出後單獨開 HTML 也有效
-     * - 不需要外部 JS 跟著輸出檔
-     */
-    function transformReader(html, context) {
-      html = String(html == null ? "" : html);
+    const helperCode = String.raw`
+${MARK}
+function firehahaParseInitOptions(page){
+  const raw=String(page&&page.content||"");
+  const out=[];
+  const re=/\[初始化(?::([^\]]*))?\]/gi;
+  let m;
 
-      if (html.includes(PATCH_MARK)) {
-        return html;
+  function clamp(n,min,max,fallback){
+    n=Number(n);
+    return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
+  }
+
+  function color(v,fallback){
+    v=String(v||"").trim();
+    return /^#[0-9a-f]{6}$/i.test(v)?v:fallback;
+  }
+
+  function parseBool(v){
+    v=String(v||"").trim().toLowerCase();
+    return v==="1"||v==="true"||v==="是"||v==="yes";
+  }
+
+  while((m=re.exec(raw))){
+    const body=String(m[1]||"").trim();
+    const parts=body?body.split("|").map(x=>x.trim()).filter(Boolean):[];
+    const label=parts.shift()||"開始遊戲";
+
+    const style={
+      preset:"plain",
+      fontSize:18,
+      color:"#222222",
+      background:"#ffffff",
+      opacity:0,
+      radius:0,
+      weight:500,
+      italic:false,
+      animation:"fade"
+    };
+
+    const free={
+      enabled:false,
+      x:50,
+      y:50,
+      width:30,
+      height:12,
+      z:10
+    };
+
+    let variant="link";
+    let startPage="";
+
+    parts.forEach(token=>{
+      const lower=token.toLowerCase();
+
+      if(["plain","elegant","solid","outline","glass","neon"].includes(lower)){
+        style.preset=lower;
+        return;
       }
 
-      const oldEntry =
-        'function applyAdventure(page){let html=String(page.content||"");const a=memorySave.adventure;';
+      if(token==="簡潔")style.preset="plain";
+      else if(token==="典雅")style.preset="elegant";
+      else if(token==="實色")style.preset="solid";
+      else if(token==="線框")style.preset="outline";
+      else if(token==="玻璃")style.preset="glass";
+      else if(token==="霓虹")style.preset="neon";
 
-      const newEntry =
-        PATCH_MARK +
-        'function applyAdventure(page){' +
-        'const __fhInitRaw=String(page&&page.content||"");' +
-        'const __fhHasInit=/\\[(?:初始化|遊戲初始化|游戏初始化|initializegame|gameinitialize)\\]/i.test(__fhInitRaw);' +
-        'if(__fhHasInit&&memorySave&&memorySave.adventure&&!memorySave.adventure.__firehahaGameInitialized){' +
+      else if(token==="文字")variant="link";
+      else if(token==="按鈕")variant="button";
+      else if(token==="卡片")variant="card";
 
-          /*
-           * 若「重新開始／存檔槽」插件有把 Runtime API 一起輸出，
-           * 優先沿用它；沒有也不會影響初始化本體。
-           */
-          'try{' +
-            'if(window.FirehahaNewGameSaveSlots&&typeof window.FirehahaNewGameSaveSlots.resetRuntime==="function"){' +
-              'window.FirehahaNewGameSaveSlots.resetRuntime();' +
-            '}' +
-          '}catch(__fhInitRuntimeError){' +
-            'console.warn("[Game Initialize Tag] Runtime reset 失敗",__fhInitRuntimeError);' +
-          '}' +
+      else {
+        const kv=token.split("=");
+        if(kv.length<2)return;
 
-          /*
-           * 只重建目前 Adventure。
-           * slots / auto 存檔資料不碰。
-           */
-          'memorySave.adventure={' +
-            'items:[],' +
-            'flags:[],' +
-            'values:{},' +
-            'attributes:{},' +
-            'modifiers:{},' +
-            'skills:{},' +
-            'skillModifiers:{},' +
-            'quests:{},' +
-            'dice:{},' +
-            'checks:{},' +
-            'checkBands:{},' +
-            'damage:{},' +
-            'damageRules:{},' +
-            'successDice:{},' +
-            'diceModelVersion:2,' +
-            'applied:{},' +
-            'definitionApplied:{},' +
-            'names:{},' +
-            'createdDisplayTags:{},' +
-            '__firehahaGameInitialized:true' +
-          '};' +
+        const key=kv.shift().trim().toLowerCase();
+        const value=kv.join("=").trim();
 
-          /*
-           * 第一頁就是新一輪起點。
-           * 清返回歷史，但不 show()、不重新載入頁面。
-           */
-          'try{if(Array.isArray(history))history.length=0}catch(__fhHistoryError){}' +
-          'try{if(typeof persist==="function")persist()}catch(__fhPersistError){}' +
-
-          'try{' +
-            'document.dispatchEvent(new CustomEvent("firehaha:game-initialized",{' +
-              'detail:{source:"initialize-tag",at:Date.now()}' +
-            '}));' +
-          '}catch(__fhEventError){}' +
-        '}' +
-
-        /*
-         * 初始化完成後才取得 a，
-         * 確保後續本頁的 [數值:] / [屬性:] 等，
-         * 都寫進「新的」 Adventure。
-         */
-        'let html=__fhInitRaw.replace(/\\[(?:初始化|遊戲初始化|游戏初始化|initializegame|gameinitialize)\\]/gi,"");' +
-        'const a=memorySave.adventure;';
-
-      if (!html.includes(oldEntry)) {
-        console.warn(
-          "[Game Initialize Tag] 找不到正式 Reader 的 applyAdventure 入口，未套用初始化補丁。",
-          context || {}
-        );
-        return html;
+        if(key==="頁"||key==="页"||key==="page"||key==="start"){
+          startPage=value;
+        }
+        else if(key==="樣式"||key==="style"){
+          const map={
+            "簡潔":"plain","典雅":"elegant","實色":"solid",
+            "線框":"outline","玻璃":"glass","霓虹":"neon"
+          };
+          style.preset=map[value]||value;
+          if(!["plain","elegant","solid","outline","glass","neon"].includes(style.preset)){
+            style.preset="plain";
+          }
+        }
+        else if(key==="形式"||key==="variant"){
+          const map={"文字":"link","按鈕":"button","卡片":"card"};
+          variant=map[value]||value;
+          if(!["link","button","card"].includes(variant))variant="link";
+        }
+        else if(key==="字體"||key==="字級"||key==="fontsize"){
+          style.fontSize=clamp(value,10,96,18);
+        }
+        else if(key==="文字色"||key==="顏色"||key==="color"){
+          style.color=color(value,"#222222");
+        }
+        else if(key==="背景"||key==="background"){
+          style.background=color(value,"#ffffff");
+        }
+        else if(key==="透明"||key==="透明度"||key==="opacity"){
+          style.opacity=clamp(value,0,1,0);
+        }
+        else if(key==="圓角"||key==="radius"){
+          style.radius=clamp(value,0,80,0);
+        }
+        else if(key==="粗細"||key==="weight"){
+          style.weight=clamp(value,300,900,500);
+        }
+        else if(key==="斜體"||key==="italic"){
+          style.italic=parseBool(value);
+        }
+        else if(key==="動畫"||key==="animation"){
+          const map={"無":"none","淡入":"fade","滑入":"slide","彈出":"pop","呼吸":"pulse"};
+          style.animation=map[value]||value;
+          if(!["none","fade","slide","pop","pulse"].includes(style.animation)){
+            style.animation="none";
+          }
+        }
+        else if(key==="位置"||key==="position"){
+          const xy=value.split(",").map(Number);
+          if(xy.length>=2){
+            free.enabled=true;
+            free.x=clamp(xy[0],0,100,50);
+            free.y=clamp(xy[1],0,100,50);
+          }
+        }
+        else if(key==="寬"||key==="width"){
+          free.enabled=true;
+          free.width=clamp(value,5,100,30);
+        }
+        else if(key==="高"||key==="height"){
+          free.enabled=true;
+          free.height=clamp(value,5,100,12);
+        }
+        else if(key==="層級"||key==="z"){
+          free.enabled=true;
+          free.z=Number(value)||10;
+        }
       }
+    });
 
-      html = html.replace(oldEntry, newEntry);
-
-      return html;
+    if(
+      style.opacity===0 &&
+      ["solid","glass","neon","elegant"].includes(style.preset)
+    ){
+      style.opacity=.94;
     }
 
-    /*
-     * priority 保持偏前。
-     * 真正關鍵不是 priority，而是補丁直接寫入最終 artifact HTML。
-     */
+    out.push({
+      type:"initialize",
+      text:label,
+      target:"",
+      startPage:startPage,
+      initVariant:variant,
+      spacing:{top:0,right:0,bottom:0,left:0},
+      freeLayout:free,
+      visualStyle:style
+    });
+  }
+
+  return out;
+}
+
+function firehahaStripInitTags(html){
+  return String(html||"").replace(/\[初始化(?::[^\]]*)?\]/gi,"");
+}
+
+function firehahaStartNewGameAt(startId){
+  const core=window.FirehahaNewGameSaveSlots;
+
+  if(!core||typeof core.resetRuntime!=="function"){
+    const fallback=document.querySelector(".firehaha-new-game-btn");
+    if(fallback){
+      fallback.click();
+      return;
+    }
+    if(typeof toast==="function"){
+      toast("請先啟用重新開始／存檔槽 1.0.5");
+    }
+    return;
+  }
+
+  if(!window.confirm("確定要開始新的遊戲嗎？目前未存檔的進度將會被清除。")){
+    return;
+  }
+
+  try{
+    if(core.lifecycle&&typeof core.lifecycle.run==="function"){
+      core.lifecycle.run(
+        "before-restart",
+        {source:"initialize-tag",startId:String(startId||"")}
+      );
+    }
+  }catch(_){}
+
+  core.resetRuntime();
+
+  const slots=
+    memorySave&&Array.isArray(memorySave.slots)
+      ? memorySave.slots
+      : [];
+
+  memorySave={
+    slots:slots,
+    auto:null,
+    adventure:{
+      items:[],
+      flags:[],
+      values:{},
+      attributes:{},
+      modifiers:{},
+      skills:{},
+      skillModifiers:{},
+      quests:{},
+      dice:{},
+      checks:{},
+      checkBands:{},
+      damage:{},
+      damageRules:{},
+      successDice:{},
+      diceModelVersion:2,
+      applied:{},
+      definitionApplied:{},
+      names:{},
+      createdDisplayTags:{}
+    }
+  };
+
+  core.resetRuntime();
+
+  try{
+    if(Array.isArray(history))history.length=0;
+  }catch(_){}
+
+  try{
+    if(typeof persist==="function")persist();
+  }catch(_){}
+
+  let target=String(startId||"").trim();
+
+  if(!target){
+    try{
+      target=String((pages&&pages[0]&&pages[0].id)||"");
+    }catch(_){
+      target="";
+    }
+  }
+
+  if(target&&typeof show==="function"){
+    show(target,false);
+  }
+
+  setTimeout(function(){
+    try{core.resetRuntime()}catch(_){}
+    try{
+      if(typeof renderAdventure==="function")renderAdventure();
+    }catch(_){}
+    try{
+      if(typeof persist==="function")persist();
+    }catch(_){}
+  },0);
+
+  try{
+    if(core.lifecycle&&typeof core.lifecycle.run==="function"){
+      core.lifecycle.run(
+        "after-restart",
+        {source:"initialize-tag",startId:target}
+      );
+    }
+  }catch(_){}
+}
+`;
+
+    const oldContentChoices =
+      'const contentHtml=applyAdventure(p),style=s.choiceStyle||"link",choiceBg=`linear-gradient(${Number(s.choiceAngle)||0}deg,${s.choiceBackground||"#fff"},${s.choiceBackground2||s.choiceBackground||"#fff"})`;const choices=(p.options||[]).filter(o=>o.text)';
+
+    const newContentChoices =
+      'const contentHtml=firehahaStripInitTags(applyAdventure(p)),style=s.choiceStyle||"link",choiceBg=`linear-gradient(${Number(s.choiceAngle)||0}deg,${s.choiceBackground||"#fff"},${s.choiceBackground2||s.choiceBackground||"#fff"})`;const choices=(p.options||[]).concat(firehahaParseInitOptions(p)).filter(o=>o.text)';
+
+    const oldRenderTail =
+      'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
+
+    const newRenderTail =
+      'if(o.type==="continuation")return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-continuation" data-target="${esc(o.target||"")}" style="${custom}"><span>${esc(label)}</span><span class="continue-arrow" aria-hidden="true">›</span></button></div>`;if(o.type==="initialize"){const iv=["link","button","card"].includes(o.initVariant)?o.initVariant:"link";return `<div class="${wrapClass}" style="${layout}"><button type="button" class="choice choice-${iv} firehaha-init-choice" data-firehaha-init="1" data-start-page="${esc(o.startPage||"")}" style="${custom}">${esc(label)}</button></div>`}return `<div class="${wrapClass}" style="${layout}"><button class="choice choice-${style}" data-target="${esc(o.target||"")}" style="${custom}">${esc(label)}</button></div>`';
+
+    const oldBind =
+      'reader.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{if(b.dataset.target)show(b.dataset.target)});const back=reader.querySelector(".back");';
+
+    const newBind =
+      'reader.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{if(b.dataset.target)show(b.dataset.target)});reader.querySelectorAll("[data-firehaha-init]").forEach(b=>b.onclick=()=>firehahaStartNewGameAt(String(b.dataset.startPage||"")));const back=reader.querySelector(".back");';
+
     const removeTransform = api.registerReaderTransform(
       "reader",
-      transformReader,
-      120
+      function(html, context) {
+        html = String(html == null ? "" : html);
+
+        if (html.includes(MARK)) return html;
+
+        const helperMarker = 'function show(id,push=true){';
+
+        if (!html.includes(helperMarker)) {
+          console.warn(
+            "[Game Initialize Tag] 找不到 Reader show() 插入位置",
+            context || {}
+          );
+          return html;
+        }
+
+        if (!html.includes(oldContentChoices)) {
+          console.warn(
+            "[Game Initialize Tag] 找不到 choices 建立位置",
+            context || {}
+          );
+          return html;
+        }
+
+        if (!html.includes(oldRenderTail)) {
+          console.warn(
+            "[Game Initialize Tag] 找不到 choice render 尾端",
+            context || {}
+          );
+          return html;
+        }
+
+        if (!html.includes(oldBind)) {
+          console.warn(
+            "[Game Initialize Tag] 找不到 choice click 綁定位置",
+            context || {}
+          );
+          return html;
+        }
+
+        html = html.replace(
+          helperMarker,
+          helperCode + "\n" + helperMarker
+        );
+
+        html = html.replace(
+          oldContentChoices,
+          newContentChoices
+        );
+
+        html = html.replace(
+          oldRenderTail,
+          newRenderTail
+        );
+
+        html = html.replace(
+          oldBind,
+          newBind
+        );
+
+        return html;
+      },
+      430
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 已啟用（正式輸出修正版）"
+      "遊戲初始化標籤 1.0.1 原生 choice＋指定開始頁版已啟用"
     );
 
     return function cleanup() {
