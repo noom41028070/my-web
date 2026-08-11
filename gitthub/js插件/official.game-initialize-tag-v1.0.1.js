@@ -6,7 +6,7 @@ FirehahaPlugins.register({
   setup(api) {
     "use strict";
 
-    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-start-page-hiddenrule-fix */";
+    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-page-number-fix */";
 
     const helperCode = String.raw`
 ${MARK}
@@ -254,6 +254,30 @@ function firehahaStartNewGameAt(startId){
 
   let target=String(startId||"").trim();
 
+  /*
+   * Firehaha 的 [jump:N] 使用的是「第 N 頁」概念，
+   * 但 Reader show() 真正吃的是 page.id。
+   * 因此 頁=2 必須先轉成 pages[1].id。
+   */
+  if(target){
+    const pageNumber=Number(target);
+
+    if(
+      Number.isInteger(pageNumber) &&
+      pageNumber>=1
+    ){
+      try{
+        const indexedPage=
+          pages &&
+          pages[pageNumber-1];
+
+        if(indexedPage&&indexedPage.id!=null){
+          target=String(indexedPage.id);
+        }
+      }catch(_){}
+    }
+  }
+
   if(!target){
     try{
       target=String((pages&&pages[0]&&pages[0].id)||"");
@@ -391,7 +415,7 @@ function firehahaStartNewGameAt(startId){
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 原生 choice＋hiddenRule 修正版已啟用"
+      "遊戲初始化標籤 1.0.1 頁碼轉換修正版已啟用"
     );
 
     return function cleanup() {
