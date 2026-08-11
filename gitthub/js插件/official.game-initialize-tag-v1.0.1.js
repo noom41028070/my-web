@@ -6,7 +6,7 @@ FirehahaPlugins.register({
   setup(api) {
     "use strict";
 
-    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-restart-reset-param */";
+    const MARK = "/* firehaha-game-initialize-tag-v1.0.1-native-choice-real-restart-param */";
 
     const helperCode = String.raw`
 ${MARK}
@@ -187,108 +187,20 @@ function firehahaStripInitTags(html){
 function firehahaStartNewGameAt(startId,useRestartReset){
   const core=window.FirehahaNewGameSaveSlots;
 
-  if(!core||typeof core.resetRuntime!=="function"){
+  if(!core){
     const fallback=document.querySelector(".firehaha-new-game-btn");
-    if(fallback){
-      fallback.click();
-      return;
-    }
-    if(typeof toast==="function"){
-      toast("請先啟用重新開始／存檔槽 1.0.5");
-    }
+    if(fallback){fallback.click();return;}
+    if(typeof toast==="function")toast("請先啟用重新開始／存檔槽 1.0.5");
     return;
   }
-
-  if(!window.confirm("確定要開始新的遊戲嗎？目前未存檔的進度將會被清除。")){
-    return;
-  }
-
-  try{
-    if(core.lifecycle&&typeof core.lifecycle.run==="function"){
-      core.lifecycle.run(
-        "before-restart",
-        {source:"initialize-tag",startId:String(startId||"")}
-      );
-    }
-  }catch(_){}
-
-  core.resetRuntime();
-
-  const slots=
-    memorySave&&Array.isArray(memorySave.slots)
-      ? memorySave.slots
-      : [];
-
-  memorySave={
-    slots:slots,
-    auto:null,
-    adventure:{
-      items:[],
-      flags:[],
-      values:{},
-      attributes:{},
-      modifiers:{},
-      skills:{},
-      skillModifiers:{},
-      quests:{},
-      dice:{},
-      checks:{},
-      checkBands:{},
-      damage:{},
-      damageRules:{},
-      successDice:{},
-      diceModelVersion:2,
-      applied:{},
-      definitionApplied:{},
-      names:{},
-      createdDisplayTags:{}
-    }
-  };
-
-  core.resetRuntime();
-
-  /*
-   * |重新開始 / |完整重置
-   * 直接沿用 official.new-game-and-save-slots 1.0.5
-   * 公開的 resetRuntime() 協調器再跑一次。
-   * 這樣骰子、RollOnceGuard、DamageDice、OpposedDice、
-   * AutoDice、媒體等已知 Runtime 都走同一套官方重置流程。
-   */
-  if(useRestartReset){
-    try{
-      core.resetRuntime();
-    }catch(error){
-      console.warn("[初始化] 重新開始 Runtime 重置失敗",error);
-    }
-  }
-
-  try{
-    if(Array.isArray(history))history.length=0;
-  }catch(_){}
-
-  try{
-    if(typeof persist==="function")persist();
-  }catch(_){}
 
   let target=String(startId||"").trim();
 
-  /*
-   * Firehaha 的 [jump:N] 使用的是「第 N 頁」概念，
-   * 但 Reader show() 真正吃的是 page.id。
-   * 因此 頁=2 必須先轉成 pages[1].id。
-   */
   if(target){
     const pageNumber=Number(target);
-
-    if(
-      Number.isInteger(pageNumber) &&
-      pageNumber>=1
-    ){
+    if(Number.isInteger(pageNumber)&&pageNumber>=1){
       try{
-        const indexedPage=
-          pages &&
-          pages[pageNumber-1];
-
+        const indexedPage=pages&&pages[pageNumber-1];
         if(indexedPage&&indexedPage.id!=null){
           target=String(indexedPage.id);
         }
@@ -297,33 +209,96 @@ function firehahaStartNewGameAt(startId,useRestartReset){
   }
 
   if(!target){
-    try{
-      target=String((pages&&pages[0]&&pages[0].id)||"");
-    }catch(_){
-      target="";
-    }
+    try{target=String((pages&&pages[0]&&pages[0].id)||"");}
+    catch(_){target="";}
   }
 
-  if(target&&typeof show==="function"){
-    show(target,false);
+  /*
+   * |重新開始 / |完整重置
+   * 真正交給官方 restartStory()，不再額外重複 resetRuntime()。
+   * after-restart 完成後才導到指定頁。
+   */
+  if(useRestartReset){
+    if(typeof core.restartStory!=="function"){
+      if(typeof toast==="function")toast("目前重新開始核心沒有 restartStory() API");
+      return;
+    }
+
+    const lifecycle=core.lifecycle;
+    const hookName="official.game-initialize-tag.after-restart-jump";
+    let unregister=null;
+
+    if(lifecycle&&typeof lifecycle.register==="function"){
+      try{
+        unregister=lifecycle.register(hookName,{
+          "after-restart":function(){
+            try{
+              if(typeof unregister==="function")unregister();
+              else if(typeof lifecycle.unregister==="function")lifecycle.unregister(hookName);
+            }catch(_){}
+
+            if(target&&typeof show==="function"){
+              try{show(target,false)}catch(_){}
+              setTimeout(function(){
+                try{show(target,false)}catch(_){}
+              },0);
+            }
+          }
+        });
+      }catch(error){
+        console.warn("[初始化] after-restart 導航註冊失敗",error);
+      }
+    }
+
+    core.restartStory();
+    return;
   }
+
+  /* 普通初始化模式維持原邏輯 */
+  if(typeof core.resetRuntime!=="function"){
+    if(typeof toast==="function")toast("目前重新開始核心沒有 resetRuntime() API");
+    return;
+  }
+
+  if(!window.confirm("確定要開始新的遊戲嗎？目前未存檔的進度將會被清除。"))return;
+
+  try{
+    if(core.lifecycle&&typeof core.lifecycle.run==="function"){
+      core.lifecycle.run("before-restart",{source:"initialize-tag",startId:String(target||"")});
+    }
+  }catch(_){}
+
+  core.resetRuntime();
+
+  const slots=memorySave&&Array.isArray(memorySave.slots)?memorySave.slots:[];
+
+  memorySave={
+    slots:slots,
+    auto:null,
+    adventure:{
+      items:[],flags:[],values:{},attributes:{},modifiers:{},skills:{},
+      skillModifiers:{},quests:{},dice:{},checks:{},checkBands:{},
+      damage:{},damageRules:{},successDice:{},diceModelVersion:2,
+      applied:{},definitionApplied:{},names:{},createdDisplayTags:{}
+    }
+  };
+
+  core.resetRuntime();
+
+  try{if(Array.isArray(history))history.length=0}catch(_){}
+  try{if(typeof persist==="function")persist()}catch(_){}
+
+  if(target&&typeof show==="function")show(target,false);
 
   setTimeout(function(){
     try{core.resetRuntime()}catch(_){}
-    try{
-      if(typeof renderAdventure==="function")renderAdventure();
-    }catch(_){}
-    try{
-      if(typeof persist==="function")persist();
-    }catch(_){}
+    try{if(typeof renderAdventure==="function")renderAdventure()}catch(_){}
+    try{if(typeof persist==="function")persist()}catch(_){}
   },0);
 
   try{
     if(core.lifecycle&&typeof core.lifecycle.run==="function"){
-      core.lifecycle.run(
-        "after-restart",
-        {source:"initialize-tag",startId:target}
-      );
+      core.lifecycle.run("after-restart",{source:"initialize-tag",startId:target});
     }
   }catch(_){}
 }
@@ -433,7 +408,7 @@ function firehahaStartNewGameAt(startId,useRestartReset){
     );
 
     api.toast(
-      "遊戲初始化標籤 1.0.1 重新開始參數版已啟用"
+      "遊戲初始化標籤 1.0.1 真正重新開始參數版已啟用"
     );
 
     return function cleanup() {
